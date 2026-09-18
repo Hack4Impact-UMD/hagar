@@ -4,7 +4,7 @@ import react from "@vitejs/plugin-react";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 
-const projectId = process.env.VITE_FIREBASE_PROJECT_ID ?? "demo-vtf-template";
+const projectId = process.env.VITE_FIREBASE_PROJECT_ID ?? "hagar-intl";
 const region = process.env.VITE_FUNCTIONS_REGION ?? "us-central1";
 const functionsPort = process.env.FUNCTIONS_EMULATOR_PORT ?? "5001";
 
