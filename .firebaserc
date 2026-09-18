@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "demo-vtf-template"
-  }
+    "default": "demo-hagar-intl",
+    "staging": "hagar-intl"
+  },
+  "targets": {},
+  "etags": {}
 }
