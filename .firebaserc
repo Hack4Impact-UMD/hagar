@@ -1,7 +1,6 @@
 {
   "projects": {
-    "default": "demo-hagar-intl",
-    "staging": "hagar-intl"
+    "default": "hagar-intl"
   },
   "targets": {},
   "etags": {}
