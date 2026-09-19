@@ -5,7 +5,9 @@ test("signs in, then navigates to a protected route", async ({ page }) => {
   await page.goto("/");
 
   // Public procedure: no token needed.
-  await expect(page.getByTestId("hello")).toHaveText("Hello, world! This is Hagar!");
+  await expect(page.getByTestId("hello")).toHaveText(
+    "Hello, world! This is Hagar!",
+  );
 
   // Protected procedure: the auth middleware rejects an anonymous caller.
   await expect(page.getByTestId("me-error")).toContainText("UNAUTHORIZED");
