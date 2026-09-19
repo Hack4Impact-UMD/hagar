@@ -34,9 +34,7 @@ function RootLayout() {
   return (
     <div className="mx-auto max-w-2xl px-6 py-12">
       <header className="mb-8 flex flex-wrap items-center gap-4">
-        <h1 className="mr-auto text-lg font-semibold">
-          Vite + tRPC + Firebase
-        </h1>
+        <h1 className="mr-auto text-lg font-semibold">Hagar Project</h1>
         <nav className="flex gap-4 text-sm">
           <NavLink to="/">Home</NavLink>
           {isAuthed && <NavLink to="/notes">Notes</NavLink>}

@@ -10,7 +10,7 @@ import { notesRouter } from "@backend/routers/notes.ts";
 export const appRouter = router({
   /** No token needed. Shows an arktype input shared through `@repo/common`. */
   hello: publicProcedure.input(helloInput).query(({ input }) => ({
-    greeting: `Hello, ${input.name}!`,
+    greeting: `Hello, ${input.name}! This is Hagar!`,
   })),
 
   /** Needs a valid token. Returns whatever the middleware resolved. */
