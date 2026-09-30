@@ -24,7 +24,7 @@ const signedIn = caller({
 describe("appRouter", () => {
   it("serves a public procedure without a token", async () => {
     await expect(anonymous.hello({ name: "world" })).resolves.toEqual({
-      greeting: "Hello, world!",
+      greeting: "Hello, world! This is Hagar!",
     });
   });
 
