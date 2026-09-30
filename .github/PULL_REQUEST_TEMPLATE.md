@@ -13,7 +13,7 @@ Closes #<issue number>
 
 ## Checklist
 
-- [ ] I have self-reviewed my changes
+- [ ] I have self-reviewed the full PR diff on GitHub and confirmed every changed line is intentional
 - [ ] My PR passes all checks
 - [ ] I have run the CodeRabbit review and addressed all comments (or replied with a reason why they are wrong)
 - [ ] I have included any tests required by the task description
