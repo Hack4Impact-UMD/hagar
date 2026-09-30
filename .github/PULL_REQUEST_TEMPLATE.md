@@ -1,54 +1,23 @@
 # Pull Request
 
+## Related Issue (REQUIRED)
+
+<!-- You MUST link the issue from the project board that this PR addresses.
+     Keep the word "Closes" so GitHub links the issue and closes it on merge. -->
+
+Closes #<issue number>
+
 ## Description
 
 <!-- Provide a clear and concise description of your changes -->
 
-## Type of Change
+## Checklist
 
-<!-- Mark the relevant option with an 'x' -->
+- [ ] I have self-reviewed my changes
+- [ ] My PR passes all checks
+- [ ] I have run the CodeRabbit review and addressed all comments (or replied with a reason why they are wrong)
+- [ ] I have included any tests required by the task description
 
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] Documentation update
-- [ ] Refactoring (no functional changes)
-- [ ] Performance improvement
-- [ ] Other (please describe):
-
-## Related Issues (put task name here from notion)
-
-<!-- Link any related issues here (e.g., Closes #123) -->
-
-## Pre-Submission Checklist
-
-### Code Review Preparation
-
-- [ ] I have performed a self-review and reviewed the changed files
-- [ ] My code follows the project's style guidelines and passes linting
-- [ ] I have added comments in hard-to-understand areas and updated documentation
-
-### Testing (Ignore for the first PR)
-
-- [ ] I have added relevant tests and they pass locally
-- [ ] I have tested the changes manually, including edge cases
-
-### Code Quality & Security
-
-- [ ] I have formatted my code and removed debugging/unused code
-- [ ] No TypeScript errors or linting issues
-- [ ] No sensitive information committed (API keys, passwords, etc.)
-- [ ] User inputs are validated and sanitized
-
-### Dependencies & Deployment
-
-- [ ] Dependencies are documented and pnpm-lock.yaml is updated if needed
-- [ ] Changes work with Firebase emulator and environment variables are documented
-
-## Screenshots (If it is a front end feature screenshot is required)
+## Screenshots (required for front-end features)
 
 <!-- If applicable, add screenshots to help explain your changes -->
-
-## Additional Notes
-
-<!-- Any additional information that reviewers should know -->
