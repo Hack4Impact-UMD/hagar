@@ -111,16 +111,16 @@ Meet our wonderful team of Product Managers, Tech Leads, Designers, Engineers, a
 <table align="center">
   <tr>
     <td align="center" width="150">
-      <a href="https://umd.hack4impact.org/">
-        <img src="docs/team-photos/FILENAME" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Name"/><br/>
-        <b>Name</b><br/><br/>
+      <a href="https://www.linkedin.com/in/joelchem/">
+        <img src="docs/team-photos/joel_chemmanur.jpeg" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Joel Chemmanur"/><br/>
+        <b>Joel Chemmanur</b><br/><br/>
         <img src="https://img.shields.io/badge/🛠️_technical_lead-FF5733?style=flat-square" alt="Technical Lead"/>
       </a>
     </td>
     <td align="center" width="150">
-      <a href="https://umd.hack4impact.org/">
-        <img src="docs/team-photos/FILENAME" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Name"/><br/>
-        <b>Name</b><br/><br/>
+      <a href="https://www.linkedin.com/in/aarav-verma">
+        <img src="docs/team-photos/aarav_verma.jpeg" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Aarav Verma"/><br/>
+        <b>Aarav Verma</b><br/><br/>
         <img src="https://img.shields.io/badge/🛠️_technical_lead-FF5733?style=flat-square" alt="Technical Lead"/>
       </a>
     </td>
