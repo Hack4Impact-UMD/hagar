@@ -1,0 +1,10 @@
+# Code owners for hagar.
+#
+# Tech leads own the entire repository, so every pull request gets a review
+# request routed to them automatically. Listing both on one rule means an
+# approval from *either* lead satisfies the code owner requirement.
+#
+# Note: this file only assigns ownership. Requiring the approval before merge
+# is a branch protection setting on `main` ("Require review from Code Owners").
+
+* @joelchem @constrictingsnake
