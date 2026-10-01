@@ -149,7 +149,7 @@ The instructions here are important to follow, messing up here will lead to issu
    | ------- | ------------------------------------------------------ |
    | Git     | Any recent version                                     |
    | Node.js | 22 or later                                            |
-   | pnpm    | 11 or later                                            |
+   | pnpm    | 11 or later (you can install with `npx get-pnpm`)      |
    | Java    | 21 or later (the Auth and Firestore emulators need it) |
 
    We recommend VS Code with these extensions:
@@ -171,7 +171,7 @@ The instructions here are important to follow, messing up here will lead to issu
    firebase login
    ```
 
-   Log in with the Google account you gave the Tech Leads. They will add you to the Hagar Firebase project. The repo is already linked to it (`hagar-intl`, in `.firebaserc`), so you don't need to add the project yourself. Run `firebase use` to check, it should print `hagar-intl`.
+   Log in with the Google account you gave the Tech Leads. They will add you to the Hagar Firebase project. The repo is already linked to it. Run `firebase use` to check, it should print `hagar-intl`.
 
 4. **Set up your `.env`.** The Tech Leads will send you a `.env` file. Put it in the root of the project, next to `.env.example`. If you haven't been sent one, copy the example and ask the Tech Leads for the values:
 
@@ -215,17 +215,13 @@ The instructions here are important to follow, messing up here will lead to issu
    git checkout -b <your-name>/<short-description>
    ```
 
-   **Never commit or push directly to `main`.** Every change goes through a PR, no matter how small.
-
-   As you work, `pnpm test:watch` reruns unit tests on every save
-
 3. **Commit and push your work.** Have small, focused commits instead of giant ones. Your commit message should say what the commit does, so someone reading `git log` can understand it without opening the diff.
 
    | Good                             | Bad       |
    | -------------------------------- | --------- |
    | `Add team photo for Aarav`       | `fix`     |
    | `Validate email on signup form`  | `stuff`   |
-   | `Fix redirect loop after logout` | `joelsux` |
+   | `Fix redirect loop after logout` | `aaravsux` |
 
    The first time you push your branch, set its upstream:
 
@@ -250,8 +246,8 @@ The instructions here are important to follow, messing up here will lead to issu
    think a comment is wrong, reply to it and explain why. Don't leave any
    comment without a fix or a reply.
 
-7. **Request review.** Once CI is green and CodeRabbit's comments are handled,
-   add **Joel** (@joelchem) and **Aarav** (@constrictingsnake) as reviewers, and update the tech leads in the private leadership chat.
+7. **Request review.** Once CI is green (which is when all the GitHub checks have a green checkmark) and CodeRabbit's comments are handled,
+   add **Joel** (@joelchem) and **Aarav** (@constrictingsnake) as reviewers, and ping the tech leads in the private leadership chat.
 
-8. **Respond to feedback.** Push fixes, re-request review, and merge once
+8. **Respond to feedback.** Push fixes, re-request review, ping in leadership slack again, and merge once
    the PR is approved.
