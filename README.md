@@ -217,10 +217,10 @@ The instructions here are important to follow, messing up here will lead to issu
 
 3. **Commit and push your work.** Have small, focused commits instead of giant ones. Your commit message should say what the commit does, so someone reading `git log` can understand it without opening the diff.
 
-   | Good                             | Bad       |
-   | -------------------------------- | --------- |
-   | `Add team photo for Aarav`       | `fix`     |
-   | `Validate email on signup form`  | `stuff`   |
+   | Good                             | Bad        |
+   | -------------------------------- | ---------- |
+   | `Add team photo for Aarav`       | `fix`      |
+   | `Validate email on signup form`  | `stuff`    |
    | `Fix redirect loop after logout` | `aaravsux` |
 
    The first time you push your branch, set its upstream:
