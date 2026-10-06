@@ -80,7 +80,7 @@ Meet our wonderful team of Product Managers, Tech Leads, Designers, Engineers, a
   <tr>
     <td align="center" width="150">
       <a href="https://www.linkedin.com/in/achyut-anoop/">
-        <img src="docs/team-photos/achyut_anoop.JPG" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Achyut Anoop"/><br/>
+        <img src="docs/team-photos/achyut_anoop.jp" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Achyut Anoop"/><br/>
         <b>Achyut Anoop</b><br/><br/>
         <img src="https://img.shields.io/badge/💻_engineer-27AE60?style=flat-square" alt="Engineer"/>
       </a>
