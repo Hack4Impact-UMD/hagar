@@ -79,9 +79,9 @@ Meet our wonderful team of Product Managers, Tech Leads, Designers, Engineers, a
 <table align="center">
   <tr>
     <td align="center" width="150">
-      <a href="https://umd.hack4impact.org/">
-        <img src="docs/team-photos/FILENAME" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Name"/><br/>
-        <b>Achyut</b><br/><br/>
+      <a href="https://www.linkedin.com/in/achyut-anoop/">
+        <img src="docs/team-photos/achyut_anoop.jpg" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Achyut Anoop"/><br/>
+        <b>Achyut Anoop</b><br/><br/>
         <img src="https://img.shields.io/badge/💻_engineer-27AE60?style=flat-square" alt="Engineer"/>
       </a>
     </td>
