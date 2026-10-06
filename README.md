@@ -100,9 +100,9 @@ Meet our wonderful team of Product Managers, Tech Leads, Designers, Engineers, a
       </a>
     </td>
     <td align="center" width="150">
-      <a href="https://umd.hack4impact.org/">
-        <img src="docs/team-photos/FILENAME" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Name"/><br/>
-        <b>Nazeer</b><br/><br/>
+      <a href="https://www.linkedin.com/in/syednahm">
+        <img src="docs/team-photos/nazeer_ahmed.jpeg" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Nazeer Ahmed"/><br/>
+        <b>Nazeer Ahmed</b><br/><br/>
         <img src="https://img.shields.io/badge/💻_engineer-27AE60?style=flat-square" alt="Engineer"/>
       </a>
     </td>
@@ -116,16 +116,16 @@ Meet our wonderful team of Product Managers, Tech Leads, Designers, Engineers, a
       </a>
     </td>
     <td align="center" width="150">
-      <a href="https://umd.hack4impact.org/">
-        <img src="docs/team-photos/FILENAME" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Name"/><br/>
-        <b>Srihas</b><br/><br/>
+      <a href="https://www.linkedin.com/in/srihas-inaganti/">
+        <img src="docs/team-photos/srihas_inaganti.jpg" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Srihas Inaganti"/><br/>
+        <b>Srihas Inaganti</b><br/><br/>
         <img src="https://img.shields.io/badge/💻_engineer-27AE60?style=flat-square" alt="Engineer"/>
       </a>
     </td>
     <td align="center" width="150">
-      <a href="https://umd.hack4impact.org/">
-        <img src="docs/team-photos/FILENAME" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Name"/><br/>
-        <b>Stanley</b><br/><br/>
+      <a href="https://www.linkedin.com/in/xustanley">
+        <img src="docs/team-photos/stanley_xu.jpeg" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Stanley Xu"/><br/>
+        <b>Stanley Xu</b><br/><br/>
         <img src="https://img.shields.io/badge/💻_engineer-27AE60?style=flat-square" alt="Engineer"/>
       </a>
     </td>
