@@ -1,12 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { auth } from "@frontend/lib/firebase.ts";
 
-export const Route = createFileRoute("/")({ component: Home });
+export const Route = createFileRoute("/awaiting-approval")({
+  component: AwaitingApproval,
+});
 
-function Home() {
+function AwaitingApproval() {
   return (
     <main className="flex flex-col gap-4 p-6">
-      <h1 data-testid="homepage">Homepage</h1>
+      <h1>Awaiting approval</h1>
+      <p data-testid="awaiting-approval">
+        Waiting for admin approval. Come back later once the admin approves you!
+      </p>
       <button
         type="button"
         data-testid="sign-out"

@@ -1,22 +1,18 @@
-import { helloInput } from "@repo/common";
 import {
   createCallerFactory,
   protectedProcedure,
-  publicProcedure,
   router,
 } from "@backend/trpc/init.ts";
-import { notesRouter } from "@backend/routers/notes.ts";
+import { usersRouter } from "@backend/routers/users.ts";
+import { getOrCreateUserProfile } from "@backend/services/users.ts";
 
 export const appRouter = router({
-  /** No token needed. Shows an arktype input shared through `@repo/common`. */
-  hello: publicProcedure.input(helloInput).query(({ input }) => ({
-    greeting: `Hello, ${input.name}! This is Hagar!`,
-  })),
+  /** Needs a valid token. Returns the caller's profile, creating it on first call. */
+  me: protectedProcedure.query(({ ctx }) =>
+    getOrCreateUserProfile(ctx.db, ctx.session),
+  ),
 
-  /** Needs a valid token. Returns whatever the middleware resolved. */
-  me: protectedProcedure.query(({ ctx }) => ctx.session),
-
-  notes: notesRouter,
+  users: usersRouter,
 });
 
 export type AppRouter = typeof appRouter;
