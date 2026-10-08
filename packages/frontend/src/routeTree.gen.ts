@@ -9,16 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRouteRouteImport } from './routes/_app/route'
 import { Route as AwaitingApprovalRouteImport } from './routes/awaiting-approval'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ProfileSetupRouteImport } from './routes/profile-setup'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
+import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppProfileRouteImport } from './routes/_app/profile'
+import { Route as AppUserManagementRouteImport } from './routes/_app/user-management'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AppRouteRoute = AppRouteRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AwaitingApprovalRoute = AwaitingApprovalRouteImport.update({
@@ -46,31 +48,53 @@ const VerifyEmailRoute = VerifyEmailRouteImport.update({
   path: '/verify-email',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppUserManagementRoute = AppUserManagementRouteImport.update({
+  id: '/user-management',
+  path: '/user-management',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof AppIndexRoute
   '/awaiting-approval': typeof AwaitingApprovalRoute
   '/login': typeof LoginRoute
   '/profile-setup': typeof ProfileSetupRoute
   '/signup': typeof SignupRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/profile': typeof AppProfileRoute
+  '/user-management': typeof AppUserManagementRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/awaiting-approval': typeof AwaitingApprovalRoute
   '/login': typeof LoginRoute
   '/profile-setup': typeof ProfileSetupRoute
   '/signup': typeof SignupRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/profile': typeof AppProfileRoute
+  '/user-management': typeof AppUserManagementRoute
+  '/': typeof AppIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/_app': typeof AppRouteRouteWithChildren
   '/awaiting-approval': typeof AwaitingApprovalRoute
   '/login': typeof LoginRoute
   '/profile-setup': typeof ProfileSetupRoute
   '/signup': typeof SignupRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/_app/profile': typeof AppProfileRoute
+  '/_app/user-management': typeof AppUserManagementRoute
+  '/_app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,26 +105,33 @@ export interface FileRouteTypes {
     | '/profile-setup'
     | '/signup'
     | '/verify-email'
+    | '/profile'
+    | '/user-management'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/awaiting-approval'
     | '/login'
     | '/profile-setup'
     | '/signup'
     | '/verify-email'
+    | '/profile'
+    | '/user-management'
+    | '/'
   id:
     | '__root__'
-    | '/'
+    | '/_app'
     | '/awaiting-approval'
     | '/login'
     | '/profile-setup'
     | '/signup'
     | '/verify-email'
+    | '/_app/profile'
+    | '/_app/user-management'
+    | '/_app/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  AppRouteRoute: typeof AppRouteRouteWithChildren
   AwaitingApprovalRoute: typeof AwaitingApprovalRoute
   LoginRoute: typeof LoginRoute
   ProfileSetupRoute: typeof ProfileSetupRoute
@@ -110,11 +141,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
+    '/_app': {
+      id: '/_app'
+      path: ''
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof AppRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/awaiting-approval': {
@@ -152,11 +183,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VerifyEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/': {
+      id: '/_app/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/profile': {
+      id: '/_app/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/user-management': {
+      id: '/_app/user-management'
+      path: '/user-management'
+      fullPath: '/user-management'
+      preLoaderRoute: typeof AppUserManagementRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
   }
 }
 
+interface AppRouteRouteChildren {
+  AppProfileRoute: typeof AppProfileRoute
+  AppUserManagementRoute: typeof AppUserManagementRoute
+  AppIndexRoute: typeof AppIndexRoute
+}
+
+const AppRouteRouteChildren: AppRouteRouteChildren = {
+  AppProfileRoute: AppProfileRoute,
+  AppUserManagementRoute: AppUserManagementRoute,
+  AppIndexRoute: AppIndexRoute,
+}
+
+const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
+  AppRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  AppRouteRoute: AppRouteRouteWithChildren,
   AwaitingApprovalRoute: AwaitingApprovalRoute,
   LoginRoute: LoginRoute,
   ProfileSetupRoute: ProfileSetupRoute,

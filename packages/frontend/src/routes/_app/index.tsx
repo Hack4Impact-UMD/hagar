@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { auth } from "@frontend/lib/firebase.ts";
 
-export const Route = createFileRoute("/")({ component: Home });
+export const Route = createFileRoute("/_app/")({ component: Home });
 
 function Home() {
   return (

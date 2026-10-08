@@ -3,7 +3,16 @@
   "compilerOptions": {
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["vite/client", "node"],
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    // Same aliases as tsconfig.base.json, written relative to this folder.
+    // The shadcn CLI resolves them against this package rather than the
+    // config that declares them, and `@frontend` must come first for it to
+    // pick that alias.
+    "paths": {
+      "@frontend/*": ["./src/*"],
+      "@common/*": ["../common/src/*"],
+      "@backend/*": ["../backend/src/*"]
+    }
   },
   "include": ["src", "vite.config.ts"]
 }

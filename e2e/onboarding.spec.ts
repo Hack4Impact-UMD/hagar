@@ -5,9 +5,14 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   // Signed out, every page leads to login.
   await page.goto("/");
   await expect(page).toHaveURL(/\/login$/);
+  await page.goto("/profile");
+  await expect(page).toHaveURL(/\/login$/);
 
   await page.getByRole("link", { name: "Sign up" }).click();
   await expect(page).toHaveURL(/\/signup$/);
+  // Routes load lazily, so the URL changes before the page does. Login has
+  // the same `email` field, which would otherwise receive the typing.
+  await expect(page.getByRole("heading", { name: "Sign up" })).toBeVisible();
   await page.getByTestId("email").fill(TEST_USER.email);
   await page.getByTestId("password").fill(TEST_USER.password);
   await page.getByTestId("create-account").click();
@@ -33,8 +38,11 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
     "Waiting for admin approval. Come back later once the admin approves you!",
   );
 
-  // Onboarding pages are off limits once the user has moved past them.
+  // Onboarding pages are off limits once the user has moved past them, and
+  // active-only pages are off limits until approval.
   await page.goto("/profile-setup");
+  await expect(page).toHaveURL(/\/awaiting-approval$/);
+  await page.goto("/user-management");
   await expect(page).toHaveURL(/\/awaiting-approval$/);
 
   await approveUser(TEST_USER.email);
@@ -42,8 +50,18 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByTestId("homepage")).toHaveText("Homepage");
 
+  await page.getByRole("link", { name: "Profile" }).click();
+  await expect(page.getByTestId("profile")).toHaveText("Profile");
+  await page.getByRole("link", { name: "Back to homepage" }).click();
+  await page.getByRole("link", { name: "User management" }).click();
+  await expect(page.getByTestId("user-management")).toHaveText(
+    "User management",
+  );
+  await page.getByRole("link", { name: "Back to homepage" }).click();
+
   await page.getByTestId("sign-out").click();
   await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();
 
   // An approved user goes straight to the homepage after logging in.
   await page.getByTestId("email").fill(TEST_USER.email);

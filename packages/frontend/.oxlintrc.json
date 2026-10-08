@@ -15,6 +15,8 @@
   "env": {
     "browser": true
   },
+  // Written by the shadcn CLI, which overwrites local edits on re-add.
+  "ignorePatterns": ["src/components/ui/**", "src/hooks/**"],
   "rules": {
     "react/rules-of-hooks": "error",
     "react/exhaustive-deps": "error",
