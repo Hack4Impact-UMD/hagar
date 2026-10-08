@@ -131,7 +131,7 @@ Meet our wonderful team of Product Managers, Tech Leads, Designers, Engineers, a
     </td>
     <td align="center" width="150">
       <a href="https://www.linkedin.com/in/yuvanadarsh/">
-        <img src="docs/team-photos/FILENAME" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Name"/><br/>
+        <img src="docs/team-photos/yuvan_jagannathan.jpeg" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Name"/><br/>
         <b>Yuvan</b><br/><br/>
         <img src="https://img.shields.io/badge/💻_engineer-27AE60?style=flat-square" alt="Engineer"/>
       </a>
