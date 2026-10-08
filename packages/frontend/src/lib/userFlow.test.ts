@@ -13,7 +13,8 @@ const PAGES = [
   "/verify-email",
   "/awaiting-approval",
   "/",
-  "/some-future-page",
+  "/profile",
+  "/user-management",
 ];
 
 describe("redirectFor", () => {
@@ -27,8 +28,7 @@ describe("redirectFor", () => {
   it.each(cases)("pins a user who is %s to %s", (_, profile, home) => {
     expect(homeFor(profile)).toBe(home);
     for (const page of PAGES) {
-      const allowed =
-        page === home || (profile === null && page === "/signup");
+      const allowed = page === home || (profile === null && page === "/signup");
       // Wrapping the page in the assertion names it in any failure.
       expect({ page, to: redirectFor(profile, page) }).toEqual({
         page,
@@ -40,10 +40,17 @@ describe("redirectFor", () => {
   it("lets an active user anywhere except sign-in and onboarding", () => {
     const active = profileIn("ACTIVE");
     expect(homeFor(active)).toBe("/");
-    expect(redirectFor(active, "/")).toBeNull();
-    expect(redirectFor(active, "/some-future-page")).toBeNull();
+    for (const page of ["/", "/profile", "/user-management"]) {
+      expect({ page, to: redirectFor(active, page) }).toEqual({
+        page,
+        to: null,
+      });
+    }
     for (const page of PAGES.slice(0, 5)) {
-      expect({ page, to: redirectFor(active, page) }).toEqual({ page, to: "/" });
+      expect({ page, to: redirectFor(active, page) }).toEqual({
+        page,
+        to: "/",
+      });
     }
   });
 });
