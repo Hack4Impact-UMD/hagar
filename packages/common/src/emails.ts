@@ -17,7 +17,7 @@ export const EmailList = type({
   snapshots: EmailListCountSnapshot.array().atLeastLength(1),
 });
 export const EmailCampaignSnapshot = type({
-  fetchedAt: count,
+  fetchedAt: type("Date"),
   bounced: count,
   uniqOpens: count,
   uniqClicks: count,
