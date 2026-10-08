@@ -10,49 +10,102 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
-import { Route as AuthenticatedNotesRouteImport } from './routes/_authenticated/notes'
+import { Route as AwaitingApprovalRouteImport } from './routes/awaiting-approval'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as ProfileSetupRouteImport } from './routes/profile-setup'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
+const AwaitingApprovalRoute = AwaitingApprovalRouteImport.update({
+  id: '/awaiting-approval',
+  path: '/awaiting-approval',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedNotesRoute = AuthenticatedNotesRouteImport.update({
-  id: '/notes',
-  path: '/notes',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileSetupRoute = ProfileSetupRouteImport.update({
+  id: '/profile-setup',
+  path: '/profile-setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/notes': typeof AuthenticatedNotesRoute
+  '/awaiting-approval': typeof AwaitingApprovalRoute
+  '/login': typeof LoginRoute
+  '/profile-setup': typeof ProfileSetupRoute
+  '/signup': typeof SignupRoute
+  '/verify-email': typeof VerifyEmailRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/notes': typeof AuthenticatedNotesRoute
+  '/awaiting-approval': typeof AwaitingApprovalRoute
+  '/login': typeof LoginRoute
+  '/profile-setup': typeof ProfileSetupRoute
+  '/signup': typeof SignupRoute
+  '/verify-email': typeof VerifyEmailRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/_authenticated/notes': typeof AuthenticatedNotesRoute
+  '/awaiting-approval': typeof AwaitingApprovalRoute
+  '/login': typeof LoginRoute
+  '/profile-setup': typeof ProfileSetupRoute
+  '/signup': typeof SignupRoute
+  '/verify-email': typeof VerifyEmailRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/notes'
+  fullPaths:
+    | '/'
+    | '/awaiting-approval'
+    | '/login'
+    | '/profile-setup'
+    | '/signup'
+    | '/verify-email'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/notes'
-  id: '__root__' | '/' | '/_authenticated' | '/_authenticated/notes'
+  to:
+    | '/'
+    | '/awaiting-approval'
+    | '/login'
+    | '/profile-setup'
+    | '/signup'
+    | '/verify-email'
+  id:
+    | '__root__'
+    | '/'
+    | '/awaiting-approval'
+    | '/login'
+    | '/profile-setup'
+    | '/signup'
+    | '/verify-email'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AwaitingApprovalRoute: typeof AwaitingApprovalRoute
+  LoginRoute: typeof LoginRoute
+  ProfileSetupRoute: typeof ProfileSetupRoute
+  SignupRoute: typeof SignupRoute
+  VerifyEmailRoute: typeof VerifyEmailRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -64,37 +117,51 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+    '/awaiting-approval': {
+      id: '/awaiting-approval'
+      path: '/awaiting-approval'
+      fullPath: '/awaiting-approval'
+      preLoaderRoute: typeof AwaitingApprovalRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/notes': {
-      id: '/_authenticated/notes'
-      path: '/notes'
-      fullPath: '/notes'
-      preLoaderRoute: typeof AuthenticatedNotesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile-setup': {
+      id: '/profile-setup'
+      path: '/profile-setup'
+      fullPath: '/profile-setup'
+      preLoaderRoute: typeof ProfileSetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
 
-interface AuthenticatedRouteRouteChildren {
-  AuthenticatedNotesRoute: typeof AuthenticatedNotesRoute
-}
-
-const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedNotesRoute: AuthenticatedNotesRoute,
-}
-
-const AuthenticatedRouteRouteWithChildren =
-  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AwaitingApprovalRoute: AwaitingApprovalRoute,
+  LoginRoute: LoginRoute,
+  ProfileSetupRoute: ProfileSetupRoute,
+  SignupRoute: SignupRoute,
+  VerifyEmailRoute: VerifyEmailRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
