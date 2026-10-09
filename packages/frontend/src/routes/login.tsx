@@ -16,7 +16,7 @@ function Login() {
   });
 
   return (
-    <main className="flex flex-row w-full h-screen">
+    <main className="flex flex-row w-full">
       <div className="w-[50%] flex flex-col mx-8 my-7.25 gap-20">
         <img src="logo.png" alt="Hagar Logo" className="w-38.25" />
         <div className="flex flex-col mx-32">
