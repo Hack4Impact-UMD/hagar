@@ -28,7 +28,7 @@ function Signup() {
               createAccount.mutate();
             }}
           >
-            <p>
+            <p className="pt-2 pb-6">
               Already have an account?{" "}
               <Link to="/login" className="underline">
                 Log in
@@ -50,7 +50,7 @@ function Signup() {
               Password <input type="password" required value={password} data-testid="password" onChange={(event) => setPassword(event.target.value)} className="border h-15 px-4 rounded-[10px]" />
             </label>
             <a href="" className="flex justify-start pb-10 text-chart-3">
-              At least 8 character
+              At least 8 characters
             </a>
             <button
               type="submit"

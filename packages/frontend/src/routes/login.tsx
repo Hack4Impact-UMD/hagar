@@ -28,7 +28,7 @@ function Login() {
               logIn.mutate();
             }}
           >
-            <p>
+            <p className="pt-2 pb-6">
               Don't have an account yet?{" "}
               <Link to="/signup" className="underline">
                 Sign up
