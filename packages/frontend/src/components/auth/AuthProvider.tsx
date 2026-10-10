@@ -11,21 +11,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
+    let uid: string | null | undefined;
+
     return onIdTokenChanged(auth, (next) => {
-      if (next) {
-        setAuthState({
-          user: next,
-          isPending: false,
-          isAuthed: true,
-        });
+      const nextUid = next?.uid ?? null;
+      if (nextUid === uid) {
+        void queryClient.invalidateQueries();
       } else {
-        setAuthState({
-          user: null,
-          isPending: false,
-          isAuthed: false,
-        });
+        // Every cached query belongs to the previous user. Dropping them,
+        // rather than invalidating, keeps the route guards from reading the
+        // previous user's profile while a refetch is in flight.
+        queryClient.removeQueries();
+        uid = nextUid;
       }
-      void queryClient.invalidateQueries();
+
+      setAuthState({ user: next, isPending: false, isAuthed: next !== null });
     });
   }, [queryClient]);
 
