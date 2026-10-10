@@ -93,9 +93,9 @@ Meet our wonderful team of Product Managers, Tech Leads, Designers, Engineers, a
       </a>
     </td>
     <td align="center" width="150">
-      <a href="https://umd.hack4impact.org/">
-        <img src="docs/team-photos/FILENAME" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Name"/><br/>
-        <b>Indira</b><br/><br/>
+      <a href="https://www.linkedin.com/in/indira-shafii/">
+        <img src="docs/team-photos/indira_shafii.jpeg" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Indira Shafii"/><br/>
+        <b>Indira Shafii</b><br/><br/>
         <img src="https://img.shields.io/badge/💻_engineer-27AE60?style=flat-square" alt="Engineer"/>
       </a>
     </td>
