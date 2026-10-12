@@ -1,6 +1,6 @@
 import type { EmailCampaignRecord, EmailList } from "@repo/common";
 import { type } from "arktype";
-import { getDownloadURL, getStorage } from "firebase-admin/storage";
+import { getStorage } from "firebase-admin/storage";
 
 const CampaignMonitorError = type({
   Code: "number",
@@ -182,16 +182,11 @@ export async function updateCampaign(
     throw new Error(`${contentRes.status}: could not fetch campaign content`);
   }
 
-  const contentFile = getStorage()
+  const content = `email-campaigns/Campaign_Monitor/${platformCampaignID}.html`;
+  await getStorage()
     .bucket()
-    .file(`email-campaigns/Campaign_Monitor/${platformCampaignID}.html`);
-  await contentFile.save(await contentRes.text(), {
-    contentType: "text/html",
-    metadata: {
-      metadata: { firebaseStorageDownloadTokens: crypto.randomUUID() },
-    },
-  });
-  const content = new URL(await getDownloadURL(contentFile));
+    .file(content)
+    .save(await contentRes.text(), { contentType: "text/html" });
 
   const listsRes = await fetch(
     `${BASE_URL}/campaigns/${platformCampaignID}/listsandsegments.json`,
