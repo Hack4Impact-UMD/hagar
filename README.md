@@ -79,9 +79,9 @@ Meet our wonderful team of Product Managers, Tech Leads, Designers, Engineers, a
 <table align="center">
   <tr>
     <td align="center" width="150">
-      <a href="https://umd.hack4impact.org/">
-        <img src="docs/team-photos/FILENAME" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Name"/><br/>
-        <b>Achyut</b><br/><br/>
+      <a href="https://www.linkedin.com/in/achyut-anoop/">
+        <img src="docs/team-photos/achyut_anoop.JPG" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Achyut Anoop"/><br/>
+        <b>Achyut Anoop</b><br/><br/>
         <img src="https://img.shields.io/badge/💻_engineer-27AE60?style=flat-square" alt="Engineer"/>
       </a>
     </td>
@@ -93,9 +93,9 @@ Meet our wonderful team of Product Managers, Tech Leads, Designers, Engineers, a
       </a>
     </td>
     <td align="center" width="150">
-      <a href="https://umd.hack4impact.org/">
-        <img src="docs/team-photos/FILENAME" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Name"/><br/>
-        <b>Indira</b><br/><br/>
+      <a href="https://www.linkedin.com/in/indira-shafii/">
+        <img src="docs/team-photos/indira_shafii.jpeg" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Indira Shafii"/><br/>
+        <b>Indira Shafii</b><br/><br/>
         <img src="https://img.shields.io/badge/💻_engineer-27AE60?style=flat-square" alt="Engineer"/>
       </a>
     </td>
@@ -109,9 +109,9 @@ Meet our wonderful team of Product Managers, Tech Leads, Designers, Engineers, a
   </tr>
   <tr>
     <td align="center" width="150">
-      <a href="https://umd.hack4impact.org/">
-        <img src="docs/team-photos/FILENAME" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Name"/><br/>
-        <b>Saanvi</b><br/><br/>
+      <a href="https://www.linkedin.com/in/-saanvikataria">
+        <img src="docs/team-photos/saanvi_kataria.jpg" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Saanvi Kataria"/><br/>
+        <b>Saanvi Kataria</b><br/><br/>
         <img src="https://img.shields.io/badge/💻_engineer-27AE60?style=flat-square" alt="Engineer"/>
       </a>
     </td>
@@ -130,9 +130,9 @@ Meet our wonderful team of Product Managers, Tech Leads, Designers, Engineers, a
       </a>
     </td>
     <td align="center" width="150">
-      <a href="https://umd.hack4impact.org/">
-        <img src="docs/team-photos/FILENAME" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Name"/><br/>
-        <b>Yuvan</b><br/><br/>
+      <a href="https://www.linkedin.com/in/yuvanadarsh/">
+        <img src="docs/team-photos/yuvan_jagannathan.jpeg" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Yuvan Adarsh Jagannathan"/><br/>
+        <b>Yuvan Adarsh Jagannathan</b><br/><br/>
         <img src="https://img.shields.io/badge/💻_engineer-27AE60?style=flat-square" alt="Engineer"/>
       </a>
     </td>
