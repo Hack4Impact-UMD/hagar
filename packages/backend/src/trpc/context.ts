@@ -5,8 +5,9 @@ import { getFirestore } from "firebase-admin/firestore";
 
 /**
  * Reads the `Authorization: Bearer <id token>` header and verifies it with the
- * Admin SDK. An absent or invalid token is not an error here -- it produces an
- * anonymous context, and `protectedProcedure` decides what to reject.
+ * Admin SDK. An absent or invalid token, or one without an email, is not an
+ * error here -- it produces an anonymous context, and `protectedProcedure`
+ * decides what to reject.
  *
  * The Admin SDK reads `FIREBASE_AUTH_EMULATOR_HOST`, which the emulator sets.
  * The same code therefore runs against the emulator and against production.
@@ -23,9 +24,14 @@ async function resolveSession(header: string | undefined) {
 
   try {
     const token = await getAuth().verifyIdToken(header.slice("Bearer ".length));
+    // The app only signs users up with email and password. An account without
+    // an email comes from another sign-in provider enabled in the Firebase
+    // console, and could never pass email verification or be told apart by
+    // admins, so it is treated as signed out.
+    if (!token.email) return null;
     return {
       uid: token.uid,
-      email: token.email ?? null,
+      email: token.email,
       emailVerified: token.email_verified ?? false,
     } satisfies Session;
   } catch {
