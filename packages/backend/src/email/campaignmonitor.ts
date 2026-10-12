@@ -23,7 +23,6 @@ const CampaignListPage = type({
   NumberOfPages: "number",
 });
 
-
 const CampaignSummary = type({
   Name: "string",
   Recipients: "number.integer >= 0",
