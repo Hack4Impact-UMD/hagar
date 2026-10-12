@@ -4,6 +4,6 @@
  */
 export type Session = {
   uid: string;
-  email: string | null;
+  email: string;
   emailVerified: boolean;
 };

@@ -59,6 +59,11 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   );
   await page.getByRole("link", { name: "Back to homepage" }).click();
 
+  await page.goto("/no-such-page");
+  await expect(page.getByTestId("not-found")).toBeVisible();
+  await page.getByRole("link", { name: "Back to homepage" }).click();
+  await expect(page.getByTestId("homepage")).toBeVisible();
+
   await page.getByTestId("sign-out").click();
   await expect(page).toHaveURL(/\/login$/);
   await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();
