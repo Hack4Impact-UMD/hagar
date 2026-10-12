@@ -10,7 +10,7 @@ This repository contains the source code for Hagar's Analytics Management Platfo
 
 ## 👥 Meet the team
 
-Meet our wonderful team of Product Managers, Tech Leads, Designers, Engineers, and Mentors!
+Meet our wonderful team of Product Managers, Tech Leads, Designers, and Engineers!
 
 <table align="center">
   <tr>
@@ -53,21 +53,21 @@ Meet our wonderful team of Product Managers, Tech Leads, Designers, Engineers, a
 <table align="center">
   <tr>
     <td align="center" width="150">
-      <a href="https://umd.hack4impact.org/">
+      <a href="https://www.linkedin.com/in/anita-daniel/">
         <img src="docs/team-photos/anita_daniel.jpeg" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Anita Daniel"/><br/>
         <b>Anita Daniel</b><br/><br/>
         <img src="https://img.shields.io/badge/🎨_designer-9B59B6?style=flat-square" alt="Designer"/>
       </a>
     </td>
     <td align="center" width="150">
-      <a href="https://umd.hack4impact.org/">
+      <a href="https://www.linkedin.com/in/lucydavies29/">
         <img src="docs/team-photos/lucy_davies.png" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Lucy Davies"/><br/>
         <b>Lucy Davies</b><br/><br/>
         <img src="https://img.shields.io/badge/🎨_designer-9B59B6?style=flat-square" alt="Designer"/>
       </a>
     </td>
     <td align="center" width="150">
-      <a href="https://umd.hack4impact.org/">
+      <a href="https://www.linkedin.com/in/sophia-narido-192695320/">
         <img src="docs/team-photos/sophia_narido.png" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Sophia Narido"/><br/>
         <b>Sophia Narido</b><br/><br/>
         <img src="https://img.shields.io/badge/🎨_designer-9B59B6?style=flat-square" alt="Designer"/>
