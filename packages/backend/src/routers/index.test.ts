@@ -5,7 +5,7 @@ import type { Context } from "@backend/trpc/context.ts";
 import { createCaller } from "@backend/routers/index.ts";
 
 const details = {
-  photoUrl: "https://example.com/me.png",
+  photoPath: "profile-photos/user-1/123e4567-e89b-42d3-a456-426614174000.png",
   phoneNumber: "+15555550100",
   firstName: "Ada",
   lastName: "Lovelace",

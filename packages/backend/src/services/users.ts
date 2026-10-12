@@ -9,6 +9,7 @@ import type {
 } from "@repo/common";
 import { TRPCError } from "@trpc/server";
 import type { Firestore } from "firebase-admin/firestore";
+import { assertOwnProfilePhoto } from "@backend/services/profilePhotos.ts";
 
 const COLLECTION = "users";
 
@@ -49,7 +50,7 @@ export async function getOrCreateUserProfile(
     const profile: StoredUserProfile = {
       email: session.email,
       stage: "PROFILE SETUP",
-      photoUrl: null,
+      photoPath: null,
       phoneNumber: null,
       firstName: null,
       lastName: null,
@@ -79,7 +80,10 @@ export async function findUserProfile(
   return { uid: session.uid, ...parseOwn(snapshot.data(), session) };
 }
 
-/** Saves edits from the profile page. Returns the updated profile. */
+/**
+ * Saves edits from the profile page and deletes the photo a new one replaces.
+ * Returns the updated profile.
+ */
 export function updateProfile(
   _db: Firestore,
   _profile: ActiveUserProfile,
@@ -97,6 +101,7 @@ export async function completeProfile(
   session: Session,
   details: CompleteProfileInput,
 ): Promise<UserProfile> {
+  assertOwnProfilePhoto(session.uid, details.photoPath);
   const ref = db.collection(COLLECTION).doc(session.uid);
 
   const stored = await db.runTransaction(async (tx) => {

@@ -3,6 +3,10 @@ import type { UserRegion } from "@repo/common";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { auth } from "@frontend/lib/firebase.ts";
+import {
+  PROFILE_PHOTO_ACCEPT,
+  uploadProfilePhoto,
+} from "@frontend/lib/profilePhotos.ts";
 import { queryClient, trpc } from "@frontend/lib/trpc.ts";
 
 export const Route = createFileRoute("/profile-setup")({
@@ -13,7 +17,6 @@ const TEXT_FIELDS = [
   { name: "firstName", label: "First name", type: "text" },
   { name: "lastName", label: "Last name", type: "text" },
   { name: "phoneNumber", label: "Phone number", type: "tel" },
-  { name: "photoUrl", label: "Profile picture URL", type: "url" },
 ] as const;
 
 function ProfileSetup() {
@@ -28,6 +31,9 @@ function ProfileSetup() {
       },
     }),
   );
+  const uploadPhoto = useMutation({ mutationFn: uploadProfilePhoto });
+  const isPending = uploadPhoto.isPending || completeProfile.isPending;
+  const error = uploadPhoto.error ?? completeProfile.error;
 
   return (
     <main className="flex flex-col gap-4 p-6">
@@ -38,13 +44,19 @@ function ProfileSetup() {
           event.preventDefault();
           const form = new FormData(event.currentTarget);
           const text = (name: string) => String(form.get(name));
-          completeProfile.mutate({
-            firstName: text("firstName"),
-            lastName: text("lastName"),
-            phoneNumber: text("phoneNumber"),
-            photoUrl: text("photoUrl"),
-            // The select only offers `userRegions`; the server re-validates.
-            region: text("region") as UserRegion,
+          const photo = form.get("photo");
+          if (!(photo instanceof File)) return;
+          uploadPhoto.mutate(photo, {
+            onSuccess: (photoPath) =>
+              completeProfile.mutate({
+                firstName: text("firstName"),
+                lastName: text("lastName"),
+                phoneNumber: text("phoneNumber"),
+                photoPath,
+                // The select only offers `userRegions`; the server
+                // re-validates.
+                region: text("region") as UserRegion,
+              }),
           });
         }}
       >
@@ -60,6 +72,16 @@ function ProfileSetup() {
             />
           </label>
         ))}
+        <label>
+          Profile picture{" "}
+          <input
+            name="photo"
+            type="file"
+            accept={PROFILE_PHOTO_ACCEPT}
+            required
+            data-testid="photo"
+          />
+        </label>
         <label>
           Region{" "}
           <select
@@ -82,14 +104,12 @@ function ProfileSetup() {
         <button
           type="submit"
           data-testid="next"
-          disabled={completeProfile.isPending}
+          disabled={isPending}
           className="self-start border px-3 py-1"
         >
           Next
         </button>
-        {completeProfile.error ? (
-          <p role="alert">{completeProfile.error.message}</p>
-        ) : null}
+        {error ? <p role="alert">{error.message}</p> : null}
       </form>
       <button
         type="button"
