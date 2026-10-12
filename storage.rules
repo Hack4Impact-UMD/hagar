@@ -1,0 +1,19 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Each user uploads profile photos into their own folder, which is how
+    // the backend tells whose photo a path is. Clients may only add files:
+    // the backend, using the Admin SDK, replaces and deletes them.
+    match /profile-photos/{uid}/{file} {
+      allow read: if request.auth != null;
+      // Keep the types and the size cap in step with
+      // packages/common/src/profilePhoto.ts.
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && file.matches('[0-9a-f-]{36}[.](png|jpg|webp)')
+        && request.resource.contentType.matches('image/(png|jpeg|webp)')
+        && request.resource.size <= 5 * 1024 * 1024;
+    }
+  }
+}

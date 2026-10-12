@@ -1,4 +1,5 @@
 import { type } from "arktype";
+import { profilePhotoPath } from "@common/profilePhoto.ts";
 
 export const userRegions = [
   "US",
@@ -27,7 +28,6 @@ const storedBase = type({
 
 // Length caps exist only to bound abuse. They sit far above any real value,
 // so no genuine user should ever reach them.
-const photoUrl = type("string.url").and("string <= 4096");
 const phoneNumber = type("string <= 100");
 const name = type("string <= 500");
 
@@ -37,7 +37,7 @@ const name = type("string <= 500");
  */
 const incompleteDetails = type({
   stage: "'PROFILE SETUP'",
-  photoUrl: photoUrl.or("null"),
+  photoPath: profilePhotoPath.or("null"),
   phoneNumber: phoneNumber.or("null"),
   firstName: name.or("null"),
   lastName: name.or("null"),
@@ -47,7 +47,7 @@ const incompleteDetails = type({
 /** A user can only leave profile setup once their profile is complete. */
 const completeDetails = type({
   stage: "'EMAIL VERIFICATION' | 'AWAITING APPROVAL' | 'ACTIVE'",
-  photoUrl,
+  photoPath: profilePhotoPath,
   phoneNumber: phoneNumber.and("string >= 1"),
   firstName: name.and("string >= 1"),
   lastName: name.and("string >= 1"),
@@ -98,7 +98,7 @@ export function isAdminRole(role: UserRole): boolean {
  * Local Admins manage the user, so only admins may change it.
  */
 export const updateProfileInput = completeDetails
-  .pick("photoUrl", "phoneNumber", "firstName", "lastName")
+  .pick("photoPath", "phoneNumber", "firstName", "lastName")
   .partial()
   .onUndeclaredKey("reject");
 export type UpdateProfileInput = typeof updateProfileInput.infer;

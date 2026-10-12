@@ -17,7 +17,7 @@ import {
 import type { UserRegion } from "@common/user.ts";
 
 const details = {
-  photoUrl: "https://example.com/me.png",
+  photoPath: "profile-photos/user-1/123e4567-e89b-42d3-a456-426614174000.png",
   phoneNumber: "+15555550100",
   firstName: "Ada",
   lastName: "Lovelace",
@@ -27,7 +27,7 @@ const details = {
 const settingUp = {
   email: "ada@example.com",
   stage: "PROFILE SETUP",
-  photoUrl: null,
+  photoPath: null,
   phoneNumber: null,
   firstName: null,
   lastName: null,
@@ -80,7 +80,10 @@ describe("user schemas", () => {
   it("accepts only complete details from the setup form", () => {
     expect(completeProfileInput(details)).toEqual(details);
     expect(
-      completeProfileInput({ ...details, photoUrl: "not a url" }),
+      completeProfileInput({
+        ...details,
+        photoPath: "https://example.com/me.png",
+      }),
     ).toBeInstanceOf(type.errors);
     expect(completeProfileInput({ ...details, region: null })).toBeInstanceOf(
       type.errors,
@@ -97,12 +100,7 @@ describe("user schemas", () => {
   });
 
   it("caps the length of every free-text detail", () => {
-    const urlOfLength = (length: number) => {
-      const prefix = "https://example.com/";
-      return prefix + "a".repeat(length - prefix.length);
-    };
     const caps = [
-      ["photoUrl", 4096, urlOfLength],
       ["phoneNumber", 100, (length: number) => "1".repeat(length)],
       ["firstName", 500, (length: number) => "a".repeat(length)],
       ["lastName", 500, (length: number) => "a".repeat(length)],
@@ -142,7 +140,7 @@ describe("profile page schema", () => {
       firstName: "Grace",
     });
     const editable = {
-      photoUrl: details.photoUrl,
+      photoPath: details.photoPath,
       phoneNumber: details.phoneNumber,
       firstName: details.firstName,
       lastName: details.lastName,
@@ -152,7 +150,7 @@ describe("profile page schema", () => {
 
   it("keeps the details' rules on the fields it accepts", () => {
     expect(updateProfileInput({ firstName: "" })).toBeInstanceOf(type.errors);
-    expect(updateProfileInput({ photoUrl: "not a url" })).toBeInstanceOf(
+    expect(updateProfileInput({ photoPath: "not a path" })).toBeInstanceOf(
       type.errors,
     );
     expect(updateProfileInput({ lastName: null })).toBeInstanceOf(type.errors);

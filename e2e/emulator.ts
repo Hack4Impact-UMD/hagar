@@ -2,6 +2,7 @@ export const PROJECT_ID = "hagar-intl";
 export const REGION = "us-central1";
 export const AUTH_HOST = "http://127.0.0.1:9099";
 export const FIRESTORE_HOST = "http://127.0.0.1:8080";
+export const STORAGE_HOST = "http://127.0.0.1:9199";
 export const FUNCTIONS_HOST = "http://127.0.0.1:5001";
 
 export const TEST_USER = {

@@ -14,13 +14,22 @@ const auth = vi.hoisted(() => ({
 }));
 vi.mock("firebase-admin/auth", () => ({ getAuth: () => auth }));
 
+const photos = vi.hoisted(() => ({
+  deleteProfilePhotos: vi.fn<(uid: string) => Promise<void>>(),
+}));
+vi.mock("@backend/services/profilePhotos.ts", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  deleteProfilePhotos: photos.deleteProfilePhotos,
+}));
+
 beforeEach(() => {
   auth.deleteUser.mockReset();
   auth.deleteUser.mockImplementation(() => Promise.resolve());
+  photos.deleteProfilePhotos.mockReset();
+  photos.deleteProfilePhotos.mockImplementation(() => Promise.resolve());
 });
 
 const details = {
-  photoUrl: "https://example.com/me.png",
   phoneNumber: "+15555550100",
   firstName: "Ada",
   lastName: "Lovelace",
@@ -44,7 +53,7 @@ function user(
         ...base,
         role: fields.role,
         stage: "PROFILE SETUP",
-        photoUrl: null,
+        photoPath: null,
         phoneNumber: null,
         firstName: null,
         lastName: null,
@@ -52,7 +61,11 @@ function user(
       },
     ];
   }
-  return [uid, { ...base, ...details, ...fields } as StoredUserProfile];
+  const photoPath = `profile-photos/${uid}/123e4567-e89b-42d3-a456-426614174000.png`;
+  return [
+    uid,
+    { ...base, ...details, photoPath, ...fields } as StoredUserProfile,
+  ];
 }
 
 // Listed oldest first, so `createdAt` follows this order.
@@ -577,6 +590,16 @@ describe("deleteUser", () => {
     expect(auth.deleteUser).toHaveBeenCalledWith("usPending");
   });
 
+  it.fails("deletes the user's profile photos", async () => {
+    const { db } = seeded();
+
+    await deleteUser(db, actor("usLocal"), { uid: "usLocal2" });
+
+    expect(photos.deleteProfilePhotos).toHaveBeenCalledExactlyOnceWith(
+      "usLocal2",
+    );
+  });
+
   it.fails("lets a Local Admin delete an active user in their region", async () => {
     const { db, doc } = seeded();
 
@@ -608,6 +631,7 @@ describe("deleteUser", () => {
       expect(doc("users", uid)).toEqual(USERS[uid]);
     }
     expect(auth.deleteUser).not.toHaveBeenCalled();
+    expect(photos.deleteProfilePhotos).not.toHaveBeenCalled();
   });
 
   it.fails("forbids an admin from deleting themselves", async () => {
