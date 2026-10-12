@@ -1,22 +1,35 @@
 import { storedUserProfile } from "@repo/common";
 import type {
+  ActiveUserProfile,
   CompleteProfileInput,
   Session,
   StoredUserProfile,
+  UpdateProfileInput,
   UserProfile,
 } from "@repo/common";
 import { TRPCError } from "@trpc/server";
 import type { Firestore } from "firebase-admin/firestore";
+import { assertOwnProfilePhoto } from "@backend/services/profilePhotos.ts";
 
 const COLLECTION = "users";
 
 // Drops any stray fields in the document so they never reach the client.
-const parseStored = storedUserProfile.onUndeclaredKey("delete");
+export const parseStored = storedUserProfile.onUndeclaredKey("delete");
+
+/**
+ * Parses the caller's own document. Users change their email through Firebase
+ * Auth, which never notifies the backend, so the stored copy can be stale or
+ * missing and the token's email is used instead.
+ */
+function parseOwn(data: unknown, session: Session): StoredUserProfile {
+  return parseStored.assert({ ...(data as object), email: session.email });
+}
 
 /**
  * Returns the caller's profile, creating `users/{uid}` with defaults the first
- * time they are seen and recording a newly verified email. The transaction
- * keeps two concurrent calls from both writing.
+ * time they are seen, recording a newly verified email, and keeping the stored
+ * email in step with the token. The transaction keeps two concurrent calls
+ * from both writing.
  */
 export async function getOrCreateUserProfile(
   db: Firestore,
@@ -27,15 +40,17 @@ export async function getOrCreateUserProfile(
   const stored = await db.runTransaction(async (tx) => {
     const snapshot = await tx.get(ref);
     if (snapshot.exists) {
-      const current = parseStored.assert(snapshot.data());
+      const data = snapshot.data();
+      const current = parseOwn(data, session);
       const next = advanceIfVerified(current, session);
-      if (next !== current) tx.set(ref, next);
+      if (next !== current || data?.email !== session.email) tx.set(ref, next);
       return next;
     }
 
     const profile: StoredUserProfile = {
+      email: session.email,
       stage: "PROFILE SETUP",
-      photoUrl: null,
+      photoPath: null,
       phoneNumber: null,
       firstName: null,
       lastName: null,
@@ -48,7 +63,36 @@ export async function getOrCreateUserProfile(
     return profile;
   });
 
-  return { uid: session.uid, email: session.email, ...stored };
+  return { uid: session.uid, ...stored };
+}
+
+/**
+ * Returns the caller's profile, or `null` if they have none. Unlike
+ * `getOrCreateUserProfile` this never writes, so the procedure middleware can
+ * call it on every request.
+ */
+export async function findUserProfile(
+  db: Firestore,
+  session: Session,
+): Promise<UserProfile | null> {
+  const snapshot = await db.collection(COLLECTION).doc(session.uid).get();
+  if (!snapshot.exists) return null;
+  return { uid: session.uid, ...parseOwn(snapshot.data(), session) };
+}
+
+/**
+ * Saves edits from the profile page and deletes the photo a new one replaces.
+ * Returns the updated profile.
+ */
+export function updateProfile(
+  _db: Firestore,
+  _profile: ActiveUserProfile,
+  _details: UpdateProfileInput,
+): Promise<ActiveUserProfile> {
+  throw new TRPCError({
+    code: "NOT_IMPLEMENTED",
+    message: "users.updateProfile is not implemented yet.",
+  });
 }
 
 /** Saves the setup form and moves the user on to email verification. */
@@ -57,6 +101,7 @@ export async function completeProfile(
   session: Session,
   details: CompleteProfileInput,
 ): Promise<UserProfile> {
+  assertOwnProfilePhoto(session.uid, details.photoPath);
   const ref = db.collection(COLLECTION).doc(session.uid);
 
   const stored = await db.runTransaction(async (tx) => {
@@ -67,7 +112,7 @@ export async function completeProfile(
         message: "No profile exists for this user yet.",
       });
     }
-    const current = parseStored.assert(snapshot.data());
+    const current = parseOwn(snapshot.data(), session);
     if (current.stage !== "PROFILE SETUP") {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
@@ -77,6 +122,7 @@ export async function completeProfile(
 
     const next = advanceIfVerified(
       storedUserProfile.assert({
+        email: current.email,
         role: current.role,
         createdAt: current.createdAt,
         ...details,
@@ -88,7 +134,7 @@ export async function completeProfile(
     return next;
   });
 
-  return { uid: session.uid, email: session.email, ...stored };
+  return { uid: session.uid, ...stored };
 }
 
 /**
