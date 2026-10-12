@@ -27,12 +27,13 @@ export const EmailCampaignSnapshot = type({
 export const EmailCampaignRecord = type({
   platform: EmailPlatform,
   platformCampaignID: "string >= 1",
-  listIDs: "string[] >= 1",
+  listIDs: "string[]",
   name: "string",
   content: type("URL"),
   sentAt: type("Date"),
   sent: count,
   lastFetchedAt: type("Date"),
+  notes: "string",
   snapshots: EmailCampaignSnapshot.array().atLeastLength(1),
 });
 
