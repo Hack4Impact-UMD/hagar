@@ -4,7 +4,10 @@ import type {
   EmailCampaignSnapshot,
   EmailListCountSnapshot,
 } from "@repo/common";
-import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { getFirestore} from "firebase-admin/firestore";
+import { randomUUID } from "crypto";
+import { getStorage } from "firebase-admin/storage";
+
 
 const API_KEY = process.env.MAILCHIMP_API!;
 const BASE = "https://api.mailchimp.com/3.0";
@@ -19,6 +22,20 @@ async function get(path: string): Promise<any> {
   }
 
   return res.json();
+}
+
+async function saveCampaignHtml(campaignID: string): Promise<string>{
+    const {html} = await get(`/campaigns/${campaignID}/content?fields=html`);
+    if (!html){
+      throw new Error(`Campaign ${campaignID} has no HTML content`);
+    }
+
+    const path = `email-integrations/mail-chil/${randomUUID()}.html`
+    await getStorage().bucket().file(path).save(html, {
+      contentType:"text/html; charset=utf-8"
+    });
+
+    return path;
 }
 
 export async function getAllLists(): Promise<string[]> {
@@ -85,9 +102,7 @@ export async function getAllCampaigns(): Promise<string[]> {
   return ids;
 }
 
-export async function updateCampaign(
-  _platformCampaignID: string,
-): Promise<void> {
+export async function updateCampaign(_platformCampaignID: string,): Promise<void> {
   const campaign = await get(`/campaigns/${_platformCampaignID}`);
 
   if (campaign.status !== "sent") return;
@@ -120,12 +135,14 @@ export async function updateCampaign(
     latest.unsubscribers !== snapshot.unsubscribers ||
     latest.complaints !== snapshot.complaints;
 
+  const existingContent: string | undefined = doc.exists ? doc.data()!.content : undefined; 
+
   const record:EmailCampaignRecord = {
     platform:"MailChimp", 
     platformCampaignID: _platformCampaignID,
     listIDs: [campaign.recipients.list_id], 
     name:campaign.settings.title, 
-    content: campaign.long_archive_url,  //Placeholder, needs to be edited to filePath
+    content: existingContent || await saveCampaignHtml(_platformCampaignID),
     sentAt: new Date(campaign.send_time), 
     sent: report.emails_sent, 
     lastFetchedAt:now,
