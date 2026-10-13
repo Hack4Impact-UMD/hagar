@@ -9,6 +9,7 @@ import {
   klaviyoGet,
   klaviyoGetAllPages,
   klaviyoPostAllPages,
+  isKlaviyoNotFound,
 } from "@backend/email/klaviyoApi.ts";
 
 const LISTS_COLLECTION = "email-lists";
@@ -178,6 +179,22 @@ const reportPage = type({
           spam_complaints: "number",
         },
       }).array(),
+    },
+  },
+});
+const segmentResponse = type({
+  data: {
+    attributes: {
+      name: "string",
+      "definition?": type({
+        condition_groups: type({
+          conditions: type({
+            type: "string",
+            "is_member?": "boolean",
+            "group_ids?": "string[]",
+          }).array(),
+        }).array(),
+      }).or("null"),
     },
   },
 });
@@ -364,12 +381,111 @@ async function fetchCampaignStats(
   return totals;
 }
 
-/** Maps a campaign's Klaviyo audiences to the lists it was sent to, plus notes. */
-function resolveAudience(details: CampaignDetails): {
-  listIDs: string[];
-  notes: string;
-} {
-  return { listIDs: details.audiences.included, notes: "" };
+/**
+ * Lookups shared by every campaign in one `updateCampaigns` call, since
+ * campaigns often share audiences. Promises are stored so concurrent and
+ * repeated lookups of an ID make one request. It is created per call so a
+ * reused function instance never serves stale data.
+ */
+type AudienceCache = {
+  knownLists: Map<string, Promise<boolean>>;
+  /** `null` when the ID is not a segment. */
+  segments: Map<string, Promise<Segment | null>>;
+};
+
+type Segment = { name: string; memberOfListIDs: string[] };
+
+async function listExists(db: Firestore, id: string): Promise<boolean> {
+  const snapshot = await listRef(db, id).get();
+  return snapshot.exists;
+}
+
+function isKnownList(
+  db: Firestore,
+  cache: AudienceCache,
+  id: string,
+): Promise<boolean> {
+  let known = cache.knownLists.get(id);
+  if (!known) {
+    known = listExists(db, id);
+    cache.knownLists.set(id, known);
+  }
+  return known;
+}
+
+/** Resolves to `null` for a 404, which means the ID is a list, not a segment. */
+async function fetchSegment(id: string): Promise<Segment | null> {
+  try {
+    const { data } = await klaviyoGet(
+      `/api/segments/${encodeURIComponent(id)}`,
+      new URLSearchParams({ "fields[segment]": "name,definition" }),
+      segmentResponse,
+    );
+    const groups = data.attributes.definition?.condition_groups ?? [];
+    return {
+      name: data.attributes.name,
+      memberOfListIDs: groups
+        .flatMap((group) => group.conditions)
+        .filter(
+          (condition) =>
+            condition.type === "profile-group-membership" &&
+            condition.is_member === true,
+        )
+        .flatMap((condition) => condition.group_ids ?? []),
+    };
+  } catch (error) {
+    if (isKlaviyoNotFound(error)) return null;
+    throw error;
+  }
+}
+
+function getSegment(cache: AudienceCache, id: string): Promise<Segment | null> {
+  let segment = cache.segments.get(id);
+  if (!segment) {
+    segment = fetchSegment(id);
+    cache.segments.set(id, segment);
+  }
+  return segment;
+}
+
+/**
+ * Maps a campaign's Klaviyo audiences to the lists it was sent to, plus notes.
+ * Hagar shows who an email went to without modelling segments, so a segment's
+ * list-membership rules stand in as the closest lists and the segment names
+ * are kept in the notes. Nested segments are not followed, and an ID that
+ * Klaviyo does not know as a segment is taken to be a list not yet synced.
+ */
+async function resolveAudience(
+  db: Firestore,
+  cache: AudienceCache,
+  details: CampaignDetails,
+): Promise<{ listIDs: string[]; notes: string }> {
+  const listIDs = new Set<string>();
+  const segmentNames = new Set<string>();
+
+  for (const id of details.audiences.included) {
+    if (await isKnownList(db, cache, id)) {
+      listIDs.add(id);
+      continue;
+    }
+    const segment = await getSegment(cache, id);
+    if (segment === null) {
+      listIDs.add(id);
+      continue;
+    }
+    segmentNames.add(segment.name);
+    for (const groupID of segment.memberOfListIDs) {
+      if (await isKnownList(db, cache, groupID)) listIDs.add(groupID);
+    }
+  }
+
+  return {
+    listIDs: [...listIDs],
+    notes:
+      segmentNames.size === 0
+        ? ""
+        : `Sent to recipients in the following audience segments:\n\n${[...segmentNames].join("\n")}`,
+  };
 }
 
 /**
@@ -456,6 +572,7 @@ async function syncCampaign(
   details: CampaignDetails,
   stats: CampaignStats | undefined,
   now: Date,
+  cache: AudienceCache,
 ): Promise<void> {
   const ref = campaignRef(db, details.id);
   const preRead = await ref.get();
@@ -463,19 +580,25 @@ async function syncCampaign(
 
   // Network work happens before the transaction because Firestore may rerun
   // its callback.
+  if (isNew && !stats) {
+    logger.info("Skipping new Klaviyo campaign without stats yet", {
+      campaignID: details.id,
+    });
+    return;
+  }
+
+  // Without stats only `lastFetchedAt` is written, so the lookups would be
+  // wasted requests that could also fail the campaign needlessly. Resolved
+  // before the upload so a failed lookup leaves no orphaned screenshot.
+  const { listIDs, notes } = stats
+    ? await resolveAudience(db, cache, details)
+    : { listIDs: [], notes: "" };
+
   let contentPath: string | undefined;
   if (isNew) {
-    if (!stats) {
-      logger.info("Skipping new Klaviyo campaign without stats yet", {
-        campaignID: details.id,
-      });
-      return;
-    }
     contentPath = await storeCampaignScreenshot(details);
     if (contentPath === undefined) return;
   }
-
-  const { listIDs, notes } = resolveAudience(details);
   const snapshot = stats && {
     fetchedAt: now,
     bounced: stats.bounced,
@@ -558,6 +681,7 @@ export async function updateCampaigns(
   const stats = await fetchCampaignStats(ids);
   const now = new Date();
 
+  const cache: AudienceCache = { knownLists: new Map(), segments: new Map() };
   const failures: { id: string; error: unknown }[] = [];
   for (const id of ids) {
     const campaign = details.get(id);
@@ -568,7 +692,7 @@ export async function updateCampaigns(
       continue;
     }
     try {
-      await syncCampaign(db, campaign, stats.get(id), now);
+      await syncCampaign(db, campaign, stats.get(id), now, cache);
     } catch (error) {
       logger.error("Failed to sync Klaviyo campaign", {
         campaignID: id,

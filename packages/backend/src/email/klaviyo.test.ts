@@ -281,6 +281,11 @@ describe("updateCampaigns", () => {
     spam_complaints: 0,
   };
 
+  /** Seeds `email-lists` so these IDs resolve without a segment lookup. */
+  const knownLists = (...ids: string[]) => ({
+    "email-lists": Object.fromEntries(ids.map((id) => [`Klaviyo_${id}`, {}])),
+  });
+
   function campaign(id: string, overrides: Record<string, unknown> = {}) {
     return {
       type: "campaign",
@@ -392,7 +397,7 @@ describe("updateCampaigns", () => {
     ["more than 100 IDs", Array.from({ length: 101 }, (_, i) => `C${i}`)],
     ["an ID with illegal characters", ["C1", "x'),any(id,['y"]],
   ])("rejects %s before any request", async (_name, ids) => {
-    const { db } = fakeFirestore();
+    const { db } = fakeFirestore(knownLists("L1"));
 
     await expect(updateCampaigns(db, ids)).rejects.toThrow(/campaign ID/);
     expect(fetchMock).not.toHaveBeenCalled();
@@ -400,7 +405,7 @@ describe("updateCampaigns", () => {
 
   it("sends the details, metric, and one report request", async () => {
     const klaviyo = setup([campaign("C1"), campaign("C2")], []);
-    const { db } = fakeFirestore();
+    const { db } = fakeFirestore(knownLists("L1"));
 
     await updateCampaigns(db, ["C1", "C2", "C1"]);
 
@@ -457,7 +462,7 @@ describe("updateCampaigns", () => {
       ],
     );
     routeScreenshot(klaviyo, "C1", png());
-    const { db, doc } = fakeFirestore();
+    const { db, doc } = fakeFirestore(knownLists("L1"));
 
     await updateCampaigns(db, ["C1"]);
 
@@ -503,7 +508,7 @@ describe("updateCampaigns", () => {
       ],
     );
     routeScreenshot(klaviyo, "C1", png());
-    const { db, doc } = fakeFirestore();
+    const { db, doc } = fakeFirestore(knownLists("L1"));
 
     await updateCampaigns(db, ["C1"]);
 
@@ -514,7 +519,7 @@ describe("updateCampaigns", () => {
 
   it("writes nothing for a new campaign without stats", async () => {
     const klaviyo = setup([campaign("C1")], []);
-    const { db, doc } = fakeFirestore();
+    const { db, doc } = fakeFirestore(knownLists("L1"));
 
     await updateCampaigns(db, ["C1"]);
 
@@ -528,7 +533,7 @@ describe("updateCampaigns", () => {
   it("writes nothing for a new campaign without a screenshot URL", async () => {
     const klaviyo = setup([campaign("C1")], [row("C1", { recipients: 3 })]);
     routeScreenshot(klaviyo, "C1", png(), null);
-    const { db, doc } = fakeFirestore();
+    const { db, doc } = fakeFirestore(knownLists("L1"));
 
     await updateCampaigns(db, ["C1"]);
 
@@ -542,7 +547,7 @@ describe("updateCampaigns", () => {
       [campaign("C1", { send_time: null })],
       [row("C1", { recipients: 3 })],
     );
-    const { db, doc } = fakeFirestore();
+    const { db, doc } = fakeFirestore(knownLists("L1"));
 
     await updateCampaigns(db, ["C1"]);
 
@@ -557,6 +562,7 @@ describe("updateCampaigns", () => {
       vi.setSystemTime(t2);
       const klaviyo = setup([campaign("C1")], [row("C1", sameStats)]);
       const { db, doc } = fakeFirestore({
+        ...knownLists("L1"),
         "email-campaigns": { Klaviyo_C1: existingRecord() },
       });
 
@@ -582,6 +588,7 @@ describe("updateCampaigns", () => {
       vi.setSystemTime(t2);
       setup([campaign("C1")], [row("C1", { ...sameStats, opens_unique: 4 })]);
       const { db, doc } = fakeFirestore({
+        ...knownLists("L1"),
         "email-campaigns": { Klaviyo_C1: existingRecord() },
       });
 
@@ -605,6 +612,7 @@ describe("updateCampaigns", () => {
       vi.setSystemTime(t2);
       setup([campaign("C1")], []);
       const { db, doc } = fakeFirestore({
+        ...knownLists("L1"),
         "email-campaigns": { Klaviyo_C1: existingRecord() },
       });
 
@@ -623,7 +631,7 @@ describe("updateCampaigns", () => {
     );
     routeScreenshot(klaviyo, "C1", new Response("denied", { status: 403 }));
     routeScreenshot(klaviyo, "C2", png());
-    const { db, doc } = fakeFirestore();
+    const { db, doc } = fakeFirestore(knownLists("L1"));
 
     await expect(updateCampaigns(db, ["C1", "C2"])).rejects.toThrow(/C1/);
 
@@ -638,7 +646,7 @@ describe("updateCampaigns", () => {
       "C1",
       new Response("<html>", { headers: { "content-type": "text/html" } }),
     );
-    const { db, doc } = fakeFirestore();
+    const { db, doc } = fakeFirestore(knownLists("L1"));
 
     await expect(updateCampaigns(db, ["C1"])).rejects.toThrow(/C1/);
     expect(doc("email-campaigns", "Klaviyo_C1")).toBeUndefined();
@@ -651,9 +659,212 @@ describe("updateCampaigns", () => {
       [],
       [{ id: "X", attributes: { name: "Placed Order" } }],
     );
-    const { db } = fakeFirestore();
+    const { db } = fakeFirestore(knownLists("L1"));
 
     await expect(updateCampaigns(db, ["C1"])).rejects.toThrow(/Opened Email/);
     expect(klaviyo.to("POST", "/api/campaign-values-reports")).toEqual([]);
+  });
+
+  describe("audience resolution", () => {
+    const segmentNotes = (...names: string[]) =>
+      `Sent to recipients in the following audience segments:\n\n${names.join("\n")}`;
+
+    function segment(name: string, conditions: unknown[][]) {
+      return json({
+        data: {
+          type: "segment",
+          attributes: {
+            name,
+            definition: {
+              condition_groups: conditions.map((group) => ({
+                conditions: group,
+              })),
+            },
+          },
+        },
+      });
+    }
+
+    const membership = (isMember: boolean, ...groupIDs: string[]) => ({
+      type: "profile-group-membership",
+      is_member: isMember,
+      group_ids: groupIDs,
+      timeframe_filter: null,
+    });
+
+    const audience = (...included: string[]) => ({
+      audiences: { included, excluded: ["IGNORED"] },
+    });
+
+    /** One campaign with stats and a screenshot, ready to be created. */
+    function setupOne(included: string[], id = "C1") {
+      const klaviyo = setup(
+        [campaign(id, audience(...included))],
+        [row(id, { recipients: 3 })],
+      );
+      routeScreenshot(klaviyo, id, png());
+      return klaviyo;
+    }
+
+    it("keeps a known list without asking for a segment", async () => {
+      const klaviyo = setupOne(["L1"]);
+      const { db, doc } = fakeFirestore(knownLists("L1"));
+
+      await updateCampaigns(db, ["C1"]);
+
+      expect(doc("email-campaigns", "Klaviyo_C1")).toMatchObject({
+        listIDs: ["L1"],
+        notes: "",
+      });
+      expect(klaviyo.to("GET", "/api/segments/L1")).toEqual([]);
+    });
+
+    it("treats an ID that is not a segment as an unsynced list", async () => {
+      const klaviyo = setupOne(["NEWLIST"]);
+      klaviyo.on("GET", "/api/segments/NEWLIST", json({ errors: [] }, 404));
+      const { db, doc } = fakeFirestore();
+
+      await updateCampaigns(db, ["C1"]);
+
+      expect(doc("email-campaigns", "Klaviyo_C1")).toMatchObject({
+        listIDs: ["NEWLIST"],
+        notes: "",
+      });
+      const request = klaviyo.to("GET", "/api/segments/NEWLIST")[0];
+      expect(request?.url.searchParams.get("fields[segment]")).toBe(
+        "name,definition",
+      );
+    });
+
+    it("takes known lists from a segment's membership rules", async () => {
+      const klaviyo = setupOne(["SEG1"]);
+      klaviyo.on(
+        "GET",
+        "/api/segments/SEG1",
+        segment("Engaged (60 Days)", [
+          [membership(true, "L1")],
+          [
+            { type: "profile-metric", metric_id: "M", measurement: "count" },
+            membership(true, "L2", "UNKNOWN", "SEG2"),
+            membership(false, "L3"),
+          ],
+        ]),
+      );
+      const { db, doc } = fakeFirestore(knownLists("L1", "L2", "L3"));
+
+      await updateCampaigns(db, ["C1"]);
+
+      expect(doc("email-campaigns", "Klaviyo_C1")).toMatchObject({
+        listIDs: ["L1", "L2"],
+        notes: segmentNotes("Engaged (60 Days)"),
+      });
+      expect(klaviyo.to("GET", "/api/segments/SEG2")).toEqual([]);
+      expect(klaviyo.to("GET", "/api/segments/UNKNOWN")).toEqual([]);
+    });
+
+    it("lists every segment name and deduplicates lists in order", async () => {
+      const klaviyo = setupOne(["L2", "SEG1", "SEG2", "L1"]);
+      klaviyo.on(
+        "GET",
+        "/api/segments/SEG1",
+        segment("First", [[membership(true, "L1", "L2")]]),
+      );
+      klaviyo.on(
+        "GET",
+        "/api/segments/SEG2",
+        segment("Second", [[membership(true, "L1")]]),
+      );
+      const { db, doc } = fakeFirestore(knownLists("L1", "L2"));
+
+      await updateCampaigns(db, ["C1"]);
+
+      expect(doc("email-campaigns", "Klaviyo_C1")).toMatchObject({
+        listIDs: ["L2", "L1"],
+        notes: segmentNotes("First", "Second"),
+      });
+    });
+
+    it("treats a segment without a definition as having no rules", async () => {
+      const klaviyo = setupOne(["SEG1"]);
+      klaviyo.on(
+        "GET",
+        "/api/segments/SEG1",
+        json({ data: { attributes: { name: "Empty", definition: null } } }),
+      );
+      const { db, doc } = fakeFirestore();
+
+      await updateCampaigns(db, ["C1"]);
+
+      expect(doc("email-campaigns", "Klaviyo_C1")).toMatchObject({
+        listIDs: [],
+        notes: segmentNotes("Empty"),
+      });
+    });
+
+    it("looks up a segment shared by two campaigns once", async () => {
+      const klaviyo = setup(
+        [campaign("C1", audience("SEG1")), campaign("C2", audience("SEG1"))],
+        [row("C1", { recipients: 3 }), row("C2", { recipients: 4 })],
+      );
+      routeScreenshot(klaviyo, "C1", png());
+      routeScreenshot(klaviyo, "C2", png());
+      klaviyo.on(
+        "GET",
+        "/api/segments/SEG1",
+        segment("Shared", [[membership(true, "L1")]]),
+      );
+      const { db, doc } = fakeFirestore(knownLists("L1"));
+
+      await updateCampaigns(db, ["C1", "C2"]);
+
+      expect(klaviyo.to("GET", "/api/segments/SEG1")).toHaveLength(1);
+      for (const id of ["C1", "C2"]) {
+        expect(doc("email-campaigns", `Klaviyo_${id}`)).toMatchObject({
+          listIDs: ["L1"],
+          notes: segmentNotes("Shared"),
+        });
+      }
+    });
+
+    it("fails only the campaign whose segment lookup errors", async () => {
+      const klaviyo = setup(
+        [campaign("C1", audience("SEG1")), campaign("C2", audience("L1"))],
+        [row("C1", { recipients: 3 }), row("C2", { recipients: 4 })],
+      );
+      routeScreenshot(klaviyo, "C1", png());
+      routeScreenshot(klaviyo, "C2", png());
+      klaviyo.on("GET", "/api/segments/SEG1", json({ errors: [] }, 403));
+      const { db, doc } = fakeFirestore(knownLists("L1"));
+
+      await expect(updateCampaigns(db, ["C1", "C2"])).rejects.toThrow(/C1/);
+
+      expect(doc("email-campaigns", "Klaviyo_C1")).toBeUndefined();
+      expect(doc("email-campaigns", "Klaviyo_C2")?.listIDs).toEqual(["L1"]);
+    });
+
+    it("refreshes the lists and notes of an existing campaign", async () => {
+      const klaviyo = setup(
+        [campaign("C1", audience("SEG1"))],
+        [row("C1", { recipients: 5, opens_unique: 2, clicks_unique: 1 })],
+      );
+      klaviyo.on(
+        "GET",
+        "/api/segments/SEG1",
+        segment("Engaged", [[membership(true, "L2")]]),
+      );
+      const { db, doc } = fakeFirestore({
+        ...knownLists("L2"),
+        "email-campaigns": {
+          Klaviyo_C1: existingRecord({ notes: "stale" }),
+        },
+      });
+
+      await updateCampaigns(db, ["C1"]);
+
+      expect(doc("email-campaigns", "Klaviyo_C1")).toMatchObject({
+        listIDs: ["L2"],
+        notes: segmentNotes("Engaged"),
+      });
+    });
   });
 });
