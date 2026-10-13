@@ -29,7 +29,7 @@ export const EmailCampaignRecord = type({
   platformCampaignID: "string >= 1",
   listIDs: "string[]",
   name: "string",
-  content: type("URL"),
+  content: "string >= 1",
   sentAt: type("Date"),
   sent: count,
   lastFetchedAt: type("Date"),
