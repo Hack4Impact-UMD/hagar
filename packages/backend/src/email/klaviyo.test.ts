@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Timestamp } from "firebase-admin/firestore";
 import type { Firestore } from "firebase-admin/firestore";
-import { getAllLists, updateList } from "@backend/email/klaviyo.ts";
+import {
+  getAllCampaigns,
+  getAllLists,
+  updateCampaigns,
+  updateList,
+} from "@backend/email/klaviyo.ts";
 import { KlaviyoApiError } from "@backend/email/klaviyoApi.ts";
 import { fakeFirestore } from "@backend/testing/fakeFirestore.ts";
 
@@ -9,10 +14,28 @@ vi.mock("firebase-functions/params", () => ({
   defineSecret: () => ({ value: () => "pk_test_secret" }),
 }));
 
+vi.mock("firebase-functions/logger", () => ({
+  logger: {
+    info: vi.fn<() => void>(),
+    warn: vi.fn<() => void>(),
+    error: vi.fn<() => void>(),
+  },
+}));
+
+const storage = vi.hoisted(() => ({
+  save: vi.fn<(buffer: Buffer, options: unknown) => Promise<void>>(),
+  fileAt: vi.fn<(path: string) => unknown>(),
+}));
+vi.mock("firebase-admin/storage", () => ({
+  getStorage: () => ({ bucket: () => ({ file: storage.fileAt }) }),
+}));
+
 const fetchMock = vi.fn<typeof fetch>();
 
 beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
+  storage.save.mockReset().mockResolvedValue();
+  storage.fileAt.mockReset().mockReturnValue({ save: storage.save });
 });
 
 afterEach(() => {
@@ -177,5 +200,460 @@ describe("updateList", () => {
         snapshots: [{ count: 10, fetchedAt: t1 }],
       },
     ]);
+  });
+});
+
+type Call = { url: URL; init: RequestInit | undefined };
+
+/**
+ * Routes fetch by method and pathname to queued responses, since one
+ * `updateCampaigns` call makes many requests. Unrouted requests fail loudly.
+ */
+function routeFetch() {
+  const queues = new Map<string, Response[]>();
+  const calls: Call[] = [];
+  fetchMock.mockImplementation((input, init) => {
+    const url = new URL(String(input));
+    calls.push({ url, init });
+    const key = `${init?.method ?? "GET"} ${url.pathname}`;
+    const response = queues.get(key)?.shift();
+    if (!response) {
+      return Promise.reject(new Error(`Unexpected request: ${key}`));
+    }
+    return Promise.resolve(response);
+  });
+  return {
+    calls,
+    on(method: string, pathname: string, ...responses: Response[]) {
+      queues.set(`${method} ${pathname}`, responses);
+    },
+    to: (method: string, pathname: string) =>
+      calls.filter(
+        (c) =>
+          (c.init?.method ?? "GET") === method && c.url.pathname === pathname,
+      ),
+  };
+}
+
+const header = (call: Call | undefined, name: string) =>
+  new Headers(call?.init?.headers).get(name);
+
+describe("getAllCampaigns", () => {
+  it("filters by channel, paginates, and keeps only sent campaigns", async () => {
+    const klaviyo = routeFetch();
+    klaviyo.on(
+      "GET",
+      "/api/campaigns",
+      json({
+        data: [
+          { id: "a", attributes: { status: "Sent" } },
+          { id: "b", attributes: { status: "Draft" } },
+        ],
+        links: {
+          next: "https://a.klaviyo.com/api/campaigns?page%5Bcursor%5D=2",
+        },
+      }),
+      json({
+        data: [
+          { id: "c", attributes: { status: "Variations Sent" } },
+          { id: "d", attributes: { status: "Cancelled" } },
+          { id: "e", attributes: { status: "Scheduled" } },
+        ],
+      }),
+    );
+
+    await expect(getAllCampaigns()).resolves.toEqual(["a", "c"]);
+    const params = klaviyo.calls[0]?.url.searchParams;
+    expect(params?.get("filter")).toBe("equals(messages.channel,'email')");
+    expect(params?.get("fields[campaign]")).toBe("status");
+  });
+});
+
+describe("updateCampaigns", () => {
+  const sendTime = "2026-03-01T12:00:00.000Z";
+  const screenshotUrl = "https://thumbs.example.com/shot/C1.png?sig=abc";
+  const zeroStats = {
+    recipients: 0,
+    bounced: 0,
+    opens_unique: 0,
+    clicks_unique: 0,
+    unsubscribe_uniques: 0,
+    spam_complaints: 0,
+  };
+
+  function campaign(id: string, overrides: Record<string, unknown> = {}) {
+    return {
+      type: "campaign",
+      id,
+      attributes: {
+        name: `Campaign ${id}`,
+        status: "Sent",
+        send_time: sendTime,
+        audiences: { included: ["L1"], excluded: [] },
+        ...overrides,
+      },
+      relationships: {
+        "campaign-messages": {
+          data: [{ type: "campaign-message", id: `M${id}` }],
+        },
+      },
+    };
+  }
+
+  function message(id: string, channel = "email") {
+    return {
+      type: "campaign-message",
+      id,
+      attributes: { definition: { channel } },
+    };
+  }
+
+  function row(id: string, stats: Partial<typeof zeroStats>) {
+    return {
+      groupings: {
+        campaign_id: id,
+        campaign_message_id: `M${id}`,
+        send_channel: "email",
+      },
+      statistics: { ...zeroStats, ...stats },
+    };
+  }
+
+  /** Routes the details, metric, and report requests for a batch. */
+  function setup(
+    campaigns: unknown[],
+    rows: unknown[],
+    metrics = [{ id: "MET1", attributes: { name: "Opened Email" } }],
+  ) {
+    const klaviyo = routeFetch();
+    klaviyo.on(
+      "GET",
+      "/api/campaigns",
+      json({
+        data: campaigns,
+        included: (campaigns as { id: string }[]).map((c) =>
+          message(`M${c.id}`),
+        ),
+      }),
+    );
+    klaviyo.on("GET", "/api/metrics", json({ data: metrics }));
+    klaviyo.on(
+      "POST",
+      "/api/campaign-values-reports",
+      json({ data: { attributes: { results: rows } } }),
+    );
+    return klaviyo;
+  }
+
+  function routeScreenshot(
+    klaviyo: ReturnType<typeof routeFetch>,
+    id: string,
+    image: Response,
+    url: string | null = `https://thumbs.example.com/shot/${id}.png?sig=abc`,
+  ) {
+    klaviyo.on(
+      "GET",
+      `/api/campaign-messages/M${id}/template`,
+      json({ data: { attributes: { screenshot_url: url } } }),
+    );
+    klaviyo.on("GET", `/shot/${id}.png`, image);
+  }
+
+  const png = () =>
+    new Response(new Uint8Array([1, 2, 3]), {
+      headers: { "content-type": "image/png" },
+    });
+
+  const existingRecord = (overrides: Record<string, unknown> = {}) => ({
+    platform: "Klaviyo",
+    platformCampaignID: "C1",
+    listIDs: ["OLD"],
+    name: "Old name",
+    content: "email-campaign-content/Klaviyo_C1.png",
+    sentAt: new Date(sendTime),
+    sent: 5,
+    lastFetchedAt: t1,
+    notes: "",
+    snapshots: [
+      {
+        fetchedAt: t1,
+        bounced: 0,
+        uniqOpens: 2,
+        uniqClicks: 1,
+        unsubscribers: 0,
+        complaints: 0,
+      },
+    ],
+    ...overrides,
+  });
+
+  it.each([
+    ["no IDs", []],
+    ["more than 100 IDs", Array.from({ length: 101 }, (_, i) => `C${i}`)],
+    ["an ID with illegal characters", ["C1", "x'),any(id,['y"]],
+  ])("rejects %s before any request", async (_name, ids) => {
+    const { db } = fakeFirestore();
+
+    await expect(updateCampaigns(db, ids)).rejects.toThrow(/campaign ID/);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("sends the details, metric, and one report request", async () => {
+    const klaviyo = setup([campaign("C1"), campaign("C2")], []);
+    const { db } = fakeFirestore();
+
+    await updateCampaigns(db, ["C1", "C2", "C1"]);
+
+    const details = klaviyo.to("GET", "/api/campaigns");
+    expect(details).toHaveLength(1);
+    const params = details[0]?.url.searchParams;
+    expect(params?.get("filter")).toBe(
+      "and(equals(messages.channel,'email'),any(id,['C1','C2']))",
+    );
+    expect(params?.get("include")).toBe("campaign-messages");
+    expect(params?.get("fields[campaign]")).toBe(
+      "name,status,send_time,audiences",
+    );
+    expect(params?.get("fields[campaign-message]")).toBe("definition.channel");
+    expect(klaviyo.to("GET", "/api/metrics")).toHaveLength(1);
+
+    const reports = klaviyo.to("POST", "/api/campaign-values-reports");
+    expect(reports).toHaveLength(1);
+    expect(JSON.parse(String(reports[0]?.init?.body))).toEqual({
+      data: {
+        type: "campaign-values-report",
+        attributes: {
+          statistics: [
+            "recipients",
+            "bounced",
+            "opens_unique",
+            "clicks_unique",
+            "unsubscribe_uniques",
+            "spam_complaints",
+          ],
+          timeframe: { key: "last_365_days" },
+          conversion_metric_id: "MET1",
+          filter:
+            'and(contains-any(campaign_id,["C1","C2"]),equals(send_channel,"email"))',
+        },
+      },
+    });
+  });
+
+  it("creates a new campaign with its screenshot and one snapshot", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(t2);
+    const klaviyo = setup(
+      [campaign("C1")],
+      [
+        row("C1", {
+          recipients: 3,
+          bounced: 1,
+          opens_unique: 2,
+          clicks_unique: 1,
+          unsubscribe_uniques: 1,
+          spam_complaints: 1,
+        }),
+      ],
+    );
+    routeScreenshot(klaviyo, "C1", png());
+    const { db, doc } = fakeFirestore();
+
+    await updateCampaigns(db, ["C1"]);
+
+    expect(storage.fileAt).toHaveBeenCalledWith(
+      "email-campaign-content/Klaviyo_C1.png",
+    );
+    expect(storage.save).toHaveBeenCalledWith(Buffer.from([1, 2, 3]), {
+      contentType: "image/png",
+      resumable: false,
+    });
+    const download = klaviyo.to("GET", "/shot/C1.png")[0];
+    expect(String(download?.url)).toBe(screenshotUrl);
+    expect(header(download, "authorization")).toBeNull();
+    expect(doc("email-campaigns", "Klaviyo_C1")).toEqual({
+      platform: "Klaviyo",
+      platformCampaignID: "C1",
+      listIDs: ["L1"],
+      name: "Campaign C1",
+      content: "email-campaign-content/Klaviyo_C1.png",
+      sentAt: new Date(sendTime),
+      sent: 3,
+      lastFetchedAt: t2,
+      notes: "",
+      snapshots: [
+        {
+          fetchedAt: t2,
+          bounced: 1,
+          uniqOpens: 2,
+          uniqClicks: 1,
+          unsubscribers: 1,
+          complaints: 1,
+        },
+      ],
+    });
+  });
+
+  it("sums the report rows of one campaign", async () => {
+    const klaviyo = setup(
+      [campaign("C1")],
+      [
+        row("C1", { recipients: 3, opens_unique: 1 }),
+        row("C1", { recipients: 4, opens_unique: 2, clicks_unique: 1 }),
+      ],
+    );
+    routeScreenshot(klaviyo, "C1", png());
+    const { db, doc } = fakeFirestore();
+
+    await updateCampaigns(db, ["C1"]);
+
+    const record = doc("email-campaigns", "Klaviyo_C1");
+    expect(record?.sent).toBe(7);
+    expect(record?.snapshots).toMatchObject([{ uniqOpens: 3, uniqClicks: 1 }]);
+  });
+
+  it("writes nothing for a new campaign without stats", async () => {
+    const klaviyo = setup([campaign("C1")], []);
+    const { db, doc } = fakeFirestore();
+
+    await updateCampaigns(db, ["C1"]);
+
+    expect(doc("email-campaigns", "Klaviyo_C1")).toBeUndefined();
+    expect(klaviyo.to("GET", "/api/campaign-messages/MC1/template")).toEqual(
+      [],
+    );
+    expect(storage.save).not.toHaveBeenCalled();
+  });
+
+  it("writes nothing for a new campaign without a screenshot URL", async () => {
+    const klaviyo = setup([campaign("C1")], [row("C1", { recipients: 3 })]);
+    routeScreenshot(klaviyo, "C1", png(), null);
+    const { db, doc } = fakeFirestore();
+
+    await updateCampaigns(db, ["C1"]);
+
+    expect(doc("email-campaigns", "Klaviyo_C1")).toBeUndefined();
+    expect(klaviyo.to("GET", "/shot/C1.png")).toEqual([]);
+    expect(storage.save).not.toHaveBeenCalled();
+  });
+
+  it("skips a campaign Klaviyo returns without a send time", async () => {
+    setup(
+      [campaign("C1", { send_time: null })],
+      [row("C1", { recipients: 3 })],
+    );
+    const { db, doc } = fakeFirestore();
+
+    await updateCampaigns(db, ["C1"]);
+
+    expect(doc("email-campaigns", "Klaviyo_C1")).toBeUndefined();
+  });
+
+  describe("existing campaign", () => {
+    const sameStats = { recipients: 9, opens_unique: 2, clicks_unique: 1 };
+
+    it("adds no snapshot when the stats are unchanged", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(t2);
+      const klaviyo = setup([campaign("C1")], [row("C1", sameStats)]);
+      const { db, doc } = fakeFirestore({
+        "email-campaigns": { Klaviyo_C1: existingRecord() },
+      });
+
+      await updateCampaigns(db, ["C1"]);
+
+      expect(doc("email-campaigns", "Klaviyo_C1")).toEqual(
+        existingRecord({
+          name: "Campaign C1",
+          listIDs: ["L1"],
+          sent: 9,
+          lastFetchedAt: t2,
+        }),
+      );
+      expect(klaviyo.to("GET", "/api/campaign-messages/MC1/template")).toEqual(
+        [],
+      );
+      expect(klaviyo.to("GET", "/shot/C1.png")).toEqual([]);
+      expect(storage.save).not.toHaveBeenCalled();
+    });
+
+    it("appends a snapshot when the stats changed", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(t2);
+      setup([campaign("C1")], [row("C1", { ...sameStats, opens_unique: 4 })]);
+      const { db, doc } = fakeFirestore({
+        "email-campaigns": { Klaviyo_C1: existingRecord() },
+      });
+
+      await updateCampaigns(db, ["C1"]);
+
+      expect(doc("email-campaigns", "Klaviyo_C1")?.snapshots).toEqual([
+        existingRecord().snapshots[0],
+        {
+          fetchedAt: t2,
+          bounced: 0,
+          uniqOpens: 4,
+          uniqClicks: 1,
+          unsubscribers: 0,
+          complaints: 0,
+        },
+      ]);
+    });
+
+    it("only advances lastFetchedAt when there are no stats", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(t2);
+      setup([campaign("C1")], []);
+      const { db, doc } = fakeFirestore({
+        "email-campaigns": { Klaviyo_C1: existingRecord() },
+      });
+
+      await updateCampaigns(db, ["C1"]);
+
+      expect(doc("email-campaigns", "Klaviyo_C1")).toEqual(
+        existingRecord({ lastFetchedAt: t2 }),
+      );
+    });
+  });
+
+  it("writes the other campaigns when one fails, then names the failure", async () => {
+    const klaviyo = setup(
+      [campaign("C1"), campaign("C2")],
+      [row("C1", { recipients: 3 }), row("C2", { recipients: 4 })],
+    );
+    routeScreenshot(klaviyo, "C1", new Response("denied", { status: 403 }));
+    routeScreenshot(klaviyo, "C2", png());
+    const { db, doc } = fakeFirestore();
+
+    await expect(updateCampaigns(db, ["C1", "C2"])).rejects.toThrow(/C1/);
+
+    expect(doc("email-campaigns", "Klaviyo_C1")).toBeUndefined();
+    expect(doc("email-campaigns", "Klaviyo_C2")?.sent).toBe(4);
+  });
+
+  it("fails a campaign whose screenshot has the wrong content type", async () => {
+    const klaviyo = setup([campaign("C1")], [row("C1", { recipients: 3 })]);
+    routeScreenshot(
+      klaviyo,
+      "C1",
+      new Response("<html>", { headers: { "content-type": "text/html" } }),
+    );
+    const { db, doc } = fakeFirestore();
+
+    await expect(updateCampaigns(db, ["C1"])).rejects.toThrow(/C1/);
+    expect(doc("email-campaigns", "Klaviyo_C1")).toBeUndefined();
+    expect(storage.save).not.toHaveBeenCalled();
+  });
+
+  it("fails clearly when the Opened Email metric is missing", async () => {
+    const klaviyo = setup(
+      [campaign("C1")],
+      [],
+      [{ id: "X", attributes: { name: "Placed Order" } }],
+    );
+    const { db } = fakeFirestore();
+
+    await expect(updateCampaigns(db, ["C1"])).rejects.toThrow(/Opened Email/);
+    expect(klaviyo.to("POST", "/api/campaign-values-reports")).toEqual([]);
   });
 });

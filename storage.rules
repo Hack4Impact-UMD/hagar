@@ -15,5 +15,11 @@ service firebase.storage {
         && request.resource.contentType.matches('image/(png|jpeg|webp)')
         && request.resource.size <= 5 * 1024 * 1024;
     }
+
+    // The backend, using the Admin SDK, writes the rendered campaign emails;
+    // clients may only read them.
+    match /email-campaign-content/{file} {
+      allow read: if request.auth != null;
+    }
   }
 }

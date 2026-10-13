@@ -1,12 +1,36 @@
 import { type } from "arktype";
-import { EmailList } from "@repo/common";
+import { EmailCampaignRecord, EmailList } from "@repo/common";
 import type { EmailPlatform } from "@repo/common";
 import { Timestamp } from "firebase-admin/firestore";
 import type { Firestore } from "firebase-admin/firestore";
-import { klaviyoGet, klaviyoGetAllPages } from "@backend/email/klaviyoApi.ts";
+import { getStorage } from "firebase-admin/storage";
+import { logger } from "firebase-functions/logger";
+import {
+  klaviyoGet,
+  klaviyoGetAllPages,
+  klaviyoPostAllPages,
+} from "@backend/email/klaviyoApi.ts";
 
 const LISTS_COLLECTION = "email-lists";
+const CAMPAIGNS_COLLECTION = "email-campaigns";
+const CAMPAIGN_CONTENT_FOLDER = "email-campaign-content";
 const PLATFORM: EmailPlatform = "Klaviyo";
+
+/**
+ * The stats report accepts at most 100 campaign IDs in its filter, and it is
+ * limited to 2 calls per minute and 225 per day, so batching is what keeps a
+ * sync under the daily cap.
+ */
+const MAX_CAMPAIGNS_PER_UPDATE = 100;
+/** Built into every Klaviyo account; only its per-account ID varies. */
+const CONVERSION_METRIC_NAME = "Opened Email";
+const SENT_STATUSES = new Set(["Sent", "Variations Sent"]);
+const MAX_SCREENSHOT_BYTES = 5 * 1024 * 1024;
+const SCREENSHOT_EXTENSIONS: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+};
 
 const listsPage = type({ data: type({ id: "string >= 1" }).array() });
 const listResponse = type({
@@ -112,13 +136,452 @@ export async function updateList(db: Firestore, listID: string): Promise<void> {
   });
 }
 
-export function getAllCampaigns(): Promise<string[]> {
-  return Promise.reject(new Error("not implemented"));
+const campaignsPage = type({
+  data: type({
+    id: "string >= 1",
+    attributes: {
+      name: "string",
+      status: "string",
+      send_time: "string | null",
+      audiences: { included: "string[]", excluded: "string[]" },
+    },
+    relationships: {
+      "campaign-messages": { data: type({ id: "string >= 1" }).array() },
+    },
+  }).array(),
+  "included?": type({
+    type: "string",
+    id: "string >= 1",
+    attributes: { definition: { channel: "string" } },
+  }).array(),
+});
+const campaignStatusPage = type({
+  data: type({
+    id: "string >= 1",
+    attributes: { status: "string" },
+  }).array(),
+});
+const metricsPage = type({
+  data: type({ id: "string >= 1", attributes: { name: "string" } }).array(),
+});
+const reportPage = type({
+  data: {
+    attributes: {
+      results: type({
+        groupings: { campaign_id: "string" },
+        statistics: {
+          recipients: "number",
+          bounced: "number",
+          opens_unique: "number",
+          clicks_unique: "number",
+          unsubscribe_uniques: "number",
+          spam_complaints: "number",
+        },
+      }).array(),
+    },
+  },
+});
+const templateResponse = type({
+  data: { attributes: { "screenshot_url?": "string | null" } },
+});
+
+type CampaignStats = {
+  sent: number;
+  bounced: number;
+  uniqOpens: number;
+  uniqClicks: number;
+  unsubscribers: number;
+  complaints: number;
+};
+
+type CampaignDetails = {
+  id: string;
+  name: string;
+  sendTime: Date;
+  audiences: { included: string[]; excluded: string[] };
+  emailMessageID: string | undefined;
+};
+
+/** Document IDs embed the platform, as with lists. */
+function campaignRef(db: Firestore, campaignID: string) {
+  return db.collection(CAMPAIGNS_COLLECTION).doc(`${PLATFORM}_${campaignID}`);
 }
 
-export function updateCampaigns(
-  _db: Firestore,
-  _campaignIDs: string[],
+/**
+ * Returns the ID of every email campaign that was sent. Drafts, scheduled and
+ * cancelled campaigns are excluded because a record needs a send time.
+ */
+export async function getAllCampaigns(): Promise<string[]> {
+  // Klaviyo requires a channel filter on this endpoint.
+  const pages = await klaviyoGetAllPages(
+    "/api/campaigns",
+    new URLSearchParams({
+      filter: "equals(messages.channel,'email')",
+      "fields[campaign]": "status",
+    }),
+    campaignStatusPage,
+  );
+  // Filtered here rather than in the query: `any(status,[...])` silently
+  // returns an empty list.
+  return pages.flatMap((page) =>
+    page.data
+      .filter((campaign) => SENT_STATUSES.has(campaign.attributes.status))
+      .map((campaign) => campaign.id),
+  );
+}
+
+function validateCampaignIDs(campaignIDs: string[]): string[] {
+  const unique = [...new Set(campaignIDs)];
+  if (unique.length === 0 || unique.length > MAX_CAMPAIGNS_PER_UPDATE) {
+    throw new Error(
+      `Expected 1 to ${MAX_CAMPAIGNS_PER_UPDATE} campaign IDs, got ${unique.length}.`,
+    );
+  }
+  // IDs are interpolated into Klaviyo filter strings, so anything beyond
+  // plain alphanumerics could inject filter syntax.
+  const invalid = unique.find((id) => !/^[A-Za-z0-9]+$/.test(id));
+  if (invalid !== undefined) {
+    throw new Error(`Invalid campaign ID: ${JSON.stringify(invalid)}.`);
+  }
+  return unique;
+}
+
+async function fetchCampaignDetails(
+  campaignIDs: string[],
+): Promise<Map<string, CampaignDetails>> {
+  const pages = await klaviyoGetAllPages(
+    "/api/campaigns",
+    new URLSearchParams({
+      filter: `and(equals(messages.channel,'email'),any(id,[${campaignIDs.map((id) => `'${id}'`).join(",")}]))`,
+      include: "campaign-messages",
+      "fields[campaign]": "name,status,send_time,audiences",
+      "fields[campaign-message]": "definition.channel",
+    }),
+    campaignsPage,
+  );
+
+  const channelByMessage = new Map<string, string>();
+  for (const page of pages) {
+    for (const message of page.included ?? []) {
+      if (message.type === "campaign-message") {
+        channelByMessage.set(message.id, message.attributes.definition.channel);
+      }
+    }
+  }
+
+  const details = new Map<string, CampaignDetails>();
+  for (const page of pages) {
+    for (const campaign of page.data) {
+      const { send_time, name, audiences } = campaign.attributes;
+      if (send_time === null) {
+        logger.warn("Skipping Klaviyo campaign without a send time", {
+          campaignID: campaign.id,
+        });
+        continue;
+      }
+      details.set(campaign.id, {
+        id: campaign.id,
+        name,
+        sendTime: new Date(send_time),
+        audiences,
+        emailMessageID: campaign.relationships["campaign-messages"].data.find(
+          (message) => channelByMessage.get(message.id) === "email",
+        )?.id,
+      });
+    }
+  }
+  return details;
+}
+
+/**
+ * The report requires a conversion metric even though none of the statistics
+ * requested depend on it. A nonprofit account may have no purchase metric, so
+ * a built-in one is used; its ID differs per account and must be looked up.
+ */
+async function fetchConversionMetricID(): Promise<string> {
+  const pages = await klaviyoGetAllPages(
+    "/api/metrics",
+    new URLSearchParams({ "fields[metric]": "name" }),
+    metricsPage,
+  );
+  const metric = pages
+    .flatMap((page) => page.data)
+    .find((m) => m.attributes.name === CONVERSION_METRIC_NAME);
+  if (!metric) {
+    throw new Error(
+      `Klaviyo has no "${CONVERSION_METRIC_NAME}" metric, which the campaign stats report needs as its conversion metric.`,
+    );
+  }
+  return metric.id;
+}
+
+/** One report covers the whole batch; campaigns without rows are omitted. */
+async function fetchCampaignStats(
+  campaignIDs: string[],
+): Promise<Map<string, CampaignStats>> {
+  const conversionMetricID = await fetchConversionMetricID();
+  const pages = await klaviyoPostAllPages(
+    "/api/campaign-values-reports",
+    {
+      data: {
+        type: "campaign-values-report",
+        attributes: {
+          statistics: [
+            "recipients",
+            "bounced",
+            "opens_unique",
+            "clicks_unique",
+            "unsubscribe_uniques",
+            "spam_complaints",
+          ],
+          // The report's longest window is one year, and `last_12_months`
+          // excludes the current month, hiding campaigns sent today.
+          timeframe: { key: "last_365_days" },
+          conversion_metric_id: conversionMetricID,
+          filter: `and(contains-any(campaign_id,[${campaignIDs.map((id) => JSON.stringify(id)).join(",")}]),equals(send_channel,"email"))`,
+        },
+      },
+    },
+    reportPage,
+  );
+
+  // A campaign has one row per message or variation.
+  const totals = new Map<string, CampaignStats>();
+  for (const page of pages) {
+    for (const row of page.data.attributes.results) {
+      const previous = totals.get(row.groupings.campaign_id);
+      const s = row.statistics;
+      totals.set(row.groupings.campaign_id, {
+        sent: (previous?.sent ?? 0) + s.recipients,
+        bounced: (previous?.bounced ?? 0) + s.bounced,
+        uniqOpens: (previous?.uniqOpens ?? 0) + s.opens_unique,
+        uniqClicks: (previous?.uniqClicks ?? 0) + s.clicks_unique,
+        unsubscribers: (previous?.unsubscribers ?? 0) + s.unsubscribe_uniques,
+        complaints: (previous?.complaints ?? 0) + s.spam_complaints,
+      });
+    }
+  }
+  return totals;
+}
+
+/** Maps a campaign's Klaviyo audiences to the lists it was sent to, plus notes. */
+function resolveAudience(details: CampaignDetails): {
+  listIDs: string[];
+  notes: string;
+} {
+  return { listIDs: details.audiences.included, notes: "" };
+}
+
+/**
+ * Downloads the rendered email and stores it in Cloud Storage, returning the
+ * storage path. Resolves to `undefined` when Klaviyo has no screenshot yet.
+ */
+async function storeCampaignScreenshot(
+  details: CampaignDetails,
+): Promise<string | undefined> {
+  if (details.emailMessageID === undefined) {
+    logger.warn("Skipping Klaviyo campaign without an email message", {
+      campaignID: details.id,
+    });
+    return undefined;
+  }
+  const { data } = await klaviyoGet(
+    `/api/campaign-messages/${encodeURIComponent(details.emailMessageID)}/template`,
+    new URLSearchParams({ "fields[template]": "screenshot_url" }),
+    templateResponse,
+  );
+  const screenshotUrl = data.attributes.screenshot_url;
+  if (!screenshotUrl) {
+    logger.warn("Skipping Klaviyo campaign without a screenshot yet", {
+      campaignID: details.id,
+    });
+    return undefined;
+  }
+  if (new URL(screenshotUrl).protocol !== "https:") {
+    throw new Error(
+      `Screenshot for campaign ${details.id} is not an https URL.`,
+    );
+  }
+
+  // A presigned storage URL: the Klaviyo API key must never be sent to it.
+  const response = await fetch(screenshotUrl);
+  if (!response.ok) {
+    throw new Error(
+      `Downloading the screenshot for campaign ${details.id} failed with ${response.status}.`,
+    );
+  }
+  const contentType = (response.headers.get("content-type") ?? "")
+    .split(";")[0]
+    ?.trim()
+    .toLowerCase();
+  const extension =
+    contentType === undefined ? undefined : SCREENSHOT_EXTENSIONS[contentType];
+  if (contentType === undefined || extension === undefined) {
+    throw new Error(
+      `Screenshot for campaign ${details.id} has unsupported content type ${JSON.stringify(contentType)}.`,
+    );
+  }
+  const declaredSize = Number(response.headers.get("content-length") ?? 0);
+  if (declaredSize > MAX_SCREENSHOT_BYTES) {
+    throw new Error(`Screenshot for campaign ${details.id} is too large.`);
+  }
+  const buffer = Buffer.from(await response.arrayBuffer());
+  if (buffer.byteLength > MAX_SCREENSHOT_BYTES) {
+    throw new Error(`Screenshot for campaign ${details.id} is too large.`);
+  }
+
+  const path = `${CAMPAIGN_CONTENT_FOLDER}/${PLATFORM}_${details.id}.${extension}`;
+  await getStorage()
+    .bucket()
+    .file(path)
+    .save(buffer, { contentType, resumable: false });
+  return path;
+}
+
+function statsDiffer(
+  a: Omit<CampaignStats, "sent">,
+  b: Omit<CampaignStats, "sent">,
+): boolean {
+  return (
+    a.bounced !== b.bounced ||
+    a.uniqOpens !== b.uniqOpens ||
+    a.uniqClicks !== b.uniqClicks ||
+    a.unsubscribers !== b.unsubscribers ||
+    a.complaints !== b.complaints
+  );
+}
+
+async function syncCampaign(
+  db: Firestore,
+  details: CampaignDetails,
+  stats: CampaignStats | undefined,
+  now: Date,
 ): Promise<void> {
-  return Promise.reject(new Error("not implemented"));
+  const ref = campaignRef(db, details.id);
+  const preRead = await ref.get();
+  const isNew = !preRead.exists;
+
+  // Network work happens before the transaction because Firestore may rerun
+  // its callback.
+  let contentPath: string | undefined;
+  if (isNew) {
+    if (!stats) {
+      logger.info("Skipping new Klaviyo campaign without stats yet", {
+        campaignID: details.id,
+      });
+      return;
+    }
+    contentPath = await storeCampaignScreenshot(details);
+    if (contentPath === undefined) return;
+  }
+
+  const { listIDs, notes } = resolveAudience(details);
+  const snapshot = stats && {
+    fetchedAt: now,
+    bounced: stats.bounced,
+    uniqOpens: stats.uniqOpens,
+    uniqClicks: stats.uniqClicks,
+    unsubscribers: stats.unsubscribers,
+    complaints: stats.complaints,
+  };
+
+  await db.runTransaction(async (tx) => {
+    const existing = await tx.get(ref);
+    if (!existing.exists) {
+      if (contentPath === undefined || !stats || !snapshot) {
+        logger.warn("Skipping Klaviyo campaign created since it was checked", {
+          campaignID: details.id,
+        });
+        return;
+      }
+      tx.create(
+        ref,
+        EmailCampaignRecord.assert({
+          platform: PLATFORM,
+          platformCampaignID: details.id,
+          listIDs,
+          name: details.name,
+          content: contentPath,
+          sentAt: details.sendTime,
+          sent: stats.sent,
+          lastFetchedAt: now,
+          notes,
+          snapshots: [snapshot],
+        }),
+      );
+      return;
+    }
+
+    const current = EmailCampaignRecord.assert(
+      timestampsToDates(existing.data()),
+    );
+    if (!stats || !snapshot) {
+      tx.set(
+        ref,
+        EmailCampaignRecord.assert({ ...current, lastFetchedAt: now }),
+      );
+      return;
+    }
+    const latest = current.snapshots.at(-1);
+    const changed = !latest || statsDiffer(latest, snapshot);
+    tx.set(
+      ref,
+      EmailCampaignRecord.assert({
+        ...current,
+        name: details.name,
+        listIDs,
+        notes,
+        sentAt: details.sendTime,
+        sent: stats.sent,
+        lastFetchedAt: now,
+        snapshots: changed
+          ? [...current.snapshots, snapshot]
+          : current.snapshots,
+      }),
+    );
+  });
+}
+
+/**
+ * Syncs up to 100 campaigns into Firestore. A campaign that fails does not
+ * stop the others; the failures are reported together once all were tried.
+ * The stats report is limited to 2 calls per minute and 225 per day, so pass
+ * as many campaigns per call as possible rather than calling per campaign.
+ */
+export async function updateCampaigns(
+  db: Firestore,
+  campaignIDs: string[],
+): Promise<void> {
+  const ids = validateCampaignIDs(campaignIDs);
+
+  const details = await fetchCampaignDetails(ids);
+  const stats = await fetchCampaignStats(ids);
+  const now = new Date();
+
+  const failures: { id: string; error: unknown }[] = [];
+  for (const id of ids) {
+    const campaign = details.get(id);
+    if (!campaign) {
+      logger.warn("Skipping campaign missing from Klaviyo's response", {
+        campaignID: id,
+      });
+      continue;
+    }
+    try {
+      await syncCampaign(db, campaign, stats.get(id), now);
+    } catch (error) {
+      logger.error("Failed to sync Klaviyo campaign", {
+        campaignID: id,
+        error,
+      });
+      failures.push({ id, error });
+    }
+  }
+
+  if (failures.length > 0) {
+    throw new AggregateError(
+      failures.map((failure) => failure.error),
+      `Failed to sync Klaviyo campaigns: ${failures.map((failure) => failure.id).join(", ")}`,
+    );
+  }
 }
