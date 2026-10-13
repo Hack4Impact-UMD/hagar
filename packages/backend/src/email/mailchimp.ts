@@ -31,10 +31,32 @@ export async function getAllLists(): Promise<string[]> {
   return ids;
 }
 
-export function updateList(_platformListID: string): Promise<void> {
+export async function updateList(_platformListID: string): Promise<void> {
+  const list = await get(`/lists/${_platformListID}`);
+  const now = new Date();
 
+  const snapshot:EmailListCountSnapshot = {
+    count: list.stats.member_count, 
+    fetchedAt: now
+  }
 
-  return Promise.reject(new Error("not implemented"));
+  const ref = getFirestore().collection("email-lists").doc(_platformListID);
+  const doc = await ref.get();
+
+  const snapshots: any[] = doc.exists ? doc.data()!.snapshots : [];
+  const latest = snapshots[snapshots.length-1];
+
+  const changed=!latest || latest.count !== snapshot.count;
+
+  const record:EmailList = {
+    platform: "MailChimp", 
+    platformListID: _platformListID, 
+    name: list.name, 
+    lastFetchedAt: now, 
+    snapshots:changed ? [...snapshots, snapshot] : snapshots, 
+  };
+
+  await ref.set(record);
 }
 
 export async function getAllCampaigns(): Promise<string[]> {
@@ -54,6 +76,11 @@ export async function getAllCampaigns(): Promise<string[]> {
   return ids;
 }
 
-export function updateCampaign(_platformCampaignID: string): Promise<void> {
+export async function updateCampaign(_platformCampaignID: string): Promise<void> {
+  const campaign = await get(`/campaigns/${_platformCampaignID}`);
+
+
+  
+  
   return Promise.reject(new Error("not implemented"));
 }
