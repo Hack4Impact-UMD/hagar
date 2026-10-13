@@ -142,7 +142,6 @@ const campaignsPage = type({
     id: "string >= 1",
     attributes: {
       name: "string",
-      status: "string",
       send_time: "string | null",
       audiences: { included: "string[]", excluded: "string[]" },
     },
@@ -214,7 +213,7 @@ type CampaignStats = {
 type CampaignDetails = {
   id: string;
   name: string;
-  sendTime: Date;
+  sendTime: Date | null;
   audiences: { included: string[]; excluded: string[] };
   emailMessageID: string | undefined;
 };
@@ -271,7 +270,7 @@ async function fetchCampaignDetails(
     new URLSearchParams({
       filter: `and(equals(messages.channel,'email'),any(id,[${campaignIDs.map((id) => `'${id}'`).join(",")}]))`,
       include: "campaign-messages",
-      "fields[campaign]": "name,status,send_time,audiences",
+      "fields[campaign]": "name,send_time,audiences",
       "fields[campaign-message]": "definition.channel",
     }),
     campaignsPage,
@@ -290,16 +289,10 @@ async function fetchCampaignDetails(
   for (const page of pages) {
     for (const campaign of page.data) {
       const { send_time, name, audiences } = campaign.attributes;
-      if (send_time === null) {
-        logger.warn("Skipping Klaviyo campaign without a send time", {
-          campaignID: campaign.id,
-        });
-        continue;
-      }
       details.set(campaign.id, {
         id: campaign.id,
         name,
-        sendTime: new Date(send_time),
+        sendTime: send_time === null ? null : new Date(send_time),
         audiences,
         emailMessageID: campaign.relationships["campaign-messages"].data.find(
           (message) => channelByMessage.get(message.id) === "email",
@@ -383,31 +376,26 @@ async function fetchCampaignStats(
 
 /**
  * Lookups shared by every campaign in one `updateCampaigns` call, since
- * campaigns often share audiences. Promises are stored so concurrent and
- * repeated lookups of an ID make one request. It is created per call so a
- * reused function instance never serves stale data.
+ * campaigns often share audiences. It is created per call so a reused
+ * function instance never serves stale data.
  */
 type AudienceCache = {
-  knownLists: Map<string, Promise<boolean>>;
+  knownLists: Map<string, boolean>;
   /** `null` when the ID is not a segment. */
-  segments: Map<string, Promise<Segment | null>>;
+  segments: Map<string, Segment | null>;
 };
 
 type Segment = { name: string; memberOfListIDs: string[] };
 
-async function listExists(db: Firestore, id: string): Promise<boolean> {
-  const snapshot = await listRef(db, id).get();
-  return snapshot.exists;
-}
-
-function isKnownList(
+async function isKnownList(
   db: Firestore,
   cache: AudienceCache,
   id: string,
 ): Promise<boolean> {
   let known = cache.knownLists.get(id);
-  if (!known) {
-    known = listExists(db, id);
+  if (known === undefined) {
+    const snapshot = await listRef(db, id).get();
+    known = snapshot.exists;
     cache.knownLists.set(id, known);
   }
   return known;
@@ -439,12 +427,14 @@ async function fetchSegment(id: string): Promise<Segment | null> {
   }
 }
 
-function getSegment(cache: AudienceCache, id: string): Promise<Segment | null> {
-  let segment = cache.segments.get(id);
-  if (!segment) {
-    segment = fetchSegment(id);
-    cache.segments.set(id, segment);
-  }
+async function getSegment(
+  cache: AudienceCache,
+  id: string,
+): Promise<Segment | null> {
+  const cached = cache.segments.get(id);
+  if (cached !== undefined) return cached;
+  const segment = await fetchSegment(id);
+  cache.segments.set(id, segment);
   return segment;
 }
 
@@ -489,10 +479,10 @@ async function resolveAudience(
 }
 
 /**
- * Downloads the rendered email and stores it in Cloud Storage, returning the
- * storage path. Resolves to `undefined` when Klaviyo has no screenshot yet.
+ * Returns the URL of the rendered email's screenshot, or `undefined` when
+ * Klaviyo has none yet.
  */
-async function storeCampaignScreenshot(
+async function fetchScreenshotUrl(
   details: CampaignDetails,
 ): Promise<string | undefined> {
   if (details.emailMessageID === undefined) {
@@ -518,7 +508,14 @@ async function storeCampaignScreenshot(
       `Screenshot for campaign ${details.id} is not an https URL.`,
     );
   }
+  return screenshotUrl;
+}
 
+/** Downloads the screenshot and stores it in Cloud Storage, returning its path. */
+async function storeScreenshot(
+  details: CampaignDetails,
+  screenshotUrl: string,
+): Promise<string> {
   // A presigned storage URL: the Klaviyo API key must never be sent to it.
   const response = await fetch(screenshotUrl);
   if (!response.ok) {
@@ -526,13 +523,12 @@ async function storeCampaignScreenshot(
       `Downloading the screenshot for campaign ${details.id} failed with ${response.status}.`,
     );
   }
-  const contentType = (response.headers.get("content-type") ?? "")
-    .split(";")[0]
-    ?.trim()
-    .toLowerCase();
-  const extension =
-    contentType === undefined ? undefined : SCREENSHOT_EXTENSIONS[contentType];
-  if (contentType === undefined || extension === undefined) {
+  const [mimeType = ""] = (response.headers.get("content-type") ?? "").split(
+    ";",
+  );
+  const contentType = mimeType.trim().toLowerCase();
+  const extension = SCREENSHOT_EXTENSIONS[contentType];
+  if (extension === undefined) {
     throw new Error(
       `Screenshot for campaign ${details.id} has unsupported content type ${JSON.stringify(contentType)}.`,
     );
@@ -567,9 +563,20 @@ function statsDiffer(
   );
 }
 
+function toSnapshot(stats: CampaignStats, fetchedAt: Date) {
+  return {
+    fetchedAt,
+    bounced: stats.bounced,
+    uniqOpens: stats.uniqOpens,
+    uniqClicks: stats.uniqClicks,
+    unsubscribers: stats.unsubscribers,
+    complaints: stats.complaints,
+  };
+}
+
 async function syncCampaign(
   db: Firestore,
-  details: CampaignDetails,
+  details: CampaignDetails & { sendTime: Date },
   stats: CampaignStats | undefined,
   now: Date,
   cache: AudienceCache,
@@ -581,37 +588,32 @@ async function syncCampaign(
   // Network work happens before the transaction because Firestore may rerun
   // its callback.
   if (isNew && !stats) {
-    logger.info("Skipping new Klaviyo campaign without stats yet", {
+    logger.info("Skipping new Klaviyo campaign without stats", {
       campaignID: details.id,
     });
     return;
   }
+  // Checked before the audience lookups so a campaign still waiting on its
+  // screenshot does not repeat them on every sync.
+  const screenshotUrl = isNew ? await fetchScreenshotUrl(details) : undefined;
+  if (isNew && screenshotUrl === undefined) return;
 
   // Without stats only `lastFetchedAt` is written, so the lookups would be
-  // wasted requests that could also fail the campaign needlessly. Resolved
-  // before the upload so a failed lookup leaves no orphaned screenshot.
-  const { listIDs, notes } = stats
-    ? await resolveAudience(db, cache, details)
-    : { listIDs: [], notes: "" };
-
-  let contentPath: string | undefined;
-  if (isNew) {
-    contentPath = await storeCampaignScreenshot(details);
-    if (contentPath === undefined) return;
-  }
-  const snapshot = stats && {
-    fetchedAt: now,
-    bounced: stats.bounced,
-    uniqOpens: stats.uniqOpens,
-    uniqClicks: stats.uniqClicks,
-    unsubscribers: stats.unsubscribers,
-    complaints: stats.complaints,
+  // wasted requests that could also fail the campaign needlessly.
+  const fresh = stats && {
+    stats,
+    ...(await resolveAudience(db, cache, details)),
   };
+  // Uploaded last so a failed lookup leaves no orphaned screenshot.
+  const contentPath =
+    screenshotUrl === undefined
+      ? undefined
+      : await storeScreenshot(details, screenshotUrl);
 
   await db.runTransaction(async (tx) => {
     const existing = await tx.get(ref);
     if (!existing.exists) {
-      if (contentPath === undefined || !stats || !snapshot) {
+      if (contentPath === undefined || !fresh) {
         logger.warn("Skipping Klaviyo campaign created since it was checked", {
           campaignID: details.id,
         });
@@ -622,14 +624,14 @@ async function syncCampaign(
         EmailCampaignRecord.assert({
           platform: PLATFORM,
           platformCampaignID: details.id,
-          listIDs,
+          listIDs: fresh.listIDs,
           name: details.name,
           content: contentPath,
           sentAt: details.sendTime,
-          sent: stats.sent,
+          sent: fresh.stats.sent,
           lastFetchedAt: now,
-          notes,
-          snapshots: [snapshot],
+          notes: fresh.notes,
+          snapshots: [toSnapshot(fresh.stats, now)],
         }),
       );
       return;
@@ -638,7 +640,7 @@ async function syncCampaign(
     const current = EmailCampaignRecord.assert(
       timestampsToDates(existing.data()),
     );
-    if (!stats || !snapshot) {
+    if (!fresh) {
       tx.set(
         ref,
         EmailCampaignRecord.assert({ ...current, lastFetchedAt: now }),
@@ -646,23 +648,32 @@ async function syncCampaign(
       return;
     }
     const latest = current.snapshots.at(-1);
-    const changed = !latest || statsDiffer(latest, snapshot);
+    const changed = !latest || statsDiffer(latest, fresh.stats);
     tx.set(
       ref,
       EmailCampaignRecord.assert({
         ...current,
         name: details.name,
-        listIDs,
-        notes,
+        listIDs: fresh.listIDs,
+        notes: fresh.notes,
         sentAt: details.sendTime,
-        sent: stats.sent,
+        sent: fresh.stats.sent,
         lastFetchedAt: now,
         snapshots: changed
-          ? [...current.snapshots, snapshot]
+          ? [...current.snapshots, toSnapshot(fresh.stats, now)]
           : current.snapshots,
       }),
     );
   });
+}
+
+/**
+ * Campaigns sent before this can't appear in the stats report, which covers
+ * at most the last 365 days in the account's timezone. A day of margin keeps
+ * campaigns on the edge from taking up the report's 100-ID filter.
+ */
+function statsWindowStart(now: Date): Date {
+  return new Date(now.getTime() - 364 * 24 * 60 * 60 * 1000);
 }
 
 /**
@@ -676,10 +687,17 @@ export async function updateCampaigns(
   campaignIDs: string[],
 ): Promise<void> {
   const ids = validateCampaignIDs(campaignIDs);
+  const now = new Date();
 
   const details = await fetchCampaignDetails(ids);
-  const stats = await fetchCampaignStats(ids);
-  const now = new Date();
+  const windowStart = statsWindowStart(now);
+  const reportable = [...details.values()]
+    .filter(({ sendTime }) => sendTime !== null && sendTime >= windowStart)
+    .map(({ id }) => id);
+  const stats =
+    reportable.length > 0
+      ? await fetchCampaignStats(reportable)
+      : new Map<string, CampaignStats>();
 
   const cache: AudienceCache = { knownLists: new Map(), segments: new Map() };
   const failures: { id: string; error: unknown }[] = [];
@@ -691,8 +709,26 @@ export async function updateCampaigns(
       });
       continue;
     }
+    const { sendTime } = campaign;
+    if (sendTime === null) {
+      logger.warn("Skipping Klaviyo campaign without a send time", {
+        campaignID: id,
+      });
+      continue;
+    }
+    if (sendTime < windowStart) {
+      logger.info("Klaviyo campaign is older than the stats report covers", {
+        campaignID: id,
+      });
+    }
     try {
-      await syncCampaign(db, campaign, stats.get(id), now, cache);
+      await syncCampaign(
+        db,
+        { ...campaign, sendTime },
+        stats.get(id),
+        now,
+        cache,
+      );
     } catch (error) {
       logger.error("Failed to sync Klaviyo campaign", {
         campaignID: id,

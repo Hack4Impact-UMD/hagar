@@ -7,6 +7,7 @@ import {
   updateCampaigns,
   updateList,
 } from "@backend/email/klaviyo.ts";
+import { logger } from "firebase-functions/logger";
 import { KlaviyoApiError } from "@backend/email/klaviyoApi.ts";
 import { fakeFirestore } from "@backend/testing/fakeFirestore.ts";
 
@@ -33,6 +34,7 @@ vi.mock("firebase-admin/storage", () => ({
 const fetchMock = vi.fn<typeof fetch>();
 
 beforeEach(() => {
+  vi.clearAllMocks();
   vi.stubGlobal("fetch", fetchMock);
   storage.save.mockReset().mockResolvedValue();
   storage.fileAt.mockReset().mockReturnValue({ save: storage.save });
@@ -416,9 +418,7 @@ describe("updateCampaigns", () => {
       "and(equals(messages.channel,'email'),any(id,['C1','C2']))",
     );
     expect(params?.get("include")).toBe("campaign-messages");
-    expect(params?.get("fields[campaign]")).toBe(
-      "name,status,send_time,audiences",
-    );
+    expect(params?.get("fields[campaign]")).toBe("name,send_time,audiences");
     expect(params?.get("fields[campaign-message]")).toBe("definition.channel");
     expect(klaviyo.to("GET", "/api/metrics")).toHaveLength(1);
 
@@ -543,7 +543,7 @@ describe("updateCampaigns", () => {
   });
 
   it("skips a campaign Klaviyo returns without a send time", async () => {
-    setup(
+    const klaviyo = setup(
       [campaign("C1", { send_time: null })],
       [row("C1", { recipients: 3 })],
     );
@@ -552,6 +552,77 @@ describe("updateCampaigns", () => {
     await updateCampaigns(db, ["C1"]);
 
     expect(doc("email-campaigns", "Klaviyo_C1")).toBeUndefined();
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    expect(logger.warn).toHaveBeenCalledWith(
+      "Skipping Klaviyo campaign without a send time",
+      { campaignID: "C1" },
+    );
+    expect(klaviyo.to("POST", "/api/campaign-values-reports")).toEqual([]);
+  });
+
+  it("does not look up segments for a new campaign without a screenshot", async () => {
+    const klaviyo = setup(
+      [
+        campaign("C1", {
+          audiences: { included: ["S1"], excluded: [] },
+        }),
+      ],
+      [row("C1", { recipients: 3 })],
+    );
+    routeScreenshot(klaviyo, "C1", png(), null);
+    const { db, doc } = fakeFirestore();
+
+    await updateCampaigns(db, ["C1"]);
+
+    expect(doc("email-campaigns", "Klaviyo_C1")).toBeUndefined();
+    expect(klaviyo.to("GET", "/api/segments/S1")).toEqual([]);
+  });
+
+  describe("stats report window", () => {
+    const longAgo = "2024-01-01T00:00:00.000Z";
+
+    it("leaves campaigns older than a year out of the report", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(t2);
+      const klaviyo = setup(
+        [campaign("C1"), campaign("C2", { send_time: longAgo })],
+        [row("C1", { recipients: 3 })],
+      );
+      routeScreenshot(klaviyo, "C1", png());
+      const old = existingRecord({
+        platformCampaignID: "C2",
+        sentAt: new Date(longAgo),
+      });
+      const { db, doc } = fakeFirestore({
+        ...knownLists("L1"),
+        "email-campaigns": { Klaviyo_C2: old },
+      });
+
+      await updateCampaigns(db, ["C1", "C2"]);
+
+      const [report] = klaviyo.to("POST", "/api/campaign-values-reports");
+      expect(
+        JSON.parse(String(report?.init?.body)).data.attributes.filter,
+      ).toBe(
+        'and(contains-any(campaign_id,["C1"]),equals(send_channel,"email"))',
+      );
+      expect(doc("email-campaigns", "Klaviyo_C1")?.sent).toBe(3);
+      expect(doc("email-campaigns", "Klaviyo_C2")).toEqual({
+        ...old,
+        lastFetchedAt: t2,
+      });
+    });
+
+    it("skips the metric lookup and report when every campaign is too old", async () => {
+      const klaviyo = setup([campaign("C1", { send_time: longAgo })], []);
+      const { db, doc } = fakeFirestore(knownLists("L1"));
+
+      await updateCampaigns(db, ["C1"]);
+
+      expect(klaviyo.to("GET", "/api/metrics")).toEqual([]);
+      expect(klaviyo.to("POST", "/api/campaign-values-reports")).toEqual([]);
+      expect(doc("email-campaigns", "Klaviyo_C1")).toBeUndefined();
+    });
   });
 
   describe("existing campaign", () => {
