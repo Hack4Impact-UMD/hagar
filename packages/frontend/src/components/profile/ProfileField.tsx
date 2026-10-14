@@ -24,8 +24,8 @@ export function ProfileField({
   if (!editing || (!input && !locked)) {
     return (
       <div>
-        <dt>{label}</dt>
-        <dd>{value}</dd>
+        <dt className="field-label">{label}</dt>
+        <dd className="field-value">{value}</dd>
       </div>
     );
   }
@@ -33,7 +33,18 @@ export function ProfileField({
   return (
     <div>
       <dt>
-        <label htmlFor={id}>{label}</label>
+        {/* A label for a locked field is not tied to the input with `for`:
+            clicking a label clicks its input, so the tooltip would open from
+            the label's area too. */}
+        {input ? (
+          <label htmlFor={id} className="field-label">
+            {label}
+          </label>
+        ) : (
+          <span id={id} className="field-label">
+            {label}
+          </span>
+        )}
       </dt>
       <dd>
         {input ? (
@@ -48,7 +59,7 @@ export function ProfileField({
             data-testid={input.name}
           />
         ) : (
-          <LockedInput id={id} value={value} />
+          <LockedInput labelId={id} value={value} />
         )}
       </dd>
     </div>

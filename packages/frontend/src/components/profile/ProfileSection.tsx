@@ -15,9 +15,9 @@ export function ProfileSection({
   children,
 }: ProfileSectionProps) {
   return (
-    <section>
-      <header>
-        <h2>{title}</h2>
+    <section className="card">
+      <header className="card-header">
+        <h2 className="card-title">{title}</h2>
         {onEdit ? (
           <Button
             type="button"
@@ -30,7 +30,7 @@ export function ProfileSection({
           </Button>
         ) : null}
       </header>
-      {children}
+      <div className="card-body">{children}</div>
     </section>
   );
 }

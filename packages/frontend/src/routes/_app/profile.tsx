@@ -97,9 +97,11 @@ function Profile() {
         }
       }}
     >
-      <main>
-        <header>
-          <h1 data-testid="profile">My Profile</h1>
+      <main className="page">
+        <header className="page-header">
+          <h1 data-testid="profile" className="page-title">
+            My Profile
+          </h1>
           {/* Separate keys give each mode its own button element. Reusing one
               and flipping its type would let the click that enters edit mode
               also submit the form. */}
@@ -113,36 +115,54 @@ function Profile() {
             </Button>
           )}
         </header>
-        <section>
-          <ProfileAvatar
-            photoPath={profile.photoPath}
-            firstName={profile.firstName}
-            lastName={profile.lastName}
-            previewUrl={photoPreviewUrl}
-          />
-          {editing ? (
-            <PhotoPicker
-              onPick={(file) => {
-                const problem = profilePhotoProblem(file);
-                setPhotoError(problem);
-                // A rejected pick keeps the previous valid choice.
-                if (!problem) setPhoto(file);
-              }}
+        {photoError || saveError ? (
+          <div className="flex flex-col gap-1">
+            {photoError ? (
+              <p role="alert" className="form-error">
+                {photoError}
+              </p>
+            ) : null}
+            {saveError ? (
+              <p role="alert" className="form-error">
+                {saveError.message}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+        <section className="page-summary">
+          <div className="avatar-with-badge">
+            <ProfileAvatar
+              photoPath={profile.photoPath}
+              firstName={profile.firstName}
+              lastName={profile.lastName}
+              previewUrl={photoPreviewUrl}
+              className="size-28 *:data-[slot=avatar-fallback]:text-3xl"
             />
-          ) : null}
-          {photoError ? <p role="alert">{photoError}</p> : null}
-          {saveError ? <p role="alert">{saveError.message}</p> : null}
-          <h2>
-            {profile.firstName} {profile.lastName}
-          </h2>
-          <p>{profile.role}</p>
-          <p>{profile.email}</p>
+            {editing ? (
+              <PhotoPicker
+                className="absolute right-0 bottom-0 rounded-full bg-background"
+                onPick={(file) => {
+                  const problem = profilePhotoProblem(file);
+                  setPhotoError(problem);
+                  // A rejected pick keeps the previous valid choice.
+                  if (!problem) setPhoto(file);
+                }}
+              />
+            ) : null}
+          </div>
+          <div className="flex flex-col gap-1">
+            <h2 className="summary-name">
+              {profile.firstName} {profile.lastName}
+            </h2>
+            <p className="text-primary">{profile.role}</p>
+            <p>{profile.email}</p>
+          </div>
         </section>
         <ProfileSection
           title="Personal Information"
           onEdit={editing ? undefined : startEditing}
         >
-          <dl>
+          <dl className="field-grid">
             <ProfileField
               label="First Name"
               value={profile.firstName}
@@ -173,13 +193,6 @@ function Profile() {
               locked
               editing={editing}
             />
-          </dl>
-        </ProfileSection>
-        <ProfileSection
-          title="Address"
-          onEdit={editing ? undefined : startEditing}
-        >
-          <dl>
             <ProfileField
               label="Region"
               value={profile.region}

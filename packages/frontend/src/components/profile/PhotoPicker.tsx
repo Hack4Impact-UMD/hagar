@@ -5,9 +5,10 @@ import { PROFILE_PHOTO_ACCEPT } from "@frontend/lib/profilePhotos.ts";
 
 interface PhotoPickerProps {
   onPick: (file: File) => void;
+  className?: string;
 }
 
-export function PhotoPicker({ onPick }: PhotoPickerProps) {
+export function PhotoPicker({ onPick, className }: PhotoPickerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   return (
@@ -16,6 +17,7 @@ export function PhotoPicker({ onPick }: PhotoPickerProps) {
         type="button"
         variant="outline"
         size="icon-sm"
+        className={className}
         aria-label="Change profile picture"
         onClick={() => inputRef.current?.click()}
       >
