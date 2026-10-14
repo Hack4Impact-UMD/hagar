@@ -47,7 +47,15 @@ function Login() {
               />
             </label>
             <label className="flex flex-col text-[16px] font-semibold gap-2">
-              Password <input type="password" required value={password} data-testid="password" onChange={(event) => setPassword(event.target.value)} className="border h-15 px-4 rounded-[10px]" />
+              Password{" "}
+              <input
+                type="password"
+                required
+                value={password}
+                data-testid="password"
+                onChange={(event) => setPassword(event.target.value)}
+                className="border h-15 px-4 rounded-[10px]"
+              />
             </label>
             {/* oxlint-disable-next-line jsx-a11y/anchor-is-valid */}
             <a href="" className="underline flex justify-end pb-10">
