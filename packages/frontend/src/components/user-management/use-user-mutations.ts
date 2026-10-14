@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { describeUserError } from "@frontend/components/user-management/user-helpers.ts";
 import { queryClient, trpc } from "@frontend/lib/trpc.ts";
 
-/** Shows a message to the admin, e.g. in the page's error banner. */
+/* Shows a message to the admin */
 export type ReportError = (message: string) => void;
 
 // One filter covers both tabs and every region, which matters because
@@ -11,11 +11,9 @@ function refreshUserLists() {
   return queryClient.invalidateQueries(trpc.users.list.pathFilter());
 }
 
-/**
- * The user management mutations for a single row. Call it once per row so
- * `isPending` only locks the row being changed.
- *
- * `me` is never updated here: nobody can change their own row on this page.
+/*
+  The user management mutations for a single row. Call it once per row so
+  'isPending' only locks the row being changed. 'me' is never updated.
  */
 export function useUserMutations(reportError: ReportError) {
   const handlers = {
