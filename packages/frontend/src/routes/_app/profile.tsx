@@ -86,14 +86,24 @@ function Profile() {
               input={{ name: "lastName", type: "text" }}
               editing={editing}
             />
-            <ProfileField label="Email Address" value={profile.email} />
+            <ProfileField
+              label="Email Address"
+              value={profile.email}
+              locked
+              editing={editing}
+            />
             <ProfileField
               label="Phone Number"
               value={profile.phoneNumber}
               input={{ name: "phoneNumber", type: "tel" }}
               editing={editing}
             />
-            <ProfileField label="User Role" value={profile.role} />
+            <ProfileField
+              label="User Role"
+              value={profile.role}
+              locked
+              editing={editing}
+            />
           </dl>
         </ProfileSection>
         <ProfileSection
@@ -101,7 +111,12 @@ function Profile() {
           onEdit={editing ? undefined : startEditing}
         >
           <dl>
-            <ProfileField label="Region" value={profile.region} />
+            <ProfileField
+              label="Region"
+              value={profile.region}
+              locked
+              editing={editing}
+            />
           </dl>
         </ProfileSection>
       </main>
