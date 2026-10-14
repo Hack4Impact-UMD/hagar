@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { ProfileAvatar } from "@frontend/components/profile/ProfileAvatar.tsx";
 import { ProfileField } from "@frontend/components/profile/ProfileField.tsx";
 import { trpc } from "@frontend/lib/trpc.ts";
 
@@ -16,6 +17,11 @@ function Profile() {
     <main>
       <h1 data-testid="profile">My Profile</h1>
       <section>
+        <ProfileAvatar
+          photoPath={profile.photoPath}
+          firstName={profile.firstName}
+          lastName={profile.lastName}
+        />
         <h2>
           {profile.firstName} {profile.lastName}
         </h2>
