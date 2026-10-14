@@ -37,7 +37,7 @@ function ProfileSetup() {
 
   return (
     <main className="flex flex-col gap-4 p-6">
-      <h1>Profile setup</h1>
+      <h1>Finish your profile</h1>
       <form
         className="flex flex-col gap-2"
         onSubmit={(event) => {
@@ -92,7 +92,7 @@ function ProfileSetup() {
             className="border"
           >
             <option value="" disabled>
-              Choose a region
+              Choose region
             </option>
             {userRegions.map((region) => (
               <option key={region} value={region}>
@@ -107,18 +107,23 @@ function ProfileSetup() {
           disabled={isPending}
           className="self-start border px-3 py-1"
         >
-          Next
+          Finish Profile
         </button>
         {error ? <p role="alert">{error.message}</p> : null}
       </form>
-      <button
-        type="button"
-        data-testid="sign-out"
-        onClick={() => void auth.signOut()}
-        className="self-start border px-3 py-1"
-      >
-        Sign out
-      </button>
+      
     </main>
   );
+
+  // my notes: routes when user clicks the finish profile button, then goes to the verify-email page --> this logic is already implemented.
+
+  //       <button
+  /* type="button"
+  data-testid="sign-out"
+  onClick={() => void auth.signOut()}
+  className="self-start border px-3 py-1"
+>
+  Sign out
+</button> */ 
+// Finish your profile page on Figma does not have the Sign out button 
 }
