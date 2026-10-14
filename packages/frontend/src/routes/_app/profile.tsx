@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { changedFields } from "@frontend/components/profile/changedFields.ts";
 import { PhotoPicker } from "@frontend/components/profile/PhotoPicker.tsx";
@@ -8,17 +8,42 @@ import { ProfileField } from "@frontend/components/profile/ProfileField.tsx";
 import { ProfileSection } from "@frontend/components/profile/ProfileSection.tsx";
 import { Button } from "@frontend/components/ui/button.tsx";
 import { useObjectUrl } from "@frontend/hooks/use-object-url.ts";
-import { profilePhotoProblem } from "@frontend/lib/profilePhotos.ts";
-import { trpc } from "@frontend/lib/trpc.ts";
+import {
+  profilePhotoProblem,
+  uploadProfilePhoto,
+} from "@frontend/lib/profilePhotos.ts";
+import { queryClient, trpc } from "@frontend/lib/trpc.ts";
 
 export const Route = createFileRoute("/_app/profile")({ component: Profile });
 
 function Profile() {
+  const router = useRouter();
   const { data: profile } = useQuery(trpc.me.queryOptions());
   const [editing, setEditing] = useState(false);
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const photoPreviewUrl = useObjectUrl(photo);
+
+  const uploadPhoto = useMutation({ mutationFn: uploadProfilePhoto });
+  const updateProfile = useMutation(
+    trpc.users.updateProfile.mutationOptions({
+      // `me` is cached for good, so the page keeps showing the old values
+      // unless the saved profile replaces them.
+      onSuccess: (saved) => queryClient.setQueryData(trpc.me.queryKey(), saved),
+      onError: async (error) => {
+        // The user is no longer approved, e.g. an admin moved them back to
+        // awaiting approval or deleted them. Refetch `me` and re-run the
+        // route guard so they land on the page for their new state.
+        if (error.data?.code !== "FORBIDDEN") return;
+        await queryClient.query({ ...trpc.me.queryOptions(), staleTime: 0 });
+        await router.invalidate();
+      },
+    }),
+  );
+  const isSaving = uploadPhoto.isPending || updateProfile.isPending;
+  const saveError = uploadPhoto.error ?? updateProfile.error;
+  const { reset: resetUpload } = uploadPhoto;
+  const { reset: resetUpdate } = updateProfile;
 
   // Leaving edit mode unmounts the text inputs, which discards their drafts,
   // so the photo state has to be dropped explicitly.
@@ -26,7 +51,9 @@ function Profile() {
     setEditing(false);
     setPhoto(null);
     setPhotoError(null);
-  }, []);
+    resetUpload();
+    resetUpdate();
+  }, [resetUpload, resetUpdate]);
 
   useEffect(() => {
     if (!editing) return;
@@ -51,7 +78,23 @@ function Profile() {
           profile,
           new FormData(event.currentTarget),
         );
-        if (!photo && Object.keys(changes).length === 0) stopEditing();
+        if (!photo && Object.keys(changes).length === 0) {
+          stopEditing();
+          return;
+        }
+        // The photo is uploaded first because the profile only stores its
+        // path.
+        if (photo) {
+          uploadPhoto.mutate(photo, {
+            onSuccess: (photoPath) =>
+              updateProfile.mutate(
+                { ...changes, photoPath },
+                { onSuccess: stopEditing },
+              ),
+          });
+        } else {
+          updateProfile.mutate(changes, { onSuccess: stopEditing });
+        }
       }}
     >
       <main>
@@ -61,7 +104,7 @@ function Profile() {
               and flipping its type would let the click that enters edit mode
               also submit the form. */}
           {editing ? (
-            <Button key="save" type="submit">
+            <Button key="save" type="submit" disabled={isSaving}>
               Save Changes
             </Button>
           ) : (
@@ -88,6 +131,7 @@ function Profile() {
             />
           ) : null}
           {photoError ? <p role="alert">{photoError}</p> : null}
+          {saveError ? <p role="alert">{saveError.message}</p> : null}
           <h2>
             {profile.firstName} {profile.lastName}
           </h2>
