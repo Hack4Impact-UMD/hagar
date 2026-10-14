@@ -1,11 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { changedFields } from "@frontend/components/profile/changedFields.ts";
+import { PhotoPicker } from "@frontend/components/profile/PhotoPicker.tsx";
 import { ProfileAvatar } from "@frontend/components/profile/ProfileAvatar.tsx";
 import { ProfileField } from "@frontend/components/profile/ProfileField.tsx";
 import { ProfileSection } from "@frontend/components/profile/ProfileSection.tsx";
 import { Button } from "@frontend/components/ui/button.tsx";
+import { useObjectUrl } from "@frontend/hooks/use-object-url.ts";
+import { profilePhotoProblem } from "@frontend/lib/profilePhotos.ts";
 import { trpc } from "@frontend/lib/trpc.ts";
 
 export const Route = createFileRoute("/_app/profile")({ component: Profile });
@@ -13,16 +16,26 @@ export const Route = createFileRoute("/_app/profile")({ component: Profile });
 function Profile() {
   const { data: profile } = useQuery(trpc.me.queryOptions());
   const [editing, setEditing] = useState(false);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const photoPreviewUrl = useObjectUrl(photo);
 
-  // Leaving edit mode unmounts the inputs, which discards their drafts.
+  // Leaving edit mode unmounts the text inputs, which discards their drafts,
+  // so the photo state has to be dropped explicitly.
+  const stopEditing = useCallback(() => {
+    setEditing(false);
+    setPhoto(null);
+    setPhotoError(null);
+  }, []);
+
   useEffect(() => {
     if (!editing) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setEditing(false);
+      if (event.key === "Escape") stopEditing();
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [editing]);
+  }, [editing, stopEditing]);
 
   // The route guard only lets complete profiles in, but the type can't know
   // that: the details are null while the stage is 'PROFILE SETUP'.
@@ -38,7 +51,7 @@ function Profile() {
           profile,
           new FormData(event.currentTarget),
         );
-        if (Object.keys(changes).length === 0) setEditing(false);
+        if (!photo && Object.keys(changes).length === 0) stopEditing();
       }}
     >
       <main>
@@ -62,7 +75,19 @@ function Profile() {
             photoPath={profile.photoPath}
             firstName={profile.firstName}
             lastName={profile.lastName}
+            previewUrl={photoPreviewUrl}
           />
+          {editing ? (
+            <PhotoPicker
+              onPick={(file) => {
+                const problem = profilePhotoProblem(file);
+                setPhotoError(problem);
+                // A rejected pick keeps the previous valid choice.
+                if (!problem) setPhoto(file);
+              }}
+            />
+          ) : null}
+          {photoError ? <p role="alert">{photoError}</p> : null}
           <h2>
             {profile.firstName} {profile.lastName}
           </h2>

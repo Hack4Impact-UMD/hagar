@@ -10,14 +10,18 @@ interface ProfileAvatarProps {
   photoPath: string;
   firstName: string;
   lastName: string;
+  /** A local preview of a photo that hasn't been saved yet. */
+  previewUrl?: string | null;
 }
 
 export function ProfileAvatar({
   photoPath,
   firstName,
   lastName,
+  previewUrl = null,
 }: ProfileAvatarProps) {
-  const { data: url } = useQuery(profilePhotoUrlOptions(photoPath));
+  const { data: savedUrl } = useQuery(profilePhotoUrlOptions(photoPath));
+  const url = previewUrl ?? savedUrl;
   // Spread so a name starting with a surrogate pair isn't split in half.
   const initials = [...firstName][0] + ([...lastName][0] ?? "");
 
