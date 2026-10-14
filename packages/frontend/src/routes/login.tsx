@@ -29,7 +29,7 @@ function Login() {
             }}
           >
             <p className="pt-2 pb-6">
-              Don't have an account yet?{" "}
+              Dona&pos;t have an account yet?{" "}
               <Link to="/signup" className="underline">
                 Sign up
               </Link>
@@ -49,6 +49,7 @@ function Login() {
             <label className="flex flex-col text-[16px] font-semibold gap-2">
               Password <input type="password" required value={password} data-testid="password" onChange={(event) => setPassword(event.target.value)} className="border h-15 px-4 rounded-[10px]" />
             </label>
+            {/* oxlint-disable-next-line jsx-a11y/anchor-is-valid */}
             <a href="" className="underline flex justify-end pb-10">
               Forgot Password?
             </a>
