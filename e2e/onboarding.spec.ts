@@ -28,15 +28,11 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   // The page sends the verification email on arrival and polls until the
   // link is used.
   await expect(page).toHaveURL(/\/verify-email$/);
-  await expect(page.getByTestId("verify-email-status")).toContainText(
-    TEST_USER.email,
-  );
+  await expect(page.getByTestId("verify-email-status")).toContainText(TEST_USER.email);
   await verifyEmail(TEST_USER.email);
 
   await expect(page).toHaveURL(/\/awaiting-approval$/);
-  await expect(page.getByTestId("awaiting-approval")).toHaveText(
-    "Waiting for admin approval. Come back later once the admin approves you!",
-  );
+  await expect(page.getByTestId("awaiting-approval")).toHaveText("Waiting for admin approval. Come back later once the admin approves you!");
 
   // Onboarding pages are off limits once the user has moved past them, and
   // active-only pages are off limits until approval.
@@ -54,14 +50,12 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   await expect(page.getByTestId("profile")).toHaveText("Profile");
   await page.getByRole("link", { name: "Back to homepage" }).click();
   await page.getByRole("link", { name: "User management" }).click();
-  await expect(page.getByTestId("user-management")).toHaveText(
-    "User management",
-  );
+  await expect(page.getByTestId("user-management")).toHaveText("User management");
   await page.getByRole("link", { name: "Back to homepage" }).click();
 
   await page.getByTestId("sign-out").click();
   await expect(page).toHaveURL(/\/login$/);
-  await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Login" })).toBeVisible();
 
   // An approved user goes straight to the homepage after logging in.
   await page.getByTestId("email").fill(TEST_USER.email);
