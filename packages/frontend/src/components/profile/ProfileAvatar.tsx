@@ -12,6 +12,7 @@ interface ProfileAvatarProps {
   lastName: string;
   /** A local preview of a photo that hasn't been saved yet. */
   previewUrl?: string | null;
+  className?: string;
 }
 
 export function ProfileAvatar({
@@ -19,6 +20,7 @@ export function ProfileAvatar({
   firstName,
   lastName,
   previewUrl = null,
+  className,
 }: ProfileAvatarProps) {
   const { data: savedUrl } = useQuery(profilePhotoUrlOptions(photoPath));
   const url = previewUrl ?? savedUrl;
@@ -26,7 +28,7 @@ export function ProfileAvatar({
   const initials = [...firstName][0] + ([...lastName][0] ?? "");
 
   return (
-    <Avatar>
+    <Avatar className={className}>
       {/* Radix only renders the fallback while the image is loading or if it
           fails, so there is no need to track either state here. */}
       {url ? <AvatarImage src={url} alt="" /> : null}
