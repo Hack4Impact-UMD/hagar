@@ -40,11 +40,15 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   // The page sends the verification email on arrival and polls until the
   // link is used.
   await expect(page).toHaveURL(/\/verify-email$/);
-  await expect(page.getByTestId("verify-email-status")).toContainText(TEST_USER.email);
+  await expect(page.getByTestId("verify-email-status")).toContainText(
+    TEST_USER.email,
+  );
   await verifyEmail(TEST_USER.email);
 
   await expect(page).toHaveURL(/\/awaiting-approval$/);
-  await expect(page.getByTestId("awaiting-approval")).toHaveText("Waiting for admin approval. Come back later once the admin approves you!");
+  await expect(page.getByTestId("awaiting-approval")).toHaveText(
+    "Waiting for admin approval. Come back later once the admin approves you!",
+  );
 
   // Storage rules let an unapproved user read only their own photo.
   const photo = await fetchOwnProfilePhoto(TEST_USER.email, TEST_USER.password);
@@ -67,7 +71,9 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   await expect(page.getByTestId("profile")).toHaveText("Profile");
   await page.getByRole("link", { name: "Back to homepage" }).click();
   await page.getByRole("link", { name: "User management" }).click();
-  await expect(page.getByTestId("user-management")).toHaveText("User management");
+  await expect(page.getByTestId("user-management")).toHaveText(
+    "User management",
+  );
   await page.getByRole("link", { name: "Back to homepage" }).click();
 
   await page.goto("/no-such-page");
