@@ -1,14 +1,13 @@
-import { userRegions } from "@repo/common";
 import type { UserRegion } from "@repo/common";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { ProfilePhotoPicker } from "@frontend/components/profile-setup/profile-photo-picker.tsx";
+import { RegionSelect } from "@frontend/components/profile-setup/region-select.tsx";
 import { auth } from "@frontend/lib/firebase.ts";
 import {
-  PROFILE_PHOTO_ACCEPT,
+  profilePhotoProblem,
   uploadProfilePhoto,
-  profilePhotoProblem
 } from "@frontend/lib/profilePhotos.ts";
 import { queryClient, trpc } from "@frontend/lib/trpc.ts";
 
@@ -27,11 +26,11 @@ function ProfileSetup() {
 
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const [region, setRegion] = useState<UserRegion | "">("");
+  const [regionError, setRegionError] = useState<string | null>(null);
 
   const completeProfile = useMutation(
     trpc.users.completeProfile.mutationOptions({
-      // Store the profile with its new stage, then re-run the route guards
-      // so they send the user to that stage's page.
       onSuccess: async (profile) => {
         queryClient.setQueryData(trpc.me.queryKey(), profile);
         await router.invalidate();
@@ -49,7 +48,7 @@ function ProfileSetup() {
         className="flex flex-col gap-2"
         onSubmit={(event) => {
           event.preventDefault();
-          if (photoError) return;
+          if (photoError || regionError) return;
 
           const form = new FormData(event.currentTarget);
           const text = (name: string) => String(form.get(name));
@@ -57,18 +56,28 @@ function ProfileSetup() {
           const formPhoto = form.get("photo");
           const fileToUpload =
             photo ??
-            (formPhoto instanceof File && formPhoto.size > 0 ? formPhoto : null);
+            (formPhoto instanceof File && formPhoto.size > 0
+              ? formPhoto
+              : null);
 
+          let hasError = false;
           if (!fileToUpload) {
             setPhotoError("Profile photo is required.");
-            return;
+            hasError = true;
+          } else {
+            const problem = profilePhotoProblem(fileToUpload);
+            if (problem) {
+              setPhotoError(problem);
+              hasError = true;
+            }
           }
 
-          const problem = profilePhotoProblem(fileToUpload);
-          if (problem) {
-            setPhotoError(problem);
-            return;
+          if (!region) {
+            setRegionError("Please select a region.");
+            hasError = true;
           }
+
+          if (hasError || !fileToUpload || !region) return;
 
           uploadPhoto.mutate(fileToUpload, {
             onSuccess: (photoPath) =>
@@ -77,7 +86,7 @@ function ProfileSetup() {
                 lastName: text("lastName"),
                 phoneNumber: text("phoneNumber"),
                 photoPath,
-                region: text("region") as UserRegion,
+                region,
               }),
           });
         }}
@@ -94,6 +103,7 @@ function ProfileSetup() {
             />
           </label>
         ))}
+
         <ProfilePhotoPicker
           file={photo}
           error={photoError}
@@ -102,25 +112,16 @@ function ProfileSetup() {
             setPhotoError(err);
           }}
         />
-        <label>
-          Region{" "}
-          <select
-            name="region"
-            required
-            defaultValue=""
-            data-testid="region"
-            className="border"
-          >
-            <option value="" disabled>
-              Choose region
-            </option>
-            {userRegions.map((region) => (
-              <option key={region} value={region}>
-                {region}
-              </option>
-            ))}
-          </select>
-        </label>
+
+        <RegionSelect
+          value={region}
+          error={regionError}
+          onChange={(selectedRegion) => {
+            setRegion(selectedRegion);
+            setRegionError(null);
+          }}
+        />
+
         <button
           type="submit"
           data-testid="next"
@@ -131,9 +132,17 @@ function ProfileSetup() {
         </button>
         {error ? <p role="alert">{error.message}</p> : null}
       </form>
-      
+      <button
+        type="button"
+        data-testid="sign-out"
+        onClick={() => void auth.signOut()}
+        className="self-start border px-3 py-1"
+      >
+        Sign out
+      </button>
     </main>
   );
+}
 
   // my notes: routes when user clicks the finish profile button, then goes to the verify-email page --> this logic is already implemented.
 
@@ -181,5 +190,28 @@ function ProfileSetup() {
           });
         }}
 */
+
+/*
+ old choose region 
+         <label>
+          Region{" "}
+          <select
+            name="region"
+            required
+            defaultValue=""
+            data-testid="region"
+            className="border"
+          >
+            <option value="" disabled>
+              Choose region
+            </option>
+            {userRegions.map((region) => (
+              <option key={region} value={region}>
+                {region}
+              </option>
+            ))}
+          </select>
+        </label>
+*/
 // Finish your profile page on Figma does not have the Sign out button --> will ask TLs since PR says the sign out button stays
-}
+
