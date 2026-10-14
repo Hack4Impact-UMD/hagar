@@ -238,6 +238,39 @@ describe("retries", () => {
     expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 
+  it("retries a 500 with the same backoff", async () => {
+    fetchMock
+      .mockResolvedValueOnce(json({}, 500))
+      .mockResolvedValueOnce(json({ data: [] }));
+    vi.spyOn(Math, "random").mockReturnValue(0);
+
+    const result = klaviyoGet("/api/lists", undefined, page);
+    await vi.advanceTimersByTimeAsync(999);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+
+    await expect(result).resolves.toEqual({ data: [] });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries a rejected fetch with the same backoff", async () => {
+    fetchMock
+      .mockRejectedValueOnce(new Error("socket hang up"))
+      .mockResolvedValueOnce(json({ data: [] }));
+    vi.spyOn(Math, "random").mockReturnValue(0);
+
+    const result = klaviyoGet("/api/lists", undefined, page);
+    await vi.advanceTimersByTimeAsync(999);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+
+    await expect(result).resolves.toEqual({ data: [] });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      signal: expect.any(AbortSignal),
+    });
+  });
+
   it("backs off exponentially on 503 without Retry-After", async () => {
     fetchMock
       .mockResolvedValueOnce(json({}, 503))

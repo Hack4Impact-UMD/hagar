@@ -15,6 +15,8 @@ const MAX_RETRIES = 3;
  */
 const MAX_RETRY_AFTER_SECONDS = 60;
 const BASE_BACKOFF_MS = 1000;
+/** A hung socket would otherwise hold the function open until the platform kills it. */
+const REQUEST_TIMEOUT_MS = 30_000;
 
 export class KlaviyoApiError extends Error {
   readonly status: number;
@@ -55,6 +57,11 @@ function describe(url: URL): string {
   return `${url.pathname}${url.search}`;
 }
 
+/** Jitter keeps parallel callers from retrying in lockstep. */
+function backoffMs(attempt: number): number {
+  return BASE_BACKOFF_MS * 2 ** attempt * (1 + Math.random() * 0.25);
+}
+
 /** Milliseconds to wait before retrying: `Retry-After` if given, else backoff. */
 function retryDelayMs(response: Response, attempt: number): number {
   const header = response.headers.get("retry-after");
@@ -64,8 +71,7 @@ function retryDelayMs(response: Response, attempt: number): number {
       return seconds * 1000;
     }
   }
-  // Jitter keeps parallel callers from retrying in lockstep.
-  return BASE_BACKOFF_MS * 2 ** attempt * (1 + Math.random() * 0.25);
+  return backoffMs(attempt);
 }
 
 async function failure(
@@ -105,17 +111,25 @@ async function send(
   }
 
   for (let attempt = 0; ; attempt++) {
-    const response = await fetch(url, {
-      method,
-      headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method,
+        headers,
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+    } catch (error) {
+      if (attempt >= MAX_RETRIES) throw error;
+      await sleep(backoffMs(attempt));
+      continue;
+    }
 
     if (response.ok) {
       return response.json();
     }
 
-    const retryable = response.status === 429 || response.status === 503;
+    const retryable = response.status === 429 || response.status >= 500;
     if (!retryable || attempt >= MAX_RETRIES) {
       throw await failure(method, url, response);
     }
@@ -127,12 +141,12 @@ async function send(
   }
 }
 
-function validate<S extends type.Any>(
-  schema: S,
+function validate<T>(
+  schema: (data: unknown) => T | type.errors,
   json: unknown,
   method: Method,
   url: URL,
-): S["infer"] {
+): T {
   const result = schema(json);
   if (result instanceof type.errors) {
     throw new Error(
