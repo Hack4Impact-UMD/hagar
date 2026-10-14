@@ -2,10 +2,13 @@ import { userRegions } from "@repo/common";
 import type { UserRegion } from "@repo/common";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { useState } from "react";
+import { ProfilePhotoPicker } from "@frontend/components/profile-setup/profile-photo-picker.tsx";
 import { auth } from "@frontend/lib/firebase.ts";
 import {
   PROFILE_PHOTO_ACCEPT,
   uploadProfilePhoto,
+  profilePhotoProblem
 } from "@frontend/lib/profilePhotos.ts";
 import { queryClient, trpc } from "@frontend/lib/trpc.ts";
 
@@ -21,6 +24,10 @@ const TEXT_FIELDS = [
 
 function ProfileSetup() {
   const router = useRouter();
+
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+
   const completeProfile = useMutation(
     trpc.users.completeProfile.mutationOptions({
       // Store the profile with its new stage, then re-run the route guards
@@ -42,19 +49,34 @@ function ProfileSetup() {
         className="flex flex-col gap-2"
         onSubmit={(event) => {
           event.preventDefault();
+          if (photoError) return;
+
           const form = new FormData(event.currentTarget);
           const text = (name: string) => String(form.get(name));
-          const photo = form.get("photo");
-          if (!(photo instanceof File)) return;
-          uploadPhoto.mutate(photo, {
+
+          const formPhoto = form.get("photo");
+          const fileToUpload =
+            photo ??
+            (formPhoto instanceof File && formPhoto.size > 0 ? formPhoto : null);
+
+          if (!fileToUpload) {
+            setPhotoError("Profile photo is required.");
+            return;
+          }
+
+          const problem = profilePhotoProblem(fileToUpload);
+          if (problem) {
+            setPhotoError(problem);
+            return;
+          }
+
+          uploadPhoto.mutate(fileToUpload, {
             onSuccess: (photoPath) =>
               completeProfile.mutate({
                 firstName: text("firstName"),
                 lastName: text("lastName"),
                 phoneNumber: text("phoneNumber"),
                 photoPath,
-                // The select only offers `userRegions`; the server
-                // re-validates.
                 region: text("region") as UserRegion,
               }),
           });
@@ -72,16 +94,14 @@ function ProfileSetup() {
             />
           </label>
         ))}
-        <label>
-          Profile picture{" "}
-          <input
-            name="photo"
-            type="file"
-            accept={PROFILE_PHOTO_ACCEPT}
-            required
-            data-testid="photo"
-          />
-        </label>
+        <ProfilePhotoPicker
+          file={photo}
+          error={photoError}
+          onFileSelect={(selectedFile, err) => {
+            setPhoto(selectedFile);
+            setPhotoError(err);
+          }}
+        />
         <label>
           Region{" "}
           <select
@@ -125,5 +145,41 @@ function ProfileSetup() {
 >
   Sign out
 </button> */ 
-// Finish your profile page on Figma does not have the Sign out button 
+
+/*
+          <label>
+          Profile picture{" "}
+          <input
+            name="photo"
+            type="file"
+            accept={PROFILE_PHOTO_ACCEPT}
+            required
+            data-testid="photo"
+          />
+        </label>
+*/
+
+/*
+  OLD ONSUBMIT:
+   onSubmit={(event) => {
+          event.preventDefault();
+          const form = new FormData(event.currentTarget);
+          const text = (name: string) => String(form.get(name));
+          const photo = form.get("photo");
+          if (!(photo instanceof File)) return;
+          uploadPhoto.mutate(photo, {
+            onSuccess: (photoPath) =>
+              completeProfile.mutate({
+                firstName: text("firstName"),
+                lastName: text("lastName"),
+                phoneNumber: text("phoneNumber"),
+                photoPath,
+                // The select only offers `userRegions`; the server
+                // re-validates.
+                region: text("region") as UserRegion,
+              }),
+          });
+        }}
+*/
+// Finish your profile page on Figma does not have the Sign out button --> will ask TLs since PR says the sign out button stays
 }
