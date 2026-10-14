@@ -31,7 +31,7 @@ export function RegionSelect({ value, onChange, error }: RegionSelectProps) {
         <SelectTrigger
           id="region-trigger"
           data-testid="region"
-          className="h-14 w-full rounded-xl border-gray-300 px-4 text-base shadow-none focus:ring-[#C85A32]"
+          className="h-14 w-full justify-center gap-2 rounded-xl border-gray-300 px-4 text-base text-gray-900 shadow-none data-[placeholder]:text-gray-900 [&_svg]:opacity-100 focus:ring-[#C85A32]"
         >
           <SelectValue placeholder="Choose region" />
         </SelectTrigger>
