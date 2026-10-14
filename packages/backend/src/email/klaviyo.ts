@@ -1,6 +1,6 @@
 import { type } from "arktype";
 import { EmailCampaignRecord, EmailList } from "@repo/common";
-import type { EmailPlatform } from "@repo/common";
+import type { EmailCampaignSnapshot, EmailPlatform } from "@repo/common";
 import { Timestamp } from "firebase-admin/firestore";
 import type { Firestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
@@ -201,13 +201,8 @@ const templateResponse = type({
   data: { attributes: { "screenshot_url?": "string | null" } },
 });
 
-type CampaignStats = {
+type CampaignStats = Omit<EmailCampaignSnapshot, "fetchedAt"> & {
   sent: number;
-  bounced: number;
-  uniqOpens: number;
-  uniqClicks: number;
-  unsubscribers: number;
-  complaints: number;
 };
 
 type CampaignDetails = {
@@ -563,15 +558,11 @@ function statsDiffer(
   );
 }
 
-function toSnapshot(stats: CampaignStats, fetchedAt: Date) {
-  return {
-    fetchedAt,
-    bounced: stats.bounced,
-    uniqOpens: stats.uniqOpens,
-    uniqClicks: stats.uniqClicks,
-    unsubscribers: stats.unsubscribers,
-    complaints: stats.complaints,
-  };
+function toSnapshot(
+  { sent: _sent, ...counts }: CampaignStats,
+  fetchedAt: Date,
+): EmailCampaignSnapshot {
+  return { ...counts, fetchedAt };
 }
 
 async function syncCampaign(
