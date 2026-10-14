@@ -58,7 +58,7 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   await expect(page.getByTestId("homepage")).toHaveText("Homepage");
 
   await page.getByRole("link", { name: "Profile" }).click();
-  await expect(page.getByTestId("profile")).toHaveText("Profile");
+  await expect(page.getByTestId("profile")).toHaveText("My Profile");
   await page.getByRole("link", { name: "Back to homepage" }).click();
   await page.getByRole("link", { name: "User management" }).click();
   await expect(page.getByTestId("user-management")).toHaveText(
