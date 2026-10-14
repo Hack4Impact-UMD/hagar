@@ -49,9 +49,8 @@ function Signup() {
             <label className="flex flex-col text-[16px] font-semibold gap-2">
               Password <input type="password" required value={password} data-testid="password" onChange={(event) => setPassword(event.target.value)} className="border h-15 px-4 rounded-[10px]" />
             </label>
-            <a href="" className="flex justify-start pb-10 text-chart-3">
-              At least 8 characters
-            </a>
+
+            <p className="flex justify-start pb-10 text-chart-3">At least 8 characters</p>
             <button
               type="submit"
               data-testid="create-account"
