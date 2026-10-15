@@ -581,7 +581,7 @@ describe("setUserRegion", () => {
 });
 
 describe("deleteUser", () => {
-  it.fails("lets a Local Admin reject an awaiting user in their region", async () => {
+  it("lets a Local Admin reject an awaiting user in their region", async () => {
     const { db, doc } = seeded();
 
     await deleteUser(db, actor("usLocal"), { uid: "usPending" });
@@ -590,7 +590,7 @@ describe("deleteUser", () => {
     expect(auth.deleteUser).toHaveBeenCalledWith("usPending");
   });
 
-  it.fails("deletes the user's profile photos", async () => {
+  it("deletes the user's profile photos", async () => {
     const { db } = seeded();
 
     await deleteUser(db, actor("usLocal"), { uid: "usLocal2" });
@@ -600,7 +600,7 @@ describe("deleteUser", () => {
     );
   });
 
-  it.fails("lets a Local Admin delete an active user in their region", async () => {
+  it("lets a Local Admin delete an active user in their region", async () => {
     const { db, doc } = seeded();
 
     await deleteUser(db, actor("usLocal"), { uid: "usLocal2" });
@@ -609,7 +609,7 @@ describe("deleteUser", () => {
     expect(auth.deleteUser).toHaveBeenCalledWith("usLocal2");
   });
 
-  it.fails("lets a Global Admin delete anyone, including another Global Admin and an unfinished signup", async () => {
+  it("lets a Global Admin delete anyone, including another Global Admin and an unfinished signup", async () => {
     const { db, doc } = seeded();
 
     for (const uid of ["caGlobal", "caPending", "settingUp"]) {
@@ -619,7 +619,7 @@ describe("deleteUser", () => {
     }
   });
 
-  it.fails("forbids a Local Admin from deleting outside their reach", async () => {
+  it("forbids a Local Admin from deleting outside their reach", async () => {
     const { db, doc } = seeded();
 
     // Another region, a Global Admin in their region, and an unfinished
@@ -634,7 +634,7 @@ describe("deleteUser", () => {
     expect(photos.deleteProfilePhotos).not.toHaveBeenCalled();
   });
 
-  it.fails("forbids an admin from deleting themselves", async () => {
+  it("forbids an admin from deleting themselves", async () => {
     const { db, doc } = seeded();
 
     for (const uid of ["usGlobal", "usLocal"]) {
@@ -646,7 +646,7 @@ describe("deleteUser", () => {
     expect(auth.deleteUser).not.toHaveBeenCalled();
   });
 
-  it.fails("reports a user who does not exist", async () => {
+  it("reports a user who does not exist", async () => {
     const { db } = seeded();
 
     await expect(
@@ -655,7 +655,7 @@ describe("deleteUser", () => {
     expect(auth.deleteUser).not.toHaveBeenCalled();
   });
 
-  it.fails("still deletes the profile when the Auth account is already gone", async () => {
+  it("still deletes the profile when the Auth account is already gone", async () => {
     const { db, doc } = seeded();
     auth.deleteUser.mockRejectedValue(
       Object.assign(new Error("No user record found."), {
@@ -669,7 +669,7 @@ describe("deleteUser", () => {
     expect(doc("users", "usPending")).toBeUndefined();
   });
 
-  it.fails("re-reads the caller, so an admin demoted mid-request is refused", async () => {
+  it("re-reads the caller, so an admin demoted mid-request is refused", async () => {
     const { db, doc } = fakeFirestore({
       users: { ...USERS, usLocal: { ...USERS.usLocal, role: "Viewer" } },
     });
