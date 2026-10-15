@@ -315,7 +315,7 @@ describe("approveUser", () => {
 });
 
 describe("setUserRole", () => {
-  it.fails("lets a Local Admin promote a Viewer to Local Admin", async () => {
+  it("lets a Local Admin promote a Viewer to Local Admin", async () => {
     const { db, doc } = seeded();
 
     const updated = await setUserRole(db, actor("usLocal"), {
@@ -330,7 +330,7 @@ describe("setUserRole", () => {
     });
   });
 
-  it.fails("lets a Local Admin demote another Local Admin", async () => {
+  it("lets a Local Admin demote another Local Admin", async () => {
     const { db, doc } = seeded();
 
     await setUserRole(db, actor("usLocal"), {
@@ -341,7 +341,7 @@ describe("setUserRole", () => {
     expect(doc("users", "usLocal2")).toMatchObject({ role: "Viewer" });
   });
 
-  it.fails("forbids a Local Admin from granting Global Admin", async () => {
+  it("forbids a Local Admin from granting Global Admin", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -353,7 +353,7 @@ describe("setUserRole", () => {
     expect(doc("users", "usViewer")).toEqual(USERS.usViewer);
   });
 
-  it.fails("forbids a Local Admin from changing a Global Admin in their region", async () => {
+  it("forbids a Local Admin from changing a Global Admin in their region", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -362,7 +362,7 @@ describe("setUserRole", () => {
     expect(doc("users", "usGlobal")).toEqual(USERS.usGlobal);
   });
 
-  it.fails("forbids a Local Admin from changing someone in another region", async () => {
+  it("forbids a Local Admin from changing someone in another region", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -374,7 +374,7 @@ describe("setUserRole", () => {
     expect(doc("users", "caViewer")).toEqual(USERS.caViewer);
   });
 
-  it.fails("lets a Global Admin promote and demote anyone, anywhere", async () => {
+  it("lets a Global Admin promote and demote anyone, anywhere", async () => {
     const { db, doc } = seeded();
 
     await setUserRole(db, actor("usGlobal"), {
@@ -390,7 +390,7 @@ describe("setUserRole", () => {
     expect(doc("users", "caGlobal")).toMatchObject({ role: "Viewer" });
   });
 
-  it.fails("forbids an admin from changing their own role, so a Global Admin always remains", async () => {
+  it("forbids an admin from changing their own role, so a Global Admin always remains", async () => {
     const { db, doc } = seeded();
 
     for (const uid of ["usGlobal", "usLocal"]) {
@@ -401,7 +401,7 @@ describe("setUserRole", () => {
     }
   });
 
-  it.fails("refuses a user who is not active, whose role is set on approval", async () => {
+  it("refuses a user who is not active, whose role is set on approval", async () => {
     const { db } = seeded();
 
     for (const uid of ["usPending", "usVerifying", "settingUp"]) {
@@ -411,7 +411,7 @@ describe("setUserRole", () => {
     }
   });
 
-  it.fails("reports a user who does not exist", async () => {
+  it("reports a user who does not exist", async () => {
     const { db } = seeded();
 
     await expect(
@@ -419,7 +419,7 @@ describe("setUserRole", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
-  it.fails("re-reads the caller, so an admin demoted mid-request is refused", async () => {
+  it("re-reads the caller, so an admin demoted mid-request is refused", async () => {
     const { db, doc } = fakeFirestore({
       users: { ...USERS, usLocal: { ...USERS.usLocal, role: "Viewer" } },
     });
