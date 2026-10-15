@@ -51,7 +51,6 @@ import {
   userRoles,
 } from "@frontend/components/user-management/user-helpers.ts";
 import { trpc } from "@frontend/lib/trpc.ts";
-import { sampleUsers } from "@frontend/components/user-management/sample-data.ts";
 
 const PAGE_SIZE = 12;
 
@@ -81,17 +80,9 @@ export function ActiveUsersGrid({
   const [role, setRole] = useState<UserRole | null>(null);
   const [mode, setMode] = useState<EditMode>("view");
   const [page, setPage] = useState(0);
-  // TEMP: sample data until the backend lands. Don't commit.
-  const users = useQuery({
-    ...trpc.users.list.queryOptions({ stage: "ACTIVE", region }),
-    queryFn: () =>
-      Promise.resolve(
-        sampleUsers.filter(
-          (user) =>
-            user.stage === "ACTIVE" && (!region || user.region === region),
-        ),
-      ),
-  });
+  const users = useQuery(
+    trpc.users.list.queryOptions({ stage: "ACTIVE", region }),
+  );
 
   const filtered = users.data
     ? filterUsers(users.data, { search, role })
