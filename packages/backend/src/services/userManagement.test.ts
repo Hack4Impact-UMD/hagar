@@ -435,7 +435,7 @@ describe("setUserRole", () => {
 });
 
 describe("setUserRegion", () => {
-  it.fails("lets a Global Admin move an active user, keeping their role and stage", async () => {
+  it("lets a Global Admin move an active user, keeping their role and stage", async () => {
     const { db, doc } = seeded();
 
     const moved = await setUserRegion(db, actor("usGlobal"), {
@@ -450,7 +450,7 @@ describe("setUserRegion", () => {
     });
   });
 
-  it.fails("lets a Global Admin move an awaiting user, who keeps waiting", async () => {
+  it("lets a Global Admin move an awaiting user, who keeps waiting", async () => {
     const { db, doc } = seeded();
 
     await setUserRegion(db, actor("caGlobal"), {
@@ -464,7 +464,7 @@ describe("setUserRegion", () => {
     });
   });
 
-  it.fails("sends a user a Local Admin moves back to approval as a Viewer", async () => {
+  it("sends a user a Local Admin moves back to approval as a Viewer", async () => {
     const { db, doc } = seeded();
 
     const moved = await setUserRegion(db, actor("usLocal"), {
@@ -484,7 +484,7 @@ describe("setUserRegion", () => {
     });
   });
 
-  it.fails("keeps an awaiting user waiting when a Local Admin moves them", async () => {
+  it("keeps an awaiting user waiting when a Local Admin moves them", async () => {
     const { db, doc } = seeded();
 
     await setUserRegion(db, actor("usLocal"), {
@@ -499,7 +499,7 @@ describe("setUserRegion", () => {
     });
   });
 
-  it.fails("changes nothing when the user is already in that region", async () => {
+  it("changes nothing when the user is already in that region", async () => {
     const { db, doc } = seeded();
 
     const unchanged = await setUserRegion(db, actor("usLocal"), {
@@ -512,7 +512,7 @@ describe("setUserRegion", () => {
     expect(doc("users", "usLocal2")).toEqual(USERS.usLocal2);
   });
 
-  it.fails("forbids a Local Admin from moving someone in another region", async () => {
+  it("forbids a Local Admin from moving someone in another region", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -524,7 +524,7 @@ describe("setUserRegion", () => {
     expect(doc("users", "caViewer")).toEqual(USERS.caViewer);
   });
 
-  it.fails("forbids a Local Admin from moving a Global Admin in their region", async () => {
+  it("forbids a Local Admin from moving a Global Admin in their region", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -536,7 +536,7 @@ describe("setUserRegion", () => {
     expect(doc("users", "usGlobal")).toEqual(USERS.usGlobal);
   });
 
-  it.fails("forbids an admin from moving themselves", async () => {
+  it("forbids an admin from moving themselves", async () => {
     const { db, doc } = seeded();
 
     for (const uid of ["usGlobal", "usLocal"]) {
@@ -547,7 +547,7 @@ describe("setUserRegion", () => {
     }
   });
 
-  it.fails("refuses a user who has not finished onboarding", async () => {
+  it("refuses a user who has not finished onboarding", async () => {
     const { db } = seeded();
 
     for (const uid of ["usVerifying", "settingUp"]) {
@@ -557,7 +557,7 @@ describe("setUserRegion", () => {
     }
   });
 
-  it.fails("reports a user who does not exist", async () => {
+  it("reports a user who does not exist", async () => {
     const { db } = seeded();
 
     await expect(
@@ -565,7 +565,7 @@ describe("setUserRegion", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
-  it.fails("re-reads the caller, so an admin demoted mid-request is refused", async () => {
+  it("re-reads the caller, so an admin demoted mid-request is refused", async () => {
     const { db, doc } = fakeFirestore({
       users: { ...USERS, usLocal: { ...USERS.usLocal, role: "Viewer" } },
     });

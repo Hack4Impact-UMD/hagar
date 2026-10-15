@@ -87,13 +87,28 @@ export function setUserRole(
  * goes back to awaiting approval as a Viewer.
  */
 export function setUserRegion(
-  _db: Firestore,
-  _actor: ActiveUserProfile,
-  _input: SetUserRegionInput,
+  db: Firestore,
+  actor: ActiveUserProfile,
+  input: SetUserRegionInput,
 ): Promise<UserProfile> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "users.setRegion is not implemented yet.",
+  return manageUser(db, actor, input.uid, ({ tx, ref, actor, target }) => {
+    // Users still in setup or verifying their email have no settled region.
+    assertStage(target, ["AWAITING APPROVAL", "ACTIVE"]);
+    // Staying put is not a move, so it must not send anyone back to approval.
+    if (target.region === input.region) return target;
+
+    // A Local Admin hands the user to another region's admins, who decide
+    // for themselves whether to approve them and with what role.
+    const changes =
+      actor.role === "Global Admin"
+        ? { region: input.region }
+        : ({
+            region: input.region,
+            role: "Viewer",
+            stage: "AWAITING APPROVAL",
+          } as const);
+    tx.update(ref, changes);
+    return { ...target, ...changes };
   });
 }
 
