@@ -6,8 +6,9 @@ import { ProfilePhotoPicker } from "@frontend/components/profile-setup/profile-p
 import { RegionSelect } from "@frontend/components/profile-setup/region-select.tsx";
 import {
   validateProfileForm,
-  type ProfileFormErrors,
+  formatPhoneNumber,
 } from "@frontend/components/profile-setup/validation.ts";
+import type { ProfileFormErrors } from "@frontend/components/profile-setup/validation.ts";
 import { Button } from "@frontend/components/ui/button.tsx";
 import { Input } from "@frontend/components/ui/input.tsx";
 import { Label } from "@frontend/components/ui/label.tsx";
@@ -83,8 +84,7 @@ function ProfileSetup() {
       {/* hagar AND sign out button -- again confirm on this  */}
       <header className="mb-14 flex items-center justify-between">
         <div className="flex items-center gap-2">
-        <img src="logo.png" alt="Hagar Logo" className="w-38.25" />
-         
+          <img src="logo.png" alt="Hagar Logo" className="w-38.25" />
         </div>
 
         <Button
@@ -227,7 +227,7 @@ function ProfileSetup() {
                   data-testid="phoneNumber"
                   value={phoneNumber}
                   onChange={(e) => {
-                    setPhoneNumber(e.target.value);
+                    setPhoneNumber(formatPhoneNumber(e.target.value));
                     if (fieldErrors.phoneNumber) {
                       setFieldErrors((prev) => ({
                         ...prev,
@@ -258,7 +258,7 @@ function ProfileSetup() {
                 data-testid="next"
                 disabled={isPending}
                 className="h-[70px] w-[235px] rounded-xl bg-[#C75C3B] text-base font-semibold text-white hover:bg-[#C75C3B]"
-                // although Tailwind recommends I write it as 17.5, for clarity's sake I am using the px since the Figma dimensions also use that 
+                // although Tailwind recommends I write it as 17.5, for clarity's sake I am using the px since the Figma dimensions also use that
               >
                 Finish profile
               </Button>
@@ -269,5 +269,3 @@ function ProfileSetup() {
     </main>
   );
 }
-
-
