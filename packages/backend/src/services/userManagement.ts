@@ -41,7 +41,7 @@ export async function listUsers(
     region = actor.region;
   }
 
-  // Only these two query shapes have composite indexes infirestore.indexes.json. Any other filter or sort fails.
+  // Only these two query shapes have composite indexes in firestore.indexes.json. Any other filter or sort fails.
   let query = db.collection(COLLECTION).where("stage", "==", input.stage);
   if (region !== undefined) query = query.where("region", "==", region);
   const snapshot = await query.orderBy("createdAt").get();
@@ -127,14 +127,26 @@ export async function deleteUser(
 
   // Kept outside the transaction: Firestore may run the transaction body more
   // than once, and the commit can still fail after the account is gone.
-  try {
-    await getAuth().deleteUser(input.uid);
-  } catch (error) {
-    if ((error as { code?: unknown }).code !== "auth/user-not-found") {
-      throw error;
-    }
+  // Both cleanups are attempted even if one fails, because a retry finds no
+  // profile and stops at NOT_FOUND before reaching them.
+  const results = await Promise.allSettled([
+    getAuth()
+      .deleteUser(input.uid)
+      .catch((error: unknown) => {
+        if ((error as { code?: unknown }).code !== "auth/user-not-found") {
+          throw error;
+        }
+      }),
+    deleteProfilePhotos(input.uid),
+  ]);
+  const failures = results.filter((result) => result.status === "rejected");
+  for (const failure of failures) {
+    console.error(
+      `Cleanup failed after deleting user ${input.uid}`,
+      failure.reason,
+    );
   }
-  await deleteProfilePhotos(input.uid);
+  if (failures[0]) throw failures[0].reason;
 }
 
 type ManageContext = {
