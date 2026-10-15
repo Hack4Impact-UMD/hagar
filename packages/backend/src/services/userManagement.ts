@@ -10,6 +10,7 @@ import type {
   UserProfile,
 } from "@repo/common";
 import { TRPCError } from "@trpc/server";
+import { getAuth } from "firebase-admin/auth";
 import type {
   DocumentReference,
   Firestore,
@@ -19,6 +20,7 @@ import {
   assertCanAssignRole,
   assertCanManage,
 } from "@backend/services/permissions.ts";
+import { deleteProfilePhotos } from "@backend/services/profilePhotos.ts";
 import { parseStored } from "@backend/services/users.ts";
 const COLLECTION = "users";
 
@@ -113,15 +115,26 @@ export function setUserRegion(
 }
 
 /** Deletes a user's profile and Firebase Auth account. Also used to reject. */
-export function deleteUser(
-  _db: Firestore,
-  _actor: ActiveUserProfile,
-  _input: DeleteUserInput,
+export async function deleteUser(
+  db: Firestore,
+  actor: ActiveUserProfile,
+  input: DeleteUserInput,
 ): Promise<void> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "users.delete is not implemented yet.",
+  await manageUser(db, actor, input.uid, ({ tx, ref, target }) => {
+    tx.delete(ref);
+    return target;
   });
+
+  // Kept outside the transaction: Firestore may run the transaction body more
+  // than once, and the commit can still fail after the account is gone.
+  try {
+    await getAuth().deleteUser(input.uid);
+  } catch (error) {
+    if ((error as { code?: unknown }).code !== "auth/user-not-found") {
+      throw error;
+    }
+  }
+  await deleteProfilePhotos(input.uid);
 }
 
 type ManageContext = {
