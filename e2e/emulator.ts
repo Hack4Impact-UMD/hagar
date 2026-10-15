@@ -116,6 +116,48 @@ export async function approveUser(email: string) {
   );
 }
 
+/**
+ * Downloads the user's saved profile photo while signed in as them, so that
+ * `storage.rules` applies. Returns the raw response so a test can tell a denied
+ * read from a missing file.
+ */
+export async function fetchOwnProfilePhoto(
+  email: string,
+  password: string,
+): Promise<Response> {
+  const signIn = await expectOk(
+    fetch(
+      `${AUTH_HOST}/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=fake-api-key`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, returnSecureToken: true }),
+      },
+    ),
+  );
+  const { idToken, localId } = (await signIn.json()) as {
+    idToken: string;
+    localId: string;
+  };
+
+  const document = await expectOk(
+    fetch(
+      `${FIRESTORE_HOST}/v1/projects/${PROJECT_ID}/databases/(default)/documents/users/${localId}`,
+      { headers: OWNER },
+    ),
+  );
+  const { fields } = (await document.json()) as {
+    fields: { photoPath?: { stringValue?: string } };
+  };
+  const photoPath = fields.photoPath?.stringValue;
+  if (!photoPath) throw new Error(`No profile photo saved for ${email}`);
+
+  return fetch(
+    `${STORAGE_HOST}/v0/b/${PROJECT_ID}.firebasestorage.app/o/${encodeURIComponent(photoPath)}?alt=media`,
+    { headers: { Authorization: `Firebase ${idToken}` } },
+  );
+}
+
 async function expectOk(request: Promise<Response>) {
   const response = await request;
   if (!response.ok) {
