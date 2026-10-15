@@ -51,10 +51,7 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   );
 
   // Storage rules let an unapproved user read only their own photo.
-  const photo = await fetchOwnProfilePhoto(
-    TEST_USER.email,
-    TEST_USER.password,
-  );
+  const photo = await fetchOwnProfilePhoto(TEST_USER.email, TEST_USER.password);
   expect(photo.status).toBe(200);
   expect(photo.headers.get("content-type")).toBe("image/png");
 
