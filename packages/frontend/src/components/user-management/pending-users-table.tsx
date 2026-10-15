@@ -15,7 +15,6 @@ import {
 } from "@frontend/components/ui/table.tsx";
 import { ApproveDialog } from "@frontend/components/user-management/approve-dialog.tsx";
 import { ConfirmDialog } from "@frontend/components/user-management/confirm-dialog.tsx";
-import { sampleUsers } from "@frontend/components/user-management/sample-data.ts";
 import {
   EmptyState,
   ErrorState,
@@ -41,14 +40,9 @@ interface PendingUsersTableProps {
 
 export function PendingUsersTable({ me, reportError }: PendingUsersTableProps) {
   const [page, setPage] = useState(0);
-  // TEMP: sample data until the backend lands. Don't commit.
-  const users = useQuery({
-    ...trpc.users.list.queryOptions({ stage: "AWAITING APPROVAL" }),
-    queryFn: () =>
-      Promise.resolve(
-        sampleUsers.filter((user) => user.stage === "AWAITING APPROVAL"),
-      ),
-  });
+  const users = useQuery(
+    trpc.users.list.queryOptions({ stage: "AWAITING APPROVAL" }),
+  );
 
   if (users.isError) {
     return <ErrorState message={describeUserError(users.error).message} />;
