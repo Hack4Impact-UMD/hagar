@@ -1,5 +1,5 @@
 import type { UserRole } from "@repo/common";
-import { useState } from "react";
+import { useId, useState } from "react";
 import {
   Select,
   SelectContent,
@@ -26,6 +26,7 @@ export function ApproveDialog({
   onApprove,
 }: ApproveDialogProps) {
   const [role, setRole] = useState<UserRole>("Viewer");
+  const labelId = useId();
 
   return (
     <ConfirmDialog
@@ -40,14 +41,14 @@ export function ApproveDialog({
       onConfirm={() => onApprove(role)}
     >
       <div className="flex items-center justify-between gap-4 text-sm">
-        <span id="approve-role-label">Role</span>
+        <span id={labelId}>Role</span>
         <Select
           value={role}
           onValueChange={(next) => setRole(next as UserRole)}
         >
           <SelectTrigger
             className="w-44"
-            aria-labelledby="approve-role-label"
+            aria-labelledby={labelId}
             data-testid="approve-role-select"
           >
             <SelectValue />
