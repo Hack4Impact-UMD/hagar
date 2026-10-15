@@ -52,7 +52,7 @@ export function ProfilePhotoPicker({
   return (
     <div className="flex flex-col items-center gap-6">
       {/* circular icon and preview */}
-      <div className="relative flex h-56 w-56 items-center justify-center overflow-hidden rounded-full bg-[#F5DFD5]">
+      <div className="relative flex h-56 w-56 items-center justify-center overflow-hidden rounded-full bg-[#F1DED2]">
         {previewUrl ? (
           <img
             src={previewUrl}
@@ -63,7 +63,7 @@ export function ProfilePhotoPicker({
           /* orange outline matching figma */
           <svg
             viewBox="0 0 100 100"
-            className="h-36 w-36 text-[#C85A32]"
+            className="h-36 w-36 text-[#C75C3B]"
             fill="none"
             stroke="currentColor"
             strokeWidth="2.5"
@@ -93,7 +93,8 @@ export function ProfilePhotoPicker({
         type="button"
         variant="outline"
         onClick={() => inputRef.current?.click()}
-        className="h-[50px] w-[162px] rounded-xl border-2 border-[#C85A32] bg-white text-base font-medium text-[#C85A32] hover:bg-[#F5DFD5]/40 hover:text-[#C85A32]"
+        className="h-[50px] w-[162px] rounded-xl border-[2px] border-[#C75C3B] bg-white text-base font-medium text-[#C75C3B] hover:bg-[#F5DFD5]/40 hover:text-[#C75C3B]"
+        // matches exact figma dimension
       >
         Upload photo
       </Button>
