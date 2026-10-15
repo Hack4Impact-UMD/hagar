@@ -217,7 +217,8 @@ async function allPages<S extends type.Any>(
       url = null;
       continue;
     }
-    const nextUrl = new URL(next, url);
+    // Assigned back to `url`, so an annotation keeps this initializer from referring to itself.
+    const nextUrl: URL = new URL(next, url);
     if (nextUrl.origin !== KLAVIYO_BASE_URL) {
       throw new Error(
         `Klaviyo ${method} ${describe(url)} returned a next link to a different host (${nextUrl.origin}).`,
