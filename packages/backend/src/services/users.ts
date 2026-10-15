@@ -116,7 +116,9 @@ export async function updateProfile(
     return snapshot.get("photoPath") as string | null;
   });
 
-  if (details.photoPath !== undefined && oldPhotoPath && 
+  if (
+    details.photoPath !== undefined &&
+    oldPhotoPath &&
     oldPhotoPath !== details.photoPath
   ) {
     try {
