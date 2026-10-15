@@ -1,5 +1,6 @@
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import { Button } from "@frontend/components/ui/button.tsx";
+import { cn } from "@frontend/lib/utils.ts";
 
 export function EmptyState({ message }: { message: string }) {
   return (
@@ -28,37 +29,40 @@ interface PaginationProps {
   page: number;
   pageCount: number;
   onPageChange: (page: number) => void;
+  className?: string;
 }
 
-export function Pagination({ page, pageCount, onPageChange }: PaginationProps) {
+export function Pagination({
+  page,
+  pageCount,
+  onPageChange,
+  className,
+}: PaginationProps) {
   if (pageCount <= 1) return null;
   return (
     <nav
       aria-label="Pagination"
-      className="flex items-center justify-end gap-2 text-sm text-muted-foreground"
+      className={cn("flex items-center justify-end gap-1", className)}
     >
-      <span>
-        Page {page + 1} of {pageCount}
-      </span>
       <Button
         variant="ghost"
-        size="icon-sm"
+        size="icon"
         aria-label="Previous page"
         data-testid="page-previous"
         disabled={page === 0}
         onClick={() => onPageChange(page - 1)}
       >
-        <CaretLeftIcon />
+        <CaretLeftIcon weight="bold" className="size-6" />
       </Button>
       <Button
         variant="ghost"
-        size="icon-sm"
+        size="icon"
         aria-label="Next page"
         data-testid="page-next"
         disabled={page >= pageCount - 1}
         onClick={() => onPageChange(page + 1)}
       >
-        <CaretRightIcon />
+        <CaretRightIcon weight="bold" className="size-6" />
       </Button>
     </nav>
   );
