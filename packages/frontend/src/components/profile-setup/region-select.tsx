@@ -1,4 +1,5 @@
-import { userRegions, type UserRegion } from "@repo/common";
+import { userRegions } from "@repo/common";
+import type { UserRegion } from "@repo/common";
 import { Label } from "@frontend/components/ui/label.tsx";
 import {
   Select,
@@ -23,7 +24,7 @@ function getRegionLabel(region: UserRegion): string {
   return REGION_LABELS[region] ?? region;
 }
 
-// so it can match the figma update with Australia starting first 
+// so it can match the figma update with Australia starting first
 const SORTED_REGIONS = [...userRegions].sort((a, b) =>
   getRegionLabel(a).localeCompare(getRegionLabel(b)),
 );
