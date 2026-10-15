@@ -67,7 +67,7 @@ export async function updateList(_platformListID: string): Promise<void> {
   const ref = getFirestore().collection("email-lists").doc(_platformListID);
   const doc = await ref.get();
 
-  const snapshots: any[] = doc.exists ? doc.data()!.snapshots : [];
+  const snapshots: EmailListCountSnapshot[] = doc.exists ? doc.data()!.snapshots : [];
   const latest = snapshots[snapshots.length - 1];
 
   const changed = !latest || latest.count !== snapshot.count;
@@ -124,7 +124,7 @@ export async function updateCampaign(_platformCampaignID: string,): Promise<void
     .doc(_platformCampaignID);
   const doc = await ref.get();
 
-  const snapshots: any[] = doc.exists ? doc.data()!.snapshots : [];
+  const snapshots: EmailCampaignSnapshot[] = doc.exists ? doc.data()!.snapshots : [];
   const latest = snapshots[snapshots.length - 1];
 
   const changed =
