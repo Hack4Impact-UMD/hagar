@@ -19,7 +19,15 @@ function envCheck(name: string): string{
 const API_KEY = envCheck("MAILCHIMP_API");
 const BASE = "https://api.mailchimp.com/3.0";
 
-async function get<T>(path: string): Promise<any> {
+
+// interface ListsPage{
+//   total_items: number,
+//   lists: {id: string}[];
+// }
+
+
+//Will switch to generic T soon 
+async function get(path: string): Promise<any> {
   const res = await fetch(BASE + path, {
     headers: { Authorization: `Bearer ${API_KEY}` },
   });
@@ -28,7 +36,8 @@ async function get<T>(path: string): Promise<any> {
     throw new Error(`Mailchimp ${res.status}: ${await res.text()}`);
   }
 
-  return res.json();
+  return await res.json();
+  // return (await res.json()) as T;
 }
 
 async function saveCampaignHtml(campaignID: string): Promise<string> {
@@ -74,9 +83,9 @@ export async function updateList(_platformListID: string): Promise<void> {
   const ref = getFirestore().collection("email-lists").doc(_platformListID);
   const doc = await ref.get();
 
-  const exists = doc.data() as EmailList | undefined;
+  const existing = doc.data() as EmailList | undefined;
 
-  const snapshots: EmailListCountSnapshot[] = exists?.snapshots ?? [];
+  const snapshots: EmailListCountSnapshot[] = existing?.snapshots ?? [];
   const latest = snapshots[snapshots.length - 1];
 
   const changed = !latest || latest.count !== snapshot.count;
@@ -135,8 +144,8 @@ export async function updateCampaign(
     .doc(_platformCampaignID);
   const doc = await ref.get();
 
-  const exists = doc.data() as EmailCampaignRecord | undefined;
-  const snapshots: EmailCampaignSnapshot[] = exists?.snapshots ??[];
+  const existing = doc.data() as EmailCampaignRecord | undefined;
+  const snapshots: EmailCampaignSnapshot[] = existing?.snapshots ??[];
   const latest = snapshots[snapshots.length - 1];
 
   const changed =
@@ -147,7 +156,7 @@ export async function updateCampaign(
     latest.unsubscribers !== snapshot.unsubscribers ||
     latest.complaints !== snapshot.complaints;
 
-  const existingContent = exists?.content;
+  const existingContent = existing?.content;
 
   const record: EmailCampaignRecord = {
     platform: "MailChimp",
