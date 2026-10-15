@@ -110,7 +110,7 @@ function profileOf(uid: string, changes: Partial<StoredUserProfile> = {}) {
 }
 
 describe("listUsers", () => {
-  it.fails("lists awaiting users in every region for a Global Admin, oldest first", async () => {
+  it("lists awaiting users in every region for a Global Admin, oldest first", async () => {
     const { db } = seeded();
 
     const users = await listUsers(db, actor("usGlobal"), {
@@ -120,7 +120,7 @@ describe("listUsers", () => {
     expect(users).toEqual([profileOf("usPending"), profileOf("caPending")]);
   });
 
-  it.fails("narrows a Global Admin's list to one region on request", async () => {
+  it("narrows a Global Admin's list to one region on request", async () => {
     const { db } = seeded();
 
     const users = await listUsers(db, actor("usGlobal"), {
@@ -135,7 +135,7 @@ describe("listUsers", () => {
     ]);
   });
 
-  it.fails("lists every active user, including the caller, for a Global Admin", async () => {
+  it("lists every active user, including the caller, for a Global Admin", async () => {
     const { db } = seeded();
 
     const users = await listUsers(db, actor("usGlobal"), { stage: "ACTIVE" });
@@ -151,7 +151,7 @@ describe("listUsers", () => {
     ]);
   });
 
-  it.fails("limits a Local Admin to their own region", async () => {
+  it("limits a Local Admin to their own region", async () => {
     const { db } = seeded();
 
     const pendingUsers = await listUsers(db, actor("usLocal"), {
@@ -172,7 +172,7 @@ describe("listUsers", () => {
     ]);
   });
 
-  it.fails("accepts a Local Admin's own region as a filter", async () => {
+  it("accepts a Local Admin's own region as a filter", async () => {
     const { db } = seeded();
 
     const users = await listUsers(db, actor("usLocal"), {
@@ -183,7 +183,7 @@ describe("listUsers", () => {
     expect(users.map((u) => u.uid)).toEqual(["usPending"]);
   });
 
-  it.fails("forbids a Local Admin from listing another region", async () => {
+  it("forbids a Local Admin from listing another region", async () => {
     const { db } = seeded();
 
     await expect(
@@ -194,7 +194,7 @@ describe("listUsers", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it.fails("returns an empty list when nobody matches", async () => {
+  it("returns an empty list when nobody matches", async () => {
     const { db } = seeded();
 
     await expect(
@@ -205,7 +205,7 @@ describe("listUsers", () => {
     ).resolves.toEqual([]);
   });
 
-  it.fails("drops undeclared fields from listed documents", async () => {
+  it("drops undeclared fields from listed documents", async () => {
     const { db } = fakeFirestore({
       users: { ...USERS, usPending: { ...USERS.usPending, legacy: "stray" } },
     });
