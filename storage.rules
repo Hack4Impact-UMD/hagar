@@ -6,7 +6,13 @@ service firebase.storage {
     // the backend tells whose photo a path is. Clients may only add files:
     // the backend, using the Admin SDK, replaces and deletes them.
     match /profile-photos/{uid}/{file} {
-      allow read: if request.auth != null;
+      // Users who are not approved yet may only see their own photo.
+      // Approval is read from the same `users/{uid}` document the backend uses.
+      allow read: if request.auth != null
+        && (request.auth.uid == uid
+          || firestore.get(
+            /databases/(default)/documents/users/$(request.auth.uid)
+          ).data.stage == 'ACTIVE');
       // Keep the types and the size cap in step with
       // packages/common/src/profilePhoto.ts.
       allow create: if request.auth != null
