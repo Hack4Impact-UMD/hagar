@@ -219,7 +219,7 @@ describe("listUsers", () => {
 });
 
 describe("approveUser", () => {
-  it.fails("activates an awaiting user as a Viewer when no role is given", async () => {
+  it("activates an awaiting user as a Viewer when no role is given", async () => {
     const { db, doc } = seeded();
 
     const approved = await approveUser(db, actor("usLocal"), {
@@ -234,7 +234,7 @@ describe("approveUser", () => {
     });
   });
 
-  it.fails("lets a Local Admin approve someone as a Local Admin", async () => {
+  it("lets a Local Admin approve someone as a Local Admin", async () => {
     const { db, doc } = seeded();
 
     await approveUser(db, actor("usLocal"), {
@@ -248,7 +248,7 @@ describe("approveUser", () => {
     });
   });
 
-  it.fails("forbids a Local Admin from approving someone as a Global Admin", async () => {
+  it("forbids a Local Admin from approving someone as a Global Admin", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -260,7 +260,7 @@ describe("approveUser", () => {
     expect(doc("users", "usPending")).toEqual(USERS.usPending);
   });
 
-  it.fails("forbids a Local Admin from approving someone in another region", async () => {
+  it("forbids a Local Admin from approving someone in another region", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -269,7 +269,7 @@ describe("approveUser", () => {
     expect(doc("users", "caPending")).toEqual(USERS.caPending);
   });
 
-  it.fails("lets a Global Admin approve anyone, with any role, in any region", async () => {
+  it("lets a Global Admin approve anyone, with any role, in any region", async () => {
     const { db, doc } = seeded();
 
     await approveUser(db, actor("usGlobal"), {
@@ -283,7 +283,7 @@ describe("approveUser", () => {
     });
   });
 
-  it.fails("refuses a user who is not awaiting approval", async () => {
+  it("refuses a user who is not awaiting approval", async () => {
     const { db } = seeded();
 
     for (const uid of ["usViewer", "usVerifying", "settingUp"]) {
@@ -293,7 +293,7 @@ describe("approveUser", () => {
     }
   });
 
-  it.fails("reports a user who does not exist", async () => {
+  it("reports a user who does not exist", async () => {
     const { db } = seeded();
 
     await expect(
@@ -301,7 +301,7 @@ describe("approveUser", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
-  it.fails("re-reads the caller, so an admin demoted mid-request is refused", async () => {
+  it("re-reads the caller, so an admin demoted mid-request is refused", async () => {
     const { db, doc } = fakeFirestore({
       users: { ...USERS, usLocal: { ...USERS.usLocal, role: "Viewer" } },
     });
