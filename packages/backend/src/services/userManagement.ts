@@ -68,13 +68,17 @@ export function approveUser(
 
 /** Changes an active user's role. */
 export function setUserRole(
-  _db: Firestore,
-  _actor: ActiveUserProfile,
-  _input: SetUserRoleInput,
+  db: Firestore,
+  actor: ActiveUserProfile,
+  input: SetUserRoleInput,
 ): Promise<UserProfile> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "users.setRole is not implemented yet.",
+  return manageUser(db, actor, input.uid, ({ tx, ref, actor, target }) => {
+    assertCanAssignRole(actor, input.role);
+    // Users awaiting approval get their role when they are approved.
+    assertStage(target, ["ACTIVE"]);
+    const changes = { role: input.role };
+    tx.update(ref, changes);
+    return { ...target, ...changes };
   });
 }
 
