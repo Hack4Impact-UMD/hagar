@@ -82,8 +82,8 @@ function VerifyEmail() {
               <span className="font-semibold">
                 {user?.email ?? "your email"}
               </span>
-              . Open it to continue. If you don’t see it, you may need to
-              check your spam folder.
+              . Open it to continue. If you don’t see it, you may need to check
+              your spam folder.
             </>
           ) : (
             "Sending a verification link..."
