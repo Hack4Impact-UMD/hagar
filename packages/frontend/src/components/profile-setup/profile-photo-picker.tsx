@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Button } from "@frontend/components/ui/button";
+import { useEffect, useRef, useMemo } from "react";
+import { Button } from "@frontend/components/ui/button.tsx";
 import {
   PROFILE_PHOTO_ACCEPT,
   profilePhotoProblem,
@@ -17,20 +17,20 @@ export function ProfilePhotoPicker({
   onFileSelect,
 }: ProfilePhotoPickerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
+  // 1. Derive the preview URL during render (no extra re-render or setState needed)
+  const previewUrl = useMemo(
+    () => (file ? URL.createObjectURL(file) : null),
+    [file],
+  );
+
+  // 2. Use the effect strictly to clean up the object URL from browser memory
   useEffect(() => {
-    if (!file) {
-      setPreviewUrl(null);
-      return;
-    }
-    const objectUrl = URL.createObjectURL(file);
-    setPreviewUrl(objectUrl);
-
+    if (!previewUrl) return;
     return () => {
-      URL.revokeObjectURL(objectUrl);
+      URL.revokeObjectURL(previewUrl);
     };
-  }, [file]);
+  }, [previewUrl]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0] ?? null;
@@ -41,7 +41,7 @@ export function ProfilePhotoPicker({
 
     const problem = profilePhotoProblem(selected);
     if (problem) {
-      e.target.value = "";  
+      e.target.value = "";
       onFileSelect(null, problem);
       return;
     }
@@ -100,7 +100,10 @@ export function ProfilePhotoPicker({
       </Button>
 
       {error && (
-        <p role="alert" className="max-w-[220px] text-center text-sm text-red-600">
+        <p
+          role="alert"
+          className="max-w-[220px] text-center text-sm text-red-600"
+        >
           {error}
         </p>
       )}
