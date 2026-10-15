@@ -92,7 +92,7 @@ function ProfileSetup() {
           variant="ghost"
           data-testid="sign-out"
           onClick={() => void auth.signOut()}
-          className="text-sm text-gray-500 hover:text-gray-900"
+          className="text-sm text-gray-500 hover:color-[#1C1917]"
         >
           Sign out
         </Button>
@@ -101,10 +101,10 @@ function ProfileSetup() {
       {/* container for the header and subtext below */}
       <div className="mx-auto max-w-5xl">
         <div className="mb-12">
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900">
+          <h1 className="text-4xl font-bold tracking-tight color-[#1C1917]">
             Finish your profile
           </h1>
-          <p className="mt-2 text-base text-gray-900">
+          <p className="mt-2 text-base color-[#1C1917]">
             You can change this later.
           </p>
         </div>
@@ -130,11 +130,11 @@ function ProfileSetup() {
           {/* the submit button and input grid  */}
           <div className="flex flex-col gap-8">
             <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
-              {/* Row 1, Col 1: First Name */}
+              {/* grid pos row 1, col 1 for first name position */}
               <div className="flex flex-col gap-2">
                 <Label
                   htmlFor="firstName"
-                  className="text-sm font-semibold text-gray-900"
+                  className="text-sm font-semibold color-[#1C1917]"
                 >
                   First name
                 </Label>
@@ -155,7 +155,7 @@ function ProfileSetup() {
                       }));
                     }
                   }}
-                  className="h-14 rounded-xl border-gray-300 px-4 text-base shadow-none focus-visible:ring-[#C85A32]"
+                  className="h-14 rounded-xl border-gray-300 px-4 text-base shadow-none focus-visible:ring-[#C75C3B]"
                 />
                 {fieldErrors.firstName && (
                   <p role="alert" className="text-sm text-red-600">
@@ -168,7 +168,7 @@ function ProfileSetup() {
               <div className="flex flex-col gap-2">
                 <Label
                   htmlFor="lastName"
-                  className="text-sm font-semibold text-gray-900"
+                  className="text-sm font-semibold color-[#1C1917]"
                 >
                   Last name
                 </Label>
@@ -189,7 +189,7 @@ function ProfileSetup() {
                       }));
                     }
                   }}
-                  className="h-14 rounded-xl border-gray-300 px-4 text-base shadow-none focus-visible:ring-[#C85A32]"
+                  className="h-14 rounded-xl border-gray-300 px-4 text-base shadow-none focus-visible:ring-[#C75C3B]"
                 />
                 {fieldErrors.lastName && (
                   <p role="alert" className="text-sm text-red-600">
@@ -214,7 +214,7 @@ function ProfileSetup() {
               <div className="flex flex-col gap-2">
                 <Label
                   htmlFor="phoneNumber"
-                  className="text-sm font-semibold text-gray-900"
+                  className="text-sm font-semibold color-[#1C1917]"
                 >
                   Phone number
                 </Label>
@@ -235,7 +235,7 @@ function ProfileSetup() {
                       }));
                     }
                   }}
-                  className="h-14 rounded-xl border-gray-300 px-4 text-base shadow-none focus-visible:ring-[#C85A32]"
+                  className="h-14 rounded-xl border-gray-300 px-4 text-base shadow-none focus-visible:ring-[#C75C3B]"
                 />
                 {fieldErrors.phoneNumber && (
                   <p role="alert" className="text-sm text-red-600">
@@ -257,7 +257,8 @@ function ProfileSetup() {
                 type="submit"
                 data-testid="next"
                 disabled={isPending}
-                className="h-[60px] w-[220px] rounded-xl bg-[#C85A32] text-base font-semibold text-white hover:bg-[#b04d29]"
+                className="h-[70px] w-[235px] rounded-xl bg-[#C75C3B] text-base font-semibold text-white hover:bg-[#C75C3B]"
+                // although Tailwind recommends I write it as 17.5, for clarity's sake I am using the px since the Figma dimensions also use that 
               >
                 Finish profile
               </Button>
@@ -269,74 +270,4 @@ function ProfileSetup() {
   );
 }
 
-  // my notes: routes when user clicks the finish profile button, then goes to the verify-email page --> this logic is already implemented.
-
-  //       <button
-  /* type="button"
-  data-testid="sign-out"
-  onClick={() => void auth.signOut()}
-  className="self-start border px-3 py-1"
->
-  Sign out
-</button> */ 
-
-/*
-          <label>
-          Profile picture{" "}
-          <input
-            name="photo"
-            type="file"
-            accept={PROFILE_PHOTO_ACCEPT}
-            required
-            data-testid="photo"
-          />
-        </label>
-*/
-
-/*
-  OLD ONSUBMIT:
-   onSubmit={(event) => {
-          event.preventDefault();
-          const form = new FormData(event.currentTarget);
-          const text = (name: string) => String(form.get(name));
-          const photo = form.get("photo");
-          if (!(photo instanceof File)) return;
-          uploadPhoto.mutate(photo, {
-            onSuccess: (photoPath) =>
-              completeProfile.mutate({
-                firstName: text("firstName"),
-                lastName: text("lastName"),
-                phoneNumber: text("phoneNumber"),
-                photoPath,
-                // The select only offers `userRegions`; the server
-                // re-validates.
-                region: text("region") as UserRegion,
-              }),
-          });
-        }}
-*/
-
-/*
- old choose region 
-         <label>
-          Region{" "}
-          <select
-            name="region"
-            required
-            defaultValue=""
-            data-testid="region"
-            className="border"
-          >
-            <option value="" disabled>
-              Choose region
-            </option>
-            {userRegions.map((region) => (
-              <option key={region} value={region}>
-                {region}
-              </option>
-            ))}
-          </select>
-        </label>
-*/
-// Finish your profile page on Figma does not have the Sign out button --> will ask TLs since PR says the sign out button stays
 
