@@ -4,6 +4,7 @@ import {
   describeUserError,
   filterUsers,
   fullName,
+  initials,
   paginate,
 } from "@frontend/components/user-management/user-helpers.ts";
 
@@ -23,6 +24,17 @@ describe("fullName", () => {
   it("tolerates missing names", () => {
     expect(fullName(user(null, "Doe"))).toBe("Doe");
     expect(fullName(user(null, null))).toBe("");
+  });
+});
+
+describe("initials", () => {
+  it("takes the first letter of each name", () => {
+    expect(initials(user("jane", "Doe"))).toBe("JD");
+  });
+
+  it("tolerates missing names", () => {
+    expect(initials(user("Jane", null))).toBe("J");
+    expect(initials(user(null, null))).toBe("");
   });
 });
 
