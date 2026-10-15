@@ -5,7 +5,7 @@ import type {
   EmailListCountSnapshot,
 } from "@repo/common";
 import { getFirestore} from "firebase-admin/firestore";
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import { getStorage } from "firebase-admin/storage";
 
 
@@ -129,7 +129,7 @@ export async function updateCampaign(_platformCampaignID: string,): Promise<void
 
   const changed =
     !latest ||
-    latest.bounced != snapshot.bounced ||
+    latest.bounced !== snapshot.bounced ||
     latest.uniqOpens !== snapshot.uniqOpens ||
     latest.uniqClicks !== snapshot.uniqClicks ||
     latest.unsubscribers !== snapshot.unsubscribers ||
