@@ -167,7 +167,7 @@ export async function updateCampaign(
     sentAt: new Date(campaign.send_time),
     sent: report.emails_sent,
     lastFetchedAt: now,
-    notes: exists?.notes ?? "",
+    notes: existing?.notes ?? "",
     snapshots: changed ? [...snapshots, snapshot] : snapshots,
   };
 
