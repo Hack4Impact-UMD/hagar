@@ -150,6 +150,9 @@ describe("profile page schema", () => {
 
   it("keeps the details' rules on the fields it accepts", () => {
     expect(updateProfileInput({ firstName: "" })).toBeInstanceOf(type.errors);
+    expect(updateProfileInput({ firstName: "   " })).toBeInstanceOf(
+      type.errors,
+    );
     expect(updateProfileInput({ photoPath: "not a path" })).toBeInstanceOf(
       type.errors,
     );

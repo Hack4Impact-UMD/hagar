@@ -30,6 +30,8 @@ const storedBase = type({
 // so no genuine user should ever reach them.
 const phoneNumber = type("string <= 100");
 const name = type("string <= 500");
+// Rejects empty and whitespace-only values without altering what is stored.
+const hasContent = type(/\S/);
 
 /**
  * The profile is created at first sign-in, before the user has entered any
@@ -48,9 +50,9 @@ const incompleteDetails = type({
 const completeDetails = type({
   stage: "'EMAIL VERIFICATION' | 'AWAITING APPROVAL' | 'ACTIVE'",
   photoPath: profilePhotoPath,
-  phoneNumber: phoneNumber.and("string >= 1"),
-  firstName: name.and("string >= 1"),
-  lastName: name.and("string >= 1"),
+  phoneNumber: phoneNumber.and(hasContent),
+  firstName: name.and(hasContent),
+  lastName: name.and(hasContent),
   region: userRegion,
 });
 
