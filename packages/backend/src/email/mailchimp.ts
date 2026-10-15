@@ -4,15 +4,22 @@ import type {
   EmailCampaignSnapshot,
   EmailListCountSnapshot,
 } from "@repo/common";
-import { getFirestore} from "firebase-admin/firestore";
+import { getFirestore } from "firebase-admin/firestore";
 import { randomUUID } from "node:crypto";
 import { getStorage } from "firebase-admin/storage";
 
+function envCheck(name: string): string{
+  const value = process.env[name];
+  if (!value){
+    throw new Error(`${name} isn't set`)
+  }
+  return value;
+}
 
-const API_KEY = process.env.MAILCHIMP_API!;
+const API_KEY = envCheck("MAILCHIMP_API");
 const BASE = "https://api.mailchimp.com/3.0";
 
-async function get(path: string): Promise<any> {
+async function get<T>(path: string): Promise<any> {
   const res = await fetch(BASE + path, {
     headers: { Authorization: `Bearer ${API_KEY}` },
   });
@@ -24,18 +31,18 @@ async function get(path: string): Promise<any> {
   return res.json();
 }
 
-async function saveCampaignHtml(campaignID: string): Promise<string>{
-    const {html} = await get(`/campaigns/${campaignID}/content?fields=html`);
-    if (!html){
-      throw new Error(`Campaign ${campaignID} has no HTML content`);
-    }
+async function saveCampaignHtml(campaignID: string): Promise<string> {
+  const { html } = await get(`/campaigns/${campaignID}/content?fields=html`);
+  if (!html) {
+    throw new Error(`Campaign ${campaignID} has no HTML content`);
+  }
 
-    const path = `email-integrations/mail-chil/${randomUUID()}.html`
-    await getStorage().bucket().file(path).save(html, {
-      contentType:"text/html; charset=utf-8"
-    });
+  const path = `email-integrations/mail-chil/${randomUUID()}.html`;
+  await getStorage().bucket().file(path).save(html, {
+    contentType: "text/html; charset=utf-8",
+  });
 
-    return path;
+  return path;
 }
 
 export async function getAllLists(): Promise<string[]> {
@@ -67,7 +74,9 @@ export async function updateList(_platformListID: string): Promise<void> {
   const ref = getFirestore().collection("email-lists").doc(_platformListID);
   const doc = await ref.get();
 
-  const snapshots: EmailListCountSnapshot[] = doc.exists ? doc.data()!.snapshots : [];
+  const exists = doc.data() as EmailList | undefined;
+
+  const snapshots: EmailListCountSnapshot[] = exists?.snapshots ?? [];
   const latest = snapshots[snapshots.length - 1];
 
   const changed = !latest || latest.count !== snapshot.count;
@@ -102,7 +111,9 @@ export async function getAllCampaigns(): Promise<string[]> {
   return ids;
 }
 
-export async function updateCampaign(_platformCampaignID: string,): Promise<void> {
+export async function updateCampaign(
+  _platformCampaignID: string,
+): Promise<void> {
   const campaign = await get(`/campaigns/${_platformCampaignID}`);
 
   if (campaign.status !== "sent") return;
@@ -124,7 +135,8 @@ export async function updateCampaign(_platformCampaignID: string,): Promise<void
     .doc(_platformCampaignID);
   const doc = await ref.get();
 
-  const snapshots: EmailCampaignSnapshot[] = doc.exists ? doc.data()!.snapshots : [];
+  const exists = doc.data() as EmailCampaignRecord | undefined;
+  const snapshots: EmailCampaignSnapshot[] = exists?.snapshots ??[];
   const latest = snapshots[snapshots.length - 1];
 
   const changed =
@@ -135,20 +147,19 @@ export async function updateCampaign(_platformCampaignID: string,): Promise<void
     latest.unsubscribers !== snapshot.unsubscribers ||
     latest.complaints !== snapshot.complaints;
 
-  const existingContent: string | undefined = doc.exists ? doc.data()!.content : undefined; 
+  const existingContent = exists?.content;
 
-  const record:EmailCampaignRecord = {
-    platform:"MailChimp", 
+  const record: EmailCampaignRecord = {
+    platform: "MailChimp",
     platformCampaignID: _platformCampaignID,
-    listIDs: [campaign.recipients.list_id], 
-    name:campaign.settings.title, 
-    content: existingContent || await saveCampaignHtml(_platformCampaignID),
-    sentAt: new Date(campaign.send_time), 
-    sent: report.emails_sent, 
-    lastFetchedAt:now,
-    notes: doc.exists ? doc.data()!.notes : "", 
-    snapshots:changed? [...snapshots,snapshot] : snapshots,
-
+    listIDs: [campaign.recipients.list_id],
+    name: campaign.settings.title,
+    content: existingContent || (await saveCampaignHtml(_platformCampaignID)),
+    sentAt: new Date(campaign.send_time),
+    sent: report.emails_sent,
+    lastFetchedAt: now,
+    notes: exists?.notes ?? "",
+    snapshots: changed ? [...snapshots, snapshot] : snapshots,
   };
 
   await ref.set(record);
