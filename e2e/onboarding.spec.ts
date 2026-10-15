@@ -71,7 +71,6 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
 
   await page.getByTestId("profile-link").click();
   await expect(page.getByTestId("profile")).toHaveText("My Profile");
-  await page.getByRole("link", { name: "Back to homepage" }).click();
 
   // Viewers can't manage users, so the page looks like any unknown URL.
   await expect(page.getByRole("link", { name: "User management" })).toHaveCount(
