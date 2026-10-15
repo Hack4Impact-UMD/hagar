@@ -9,7 +9,10 @@ import type {
 } from "@repo/common";
 import { TRPCError } from "@trpc/server";
 import type { Firestore } from "firebase-admin/firestore";
-import { assertOwnProfilePhoto } from "@backend/services/profilePhotos.ts";
+import {
+  assertOwnProfilePhoto,
+  deleteProfilePhoto,
+} from "@backend/services/profilePhotos.ts";
 
 const COLLECTION = "users";
 
@@ -84,15 +87,46 @@ export async function findUserProfile(
  * Saves edits from the profile page and deletes the photo a new one replaces.
  * Returns the updated profile.
  */
-export function updateProfile(
-  _db: Firestore,
-  _profile: ActiveUserProfile,
-  _details: UpdateProfileInput,
+export async function updateProfile(
+  db: Firestore,
+  profile: ActiveUserProfile,
+  details: UpdateProfileInput,
 ): Promise<ActiveUserProfile> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "users.updateProfile is not implemented yet.",
+  if (details.photoPath !== undefined) {
+    assertOwnProfilePhoto(profile.uid, details.photoPath);
+  }
+  const ref = db.collection(COLLECTION).doc(profile.uid);
+
+  const oldPhotoPath = await db.runTransaction(async (tx) => {
+    const snapshot = await tx.get(ref);
+    if (!snapshot.exists) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "No profile exists for this user.",
+      });
+    }
+    if (snapshot.get("stage") !== "ACTIVE") {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Only active users can edit their profile.",
+      });
+    }
+
+    if (Object.keys(details).length > 0) tx.update(ref, details);
+    return snapshot.get("photoPath") as string | null;
   });
+
+  if (details.photoPath !== undefined && oldPhotoPath && 
+    oldPhotoPath !== details.photoPath
+  ) {
+    try {
+      await deleteProfilePhoto(oldPhotoPath);
+    } catch (error) {
+      console.error("Could not delete replaced profile photo", error);
+    }
+  }
+
+  return { ...profile, ...details };
 }
 
 /** Saves the setup form and moves the user on to email verification. */
