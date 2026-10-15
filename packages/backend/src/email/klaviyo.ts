@@ -3,7 +3,6 @@ import { EmailCampaignRecord, EmailList } from "@repo/common";
 import type { EmailCampaignSnapshot, EmailPlatform } from "@repo/common";
 import { Timestamp } from "firebase-admin/firestore";
 import type { Firestore } from "firebase-admin/firestore";
-import { getStorage } from "firebase-admin/storage";
 import { logger } from "firebase-functions/logger";
 import {
   klaviyoGet,
@@ -14,7 +13,6 @@ import {
 
 const LISTS_COLLECTION = "email-lists";
 const CAMPAIGNS_COLLECTION = "email-campaigns";
-const CAMPAIGN_CONTENT_FOLDER = "email-campaign-content";
 const PLATFORM: EmailPlatform = "Klaviyo";
 
 /**
@@ -26,12 +24,6 @@ const MAX_CAMPAIGNS_PER_UPDATE = 100;
 /** Built into every Klaviyo account; only its per-account ID varies. */
 const CONVERSION_METRIC_NAME = "Opened Email";
 const SENT_STATUSES = new Set(["Sent", "Variations Sent"]);
-const MAX_SCREENSHOT_BYTES = 5 * 1024 * 1024;
-const SCREENSHOT_EXTENSIONS: Record<string, string> = {
-  "image/png": "png",
-  "image/jpeg": "jpg",
-  "image/webp": "webp",
-};
 
 const listsPage = type({ data: type({ id: "string >= 1" }).array() });
 const listResponse = type({
@@ -198,7 +190,7 @@ const segmentResponse = type({
   },
 });
 const templateResponse = type({
-  data: { attributes: { "screenshot_url?": "string | null" } },
+  data: { attributes: { "text?": "string | null" } },
 });
 
 type CampaignStats = Omit<EmailCampaignSnapshot, "fetchedAt"> & {
@@ -474,10 +466,10 @@ async function resolveAudience(
 }
 
 /**
- * Returns the URL of the rendered email's screenshot, or `undefined` when
- * Klaviyo has none yet.
+ * Returns the plain-text body, or `undefined` when Klaviyo has none yet.
+ * The text part of a template is optional, unlike the HTML.
  */
-async function fetchScreenshotUrl(
+async function fetchCampaignText(
   details: CampaignDetails,
 ): Promise<string | undefined> {
   if (details.emailMessageID === undefined) {
@@ -488,61 +480,17 @@ async function fetchScreenshotUrl(
   }
   const { data } = await klaviyoGet(
     `/api/campaign-messages/${encodeURIComponent(details.emailMessageID)}/template`,
-    new URLSearchParams({ "fields[template]": "screenshot_url" }),
+    new URLSearchParams({ "fields[template]": "text" }),
     templateResponse,
   );
-  const screenshotUrl = data.attributes.screenshot_url;
-  if (!screenshotUrl) {
-    logger.warn("Skipping Klaviyo campaign without a screenshot yet", {
+  const text = data.attributes.text?.trim();
+  if (!text) {
+    logger.warn("Skipping Klaviyo campaign without plain text yet", {
       campaignID: details.id,
     });
     return undefined;
   }
-  if (new URL(screenshotUrl).protocol !== "https:") {
-    throw new Error(
-      `Screenshot for campaign ${details.id} is not an https URL.`,
-    );
-  }
-  return screenshotUrl;
-}
-
-/** Downloads the screenshot and stores it in Cloud Storage, returning its path. */
-async function storeScreenshot(
-  details: CampaignDetails,
-  screenshotUrl: string,
-): Promise<string> {
-  // A presigned storage URL: the Klaviyo API key must never be sent to it.
-  const response = await fetch(screenshotUrl);
-  if (!response.ok) {
-    throw new Error(
-      `Downloading the screenshot for campaign ${details.id} failed with ${response.status}.`,
-    );
-  }
-  const [mimeType = ""] = (response.headers.get("content-type") ?? "").split(
-    ";",
-  );
-  const contentType = mimeType.trim().toLowerCase();
-  const extension = SCREENSHOT_EXTENSIONS[contentType];
-  if (extension === undefined) {
-    throw new Error(
-      `Screenshot for campaign ${details.id} has unsupported content type ${JSON.stringify(contentType)}.`,
-    );
-  }
-  const declaredSize = Number(response.headers.get("content-length") ?? 0);
-  if (declaredSize > MAX_SCREENSHOT_BYTES) {
-    throw new Error(`Screenshot for campaign ${details.id} is too large.`);
-  }
-  const buffer = Buffer.from(await response.arrayBuffer());
-  if (buffer.byteLength > MAX_SCREENSHOT_BYTES) {
-    throw new Error(`Screenshot for campaign ${details.id} is too large.`);
-  }
-
-  const path = `${CAMPAIGN_CONTENT_FOLDER}/${PLATFORM}_${details.id}.${extension}`;
-  await getStorage()
-    .bucket()
-    .file(path)
-    .save(buffer, { contentType, resumable: false });
-  return path;
+  return text;
 }
 
 function statsDiffer(
@@ -585,9 +533,9 @@ async function syncCampaign(
     return;
   }
   // Checked before the audience lookups so a campaign still waiting on its
-  // screenshot does not repeat them on every sync.
-  const screenshotUrl = isNew ? await fetchScreenshotUrl(details) : undefined;
-  if (isNew && screenshotUrl === undefined) return;
+  // plain text does not repeat them on every sync.
+  const text = isNew ? await fetchCampaignText(details) : undefined;
+  if (isNew && text === undefined) return;
 
   // Without stats only `lastFetchedAt` is written, so the lookups would be
   // wasted requests that could also fail the campaign needlessly.
@@ -595,16 +543,11 @@ async function syncCampaign(
     stats,
     ...(await resolveAudience(db, cache, details)),
   };
-  // Uploaded last so a failed lookup leaves no orphaned screenshot.
-  const contentPath =
-    screenshotUrl === undefined
-      ? undefined
-      : await storeScreenshot(details, screenshotUrl);
 
   await db.runTransaction(async (tx) => {
     const existing = await tx.get(ref);
     if (!existing.exists) {
-      if (contentPath === undefined || !fresh) {
+      if (text === undefined || !fresh) {
         logger.warn("Skipping Klaviyo campaign created since it was checked", {
           campaignID: details.id,
         });
@@ -617,7 +560,7 @@ async function syncCampaign(
           platformCampaignID: details.id,
           listIDs: fresh.listIDs,
           name: details.name,
-          content: contentPath,
+          content: text,
           sentAt: details.sendTime,
           sent: fresh.stats.sent,
           lastFetchedAt: now,
