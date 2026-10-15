@@ -8,10 +8,10 @@ import { getFirestore } from "firebase-admin/firestore";
 import { randomUUID } from "node:crypto";
 import { getStorage } from "firebase-admin/storage";
 
-function envCheck(name: string): string{
+function envCheck(name: string): string {
   const value = process.env[name];
-  if (!value){
-    throw new Error(`${name} isn't set`)
+  if (!value) {
+    throw new Error(`${name} isn't set`);
   }
   return value;
 }
@@ -19,14 +19,12 @@ function envCheck(name: string): string{
 const API_KEY = envCheck("MAILCHIMP_API");
 const BASE = "https://api.mailchimp.com/3.0";
 
-
 // interface ListsPage{
 //   total_items: number,
 //   lists: {id: string}[];
 // }
 
-
-//Will switch to generic T soon 
+//Will switch to generic T soon
 async function get(path: string): Promise<any> {
   const res = await fetch(BASE + path, {
     headers: { Authorization: `Bearer ${API_KEY}` },
@@ -145,7 +143,7 @@ export async function updateCampaign(
   const doc = await ref.get();
 
   const existing = doc.data() as EmailCampaignRecord | undefined;
-  const snapshots: EmailCampaignSnapshot[] = existing?.snapshots ??[];
+  const snapshots: EmailCampaignSnapshot[] = existing?.snapshots ?? [];
   const latest = snapshots[snapshots.length - 1];
 
   const changed =
