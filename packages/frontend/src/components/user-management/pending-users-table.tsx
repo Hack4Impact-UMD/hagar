@@ -62,7 +62,7 @@ export function PendingUsersTable({ me, reportError }: PendingUsersTableProps) {
   return (
     <div className="flex flex-col gap-4">
       <Table data-testid="pending-users-table">
-        <TableHeader className="bg-[#F1DED2] dark:bg-muted">
+        <TableHeader className="bg-[#F1DED2]">
           <TableRow className="hover:bg-transparent">
             {COLUMNS.map((column) => (
               <TableHead
@@ -97,6 +97,7 @@ export function PendingUsersTable({ me, reportError }: PendingUsersTableProps) {
       </Table>
       {current ? (
         <Pagination
+          className="mr-6 mb-6 md:mr-20"
           page={current.page}
           pageCount={current.pageCount}
           onPageChange={setPage}
@@ -165,6 +166,7 @@ function PendingUserRow({ me, user, reportError }: PendingUserRowProps) {
           title={`Reject ${name}?`}
           description="This permanently deletes their account and login. It can't be undone."
           confirmLabel="Reject"
+          destructive
           onConfirm={() => remove.mutate({ uid: user.uid })}
         />
       </TableCell>

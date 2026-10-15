@@ -12,6 +12,12 @@ export function fullName(user: Named): string {
   return `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim();
 }
 
+export function initials(user: Named): string {
+  return [user.firstName, user.lastName]
+    .map((part) => part?.trim().charAt(0).toUpperCase() ?? "")
+    .join("");
+}
+
 interface UserFilters {
   search: string;
   role: UserRole | null;
