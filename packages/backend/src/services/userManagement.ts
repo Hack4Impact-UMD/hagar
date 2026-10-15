@@ -9,17 +9,36 @@ import type {
 } from "@repo/common";
 import { TRPCError } from "@trpc/server";
 import type { Firestore } from "firebase-admin/firestore";
+import { parseStored } from "@backend/services/users.ts";
+const COLLECTION = "users";
 
 /** Lists the users in one stage that `actor` may manage. */
-export function listUsers(
-  _db: Firestore,
-  _actor: ActiveUserProfile,
-  _input: ListUsersInput,
+export async function listUsers(
+  db: Firestore,
+  actor: ActiveUserProfile,
+  input: ListUsersInput,
 ): Promise<UserProfile[]> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "users.list is not implemented yet.",
-  });
+  let region = input.region;
+  if (actor.role === "Local Admin") {
+    if (region !== undefined && region !== actor.region) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Local Admins can only list users in their own region.",
+      });
+    }
+    region = actor.region;
+  }
+
+  // Only these two query shapes have composite indexes in
+  // firestore.indexes.json. Any other filter or sort fails in production.
+  let query = db.collection(COLLECTION).where("stage", "==", input.stage);
+  if (region !== undefined) query = query.where("region", "==", region);
+  const snapshot = await query.orderBy("createdAt").get();
+
+  return snapshot.docs.map((doc) => ({
+    uid: doc.id,
+    ...parseStored.assert(doc.data()),
+  }));
 }
 
 /** Moves a user from awaiting approval to active. */
