@@ -278,7 +278,7 @@ describe("updateProfile", () => {
   } as const;
   const profile: ActiveUserProfile = { uid: "user-1", ...active };
 
-  it.fails("saves the edited details and leaves the rest alone", async () => {
+  it("saves the edited details and leaves the rest alone", async () => {
     const { db, doc } = fakeFirestore({ users: { "user-1": active } });
     const edits = { firstName: "Grace", phoneNumber: "+15555550199" };
 
@@ -288,14 +288,14 @@ describe("updateProfile", () => {
     expect(doc("users", "user-1")).toEqual({ ...active, ...edits });
   });
 
-  it.fails("changes nothing for an empty edit", async () => {
+  it("changes nothing for an empty edit", async () => {
     const { db, doc } = fakeFirestore({ users: { "user-1": active } });
 
     await expect(updateProfile(db, profile, {})).resolves.toEqual(profile);
     expect(doc("users", "user-1")).toEqual(active);
   });
 
-  it.fails("reports a profile deleted since the request began", async () => {
+  it("reports a profile deleted since the request began", async () => {
     const { db } = fakeFirestore();
 
     await expect(
@@ -303,7 +303,7 @@ describe("updateProfile", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
-  it.fails("deletes the photo a new one replaces, once saved", async () => {
+  it("deletes the photo a new one replaces, once saved", async () => {
     const { db, doc } = fakeFirestore({ users: { "user-1": active } });
     const photoPath =
       "profile-photos/user-1/00000000-0000-4000-8000-000000000000.webp";
@@ -316,7 +316,7 @@ describe("updateProfile", () => {
     );
   });
 
-  it.fails("keeps the photo when it is not replaced", async () => {
+  it("keeps the photo when it is not replaced", async () => {
     const { db } = fakeFirestore({ users: { "user-1": active } });
 
     await updateProfile(db, profile, { firstName: "Grace" });
@@ -325,7 +325,7 @@ describe("updateProfile", () => {
     expect(photos.deleteProfilePhoto).not.toHaveBeenCalled();
   });
 
-  it.fails("still saves when deleting the old photo fails", async () => {
+  it("still saves when deleting the old photo fails", async () => {
     const { db, doc } = fakeFirestore({ users: { "user-1": active } });
     const photoPath =
       "profile-photos/user-1/00000000-0000-4000-8000-000000000000.webp";
@@ -338,7 +338,7 @@ describe("updateProfile", () => {
     expect(doc("users", "user-1")).toEqual({ ...active, photoPath });
   });
 
-  it.fails("refuses a photo from someone else's folder", async () => {
+  it("refuses a photo from someone else's folder", async () => {
     const { db, doc } = fakeFirestore({ users: { "user-1": active } });
 
     await expect(
@@ -351,7 +351,7 @@ describe("updateProfile", () => {
     expect(photos.deleteProfilePhoto).not.toHaveBeenCalled();
   });
 
-  it.fails("refuses a user sent back to approval since the request began", async () => {
+  it("refuses a user sent back to approval since the request began", async () => {
     const awaiting = { ...active, stage: "AWAITING APPROVAL" };
     const { db, doc } = fakeFirestore({ users: { "user-1": awaiting } });
 
