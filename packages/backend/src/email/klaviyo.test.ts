@@ -23,11 +23,21 @@ vi.mock("firebase-functions/logger", () => ({
   },
 }));
 
+const storage = vi.hoisted(() => ({
+  save: vi.fn<(buffer: Buffer, options: unknown) => Promise<void>>(),
+  fileAt: vi.fn<(path: string) => unknown>(),
+}));
+vi.mock("firebase-admin/storage", () => ({
+  getStorage: () => ({ bucket: () => ({ file: storage.fileAt }) }),
+}));
+
 const fetchMock = vi.fn<typeof fetch>();
 
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubGlobal("fetch", fetchMock);
+  storage.save.mockReset().mockResolvedValue();
+  storage.fileAt.mockReset().mockReturnValue({ save: storage.save });
 });
 
 afterEach(() => {
@@ -261,6 +271,8 @@ describe("getAllCampaigns", () => {
 describe("updateCampaigns", () => {
   const sendTime = "2026-03-01T12:00:00.000Z";
   const campaignHtml = "<p>Thanks for reading.</p>";
+  const contentPath = (id: string) =>
+    `email-campaign-content/Klaviyo_${id}.html`;
   const zeroStats = {
     recipients: 0,
     bounced: 0,
@@ -356,7 +368,7 @@ describe("updateCampaigns", () => {
     platformCampaignID: "C1",
     listIDs: ["OLD"],
     name: "Old name",
-    content: campaignHtml,
+    content: contentPath("C1"),
     sentAt: new Date(sendTime),
     sent: 5,
     lastFetchedAt: t1,
@@ -451,12 +463,21 @@ describe("updateCampaigns", () => {
       "/api/campaign-messages/MC1/template",
     )[0];
     expect(template?.url.searchParams.get("fields[template]")).toBe("html");
+    expect(storage.fileAt).toHaveBeenCalledWith(contentPath("C1"));
+    expect(storage.save).toHaveBeenCalledTimes(1);
+    expect(storage.save).toHaveBeenCalledWith(
+      Buffer.from(campaignHtml, "utf8"),
+      {
+        contentType: "text/html; charset=utf-8",
+        resumable: false,
+      },
+    );
     expect(doc("email-campaigns", "Klaviyo_C1")).toEqual({
       platform: "Klaviyo",
       platformCampaignID: "C1",
       listIDs: ["L1"],
       name: "Campaign C1",
-      content: campaignHtml,
+      content: contentPath("C1"),
       sentAt: new Date(sendTime),
       sent: 3,
       lastFetchedAt: t2,
@@ -472,6 +493,19 @@ describe("updateCampaigns", () => {
         },
       ],
     });
+  });
+
+  it("saves the HTML once when the transaction runs twice", async () => {
+    const klaviyo = setup([campaign("C1")], [row("C1", { recipients: 3 })]);
+    routeHtml(klaviyo, "C1");
+    const { db, doc } = fakeFirestore(knownLists("L1"), 2);
+
+    await updateCampaigns(db, ["C1"]);
+
+    expect(storage.save).toHaveBeenCalledTimes(1);
+    expect(doc("email-campaigns", "Klaviyo_C1")?.content).toBe(
+      contentPath("C1"),
+    );
   });
 
   it("sums the report rows of one campaign", async () => {
@@ -502,6 +536,7 @@ describe("updateCampaigns", () => {
     expect(klaviyo.to("GET", "/api/campaign-messages/MC1/template")).toEqual(
       [],
     );
+    expect(storage.save).not.toHaveBeenCalled();
   });
 
   it("writes nothing for a new campaign without HTML", async () => {
@@ -512,6 +547,7 @@ describe("updateCampaigns", () => {
     await updateCampaigns(db, ["C1"]);
 
     expect(doc("email-campaigns", "Klaviyo_C1")).toBeUndefined();
+    expect(storage.save).not.toHaveBeenCalled();
   });
 
   it("skips a campaign Klaviyo returns without a send time", async () => {
@@ -548,6 +584,26 @@ describe("updateCampaigns", () => {
 
     expect(doc("email-campaigns", "Klaviyo_C1")).toBeUndefined();
     expect(klaviyo.to("GET", "/api/segments/S1")).toEqual([]);
+    expect(storage.save).not.toHaveBeenCalled();
+  });
+
+  it("does not look up segments for a new campaign whose HTML is too large", async () => {
+    const klaviyo = setup(
+      [
+        campaign("C1", {
+          audiences: { included: ["S1"], excluded: [] },
+        }),
+      ],
+      [row("C1", { recipients: 3 })],
+    );
+    routeHtml(klaviyo, "C1", "é".repeat((5 * 1024 * 1024) / 2 + 1));
+    const { db, doc } = fakeFirestore();
+
+    await updateCampaigns(db, ["C1"]);
+
+    expect(doc("email-campaigns", "Klaviyo_C1")).toBeUndefined();
+    expect(klaviyo.to("GET", "/api/segments/S1")).toEqual([]);
+    expect(storage.save).not.toHaveBeenCalled();
   });
 
   describe("stats report window", () => {
@@ -622,6 +678,7 @@ describe("updateCampaigns", () => {
       expect(klaviyo.to("GET", "/api/campaign-messages/MC1/template")).toEqual(
         [],
       );
+      expect(storage.save).not.toHaveBeenCalled();
     });
 
     it("appends a snapshot when the stats changed", async () => {
@@ -871,6 +928,9 @@ describe("updateCampaigns", () => {
 
       expect(doc("email-campaigns", "Klaviyo_C1")).toBeUndefined();
       expect(doc("email-campaigns", "Klaviyo_C2")?.listIDs).toEqual(["L1"]);
+      expect(storage.save).toHaveBeenCalledTimes(1);
+      expect(storage.fileAt).toHaveBeenCalledWith(contentPath("C2"));
+      expect(storage.fileAt).not.toHaveBeenCalledWith(contentPath("C1"));
     });
 
     it("refreshes the lists and notes of an existing campaign", async () => {
