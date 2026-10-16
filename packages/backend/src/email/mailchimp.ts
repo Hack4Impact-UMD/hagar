@@ -22,46 +22,48 @@ const BASE = "https://api.mailchimp.com/3.0";
 
 const ListsPage = type({
   total_items: "number.integer >=0",
-  lists: type({id: "string"}).array(),
+  lists: type({ id: "string" }).array(),
 });
 
 const CampaignsPage = type({
   total_items: type("number.integer >=0"),
-  campaigns:type({id: "string"}).array(),
+  campaigns: type({ id: "string" }).array(),
 });
 
 const ListInf = type({
-  name: "string >=1", 
-  stats: {member_count: "number.integer >=0"},
+  name: "string >=1",
+  stats: { member_count: "number.integer >=0" },
 });
 
 const CampaignInf = type({
-  recipients: {list_id:"string"}, 
-  settings: {title:"string"}, 
-  "send_time?": "string | null", 
-  status:"string",
-}); 
-
-const CampaignReport = type({
-  bounces: {hard_bounces: "number.integer >=0", soft_bounces: "number.integer >=0"}, 
-  opens: {unique_opens:"number.integer >=0"}, 
-  clicks: {unique_clicks: "number.integer >=0"}, 
-  unsubscribed: "number.integer >=0", 
-  abuse_reports: "number.integer >= 0", 
-  emails_sent: "number.integer>=0", 
+  recipients: { list_id: "string" },
+  settings: { title: "string" },
+  "send_time?": "string | null",
+  status: "string",
 });
 
-const CampaignContent =type({
-  "html?": "string"
+const CampaignReport = type({
+  bounces: {
+    hard_bounces: "number.integer >=0",
+    soft_bounces: "number.integer >=0",
+  },
+  opens: { unique_opens: "number.integer >=0" },
+  clicks: { unique_clicks: "number.integer >=0" },
+  unsubscribed: "number.integer >=0",
+  abuse_reports: "number.integer >= 0",
+  emails_sent: "number.integer>=0",
+});
+
+const CampaignContent = type({
+  "html?": "string",
 });
 
 type ListsPage = typeof ListsPage.infer;
-type CampaignsPage = typeof CampaignsPage.infer; 
+type CampaignsPage = typeof CampaignsPage.infer;
 type ListInf = typeof ListInf.infer;
-type CampaignInf = typeof CampaignInf.infer; 
-type CampaignReport = typeof CampaignReport.infer; 
+type CampaignInf = typeof CampaignInf.infer;
+type CampaignReport = typeof CampaignReport.infer;
 type CampaignContent = typeof CampaignContent.infer;
-
 
 //Will switch to generic T soon
 // async function get(path: string): Promise<any> {
@@ -79,7 +81,9 @@ async function get<T>(path: string): Promise<T> {
 }
 
 async function saveCampaignHtml(campaignID: string): Promise<string> {
-  const { html } = await get<CampaignContent>(`/campaigns/${campaignID}/content?fields=html`);
+  const { html } = await get<CampaignContent>(
+    `/campaigns/${campaignID}/content?fields=html`,
+  );
   if (!html) {
     throw new Error(`Campaign ${campaignID} has no HTML content`);
   }
