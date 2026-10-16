@@ -59,11 +59,14 @@ function Profile() {
   useEffect(() => {
     if (!editing) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") stopEditing();
+      // Resetting a mutation doesn't cancel its request, so cancelling mid-save
+      // would still update the cache afterwards. The Cancel button is disabled
+      // while saving for the same reason.
+      if (event.key === "Escape" && !isSaving) stopEditing();
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [editing, stopEditing]);
+  }, [editing, isSaving, stopEditing]);
 
   // The route guard only lets complete profiles in, but the type can't know
   // that: the details are null while the stage is 'PROFILE SETUP'.
