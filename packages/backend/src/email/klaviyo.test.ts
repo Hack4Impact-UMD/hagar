@@ -260,7 +260,7 @@ describe("getAllCampaigns", () => {
 
 describe("updateCampaigns", () => {
   const sendTime = "2026-03-01T12:00:00.000Z";
-  const campaignText = "Thanks for reading.";
+  const campaignHtml = "<p>Thanks for reading.</p>";
   const zeroStats = {
     recipients: 0,
     bounced: 0,
@@ -339,15 +339,15 @@ describe("updateCampaigns", () => {
     return klaviyo;
   }
 
-  function routeText(
+  function routeHtml(
     klaviyo: ReturnType<typeof routeFetch>,
     id: string,
-    text: string | null = campaignText,
+    html: string | null = campaignHtml,
   ) {
     klaviyo.on(
       "GET",
       `/api/campaign-messages/M${id}/template`,
-      json({ data: { attributes: { text } } }),
+      json({ data: { attributes: { html } } }),
     );
   }
 
@@ -356,7 +356,7 @@ describe("updateCampaigns", () => {
     platformCampaignID: "C1",
     listIDs: ["OLD"],
     name: "Old name",
-    content: campaignText,
+    content: campaignHtml,
     sentAt: new Date(sendTime),
     sent: 5,
     lastFetchedAt: t1,
@@ -425,7 +425,7 @@ describe("updateCampaigns", () => {
     });
   });
 
-  it("creates a new campaign with its plain text and one snapshot", async () => {
+  it("creates a new campaign with its HTML and one snapshot", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(t2);
     const klaviyo = setup(
@@ -441,7 +441,7 @@ describe("updateCampaigns", () => {
         }),
       ],
     );
-    routeText(klaviyo, "C1");
+    routeHtml(klaviyo, "C1");
     const { db, doc } = fakeFirestore(knownLists("L1"));
 
     await updateCampaigns(db, ["C1"]);
@@ -450,13 +450,13 @@ describe("updateCampaigns", () => {
       "GET",
       "/api/campaign-messages/MC1/template",
     )[0];
-    expect(template?.url.searchParams.get("fields[template]")).toBe("text");
+    expect(template?.url.searchParams.get("fields[template]")).toBe("html");
     expect(doc("email-campaigns", "Klaviyo_C1")).toEqual({
       platform: "Klaviyo",
       platformCampaignID: "C1",
       listIDs: ["L1"],
       name: "Campaign C1",
-      content: campaignText,
+      content: campaignHtml,
       sentAt: new Date(sendTime),
       sent: 3,
       lastFetchedAt: t2,
@@ -482,7 +482,7 @@ describe("updateCampaigns", () => {
         row("C1", { recipients: 4, opens_unique: 2, clicks_unique: 1 }),
       ],
     );
-    routeText(klaviyo, "C1");
+    routeHtml(klaviyo, "C1");
     const { db, doc } = fakeFirestore(knownLists("L1"));
 
     await updateCampaigns(db, ["C1"]);
@@ -504,9 +504,9 @@ describe("updateCampaigns", () => {
     );
   });
 
-  it("writes nothing for a new campaign without plain text", async () => {
+  it("writes nothing for a new campaign without HTML", async () => {
     const klaviyo = setup([campaign("C1")], [row("C1", { recipients: 3 })]);
-    routeText(klaviyo, "C1", null);
+    routeHtml(klaviyo, "C1", null);
     const { db, doc } = fakeFirestore(knownLists("L1"));
 
     await updateCampaigns(db, ["C1"]);
@@ -532,7 +532,7 @@ describe("updateCampaigns", () => {
     expect(klaviyo.to("POST", "/api/campaign-values-reports")).toEqual([]);
   });
 
-  it("does not look up segments for a new campaign without plain text", async () => {
+  it("does not look up segments for a new campaign without HTML", async () => {
     const klaviyo = setup(
       [
         campaign("C1", {
@@ -541,7 +541,7 @@ describe("updateCampaigns", () => {
       ],
       [row("C1", { recipients: 3 })],
     );
-    routeText(klaviyo, "C1", "   ");
+    routeHtml(klaviyo, "C1", "   ");
     const { db, doc } = fakeFirestore();
 
     await updateCampaigns(db, ["C1"]);
@@ -560,7 +560,7 @@ describe("updateCampaigns", () => {
         [campaign("C1"), campaign("C2", { send_time: longAgo })],
         [row("C1", { recipients: 3 })],
       );
-      routeText(klaviyo, "C1");
+      routeHtml(klaviyo, "C1");
       const old = existingRecord({
         platformCampaignID: "C2",
         sentAt: new Date(longAgo),
@@ -675,7 +675,7 @@ describe("updateCampaigns", () => {
       "/api/campaign-messages/MC1/template",
       json({ errors: [] }, 403),
     );
-    routeText(klaviyo, "C2");
+    routeHtml(klaviyo, "C2");
     const { db, doc } = fakeFirestore(knownLists("L1"));
 
     await expect(updateCampaigns(db, ["C1", "C2"])).rejects.toThrow(/C1/);
@@ -727,13 +727,13 @@ describe("updateCampaigns", () => {
       audiences: { included, excluded: ["IGNORED"] },
     });
 
-    /** One campaign with stats and plain text, ready to be created. */
+    /** One campaign with stats and HTML, ready to be created. */
     function setupOne(included: string[], id = "C1") {
       const klaviyo = setup(
         [campaign(id, audience(...included))],
         [row(id, { recipients: 3 })],
       );
-      routeText(klaviyo, id);
+      routeHtml(klaviyo, id);
       return klaviyo;
     }
 
@@ -837,8 +837,8 @@ describe("updateCampaigns", () => {
         [campaign("C1", audience("SEG1")), campaign("C2", audience("SEG1"))],
         [row("C1", { recipients: 3 }), row("C2", { recipients: 4 })],
       );
-      routeText(klaviyo, "C1");
-      routeText(klaviyo, "C2");
+      routeHtml(klaviyo, "C1");
+      routeHtml(klaviyo, "C2");
       klaviyo.on(
         "GET",
         "/api/segments/SEG1",
@@ -862,8 +862,8 @@ describe("updateCampaigns", () => {
         [campaign("C1", audience("SEG1")), campaign("C2", audience("L1"))],
         [row("C1", { recipients: 3 }), row("C2", { recipients: 4 })],
       );
-      routeText(klaviyo, "C1");
-      routeText(klaviyo, "C2");
+      routeHtml(klaviyo, "C1");
+      routeHtml(klaviyo, "C2");
       klaviyo.on("GET", "/api/segments/SEG1", json({ errors: [] }, 403));
       const { db, doc } = fakeFirestore(knownLists("L1"));
 

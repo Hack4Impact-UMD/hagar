@@ -190,7 +190,7 @@ const segmentResponse = type({
   },
 });
 const templateResponse = type({
-  data: { attributes: { "text?": "string | null" } },
+  data: { attributes: { "html?": "string | null" } },
 });
 
 type CampaignStats = Omit<EmailCampaignSnapshot, "fetchedAt"> & {
@@ -466,10 +466,11 @@ async function resolveAudience(
 }
 
 /**
- * Returns the plain-text body, or `undefined` when Klaviyo has none yet.
- * The text part of a template is optional, unlike the HTML.
+ * Returns the HTML body, or `undefined` when Klaviyo has none yet.
+ * A sparse response can omit `html`, and a blank string would fail the
+ * required `content` field.
  */
-async function fetchCampaignText(
+async function fetchCampaignHtml(
   details: CampaignDetails,
 ): Promise<string | undefined> {
   if (details.emailMessageID === undefined) {
@@ -480,17 +481,17 @@ async function fetchCampaignText(
   }
   const { data } = await klaviyoGet(
     `/api/campaign-messages/${encodeURIComponent(details.emailMessageID)}/template`,
-    new URLSearchParams({ "fields[template]": "text" }),
+    new URLSearchParams({ "fields[template]": "html" }),
     templateResponse,
   );
-  const text = data.attributes.text?.trim();
-  if (!text) {
-    logger.warn("Skipping Klaviyo campaign without plain text yet", {
+  const html = data.attributes.html?.trim();
+  if (!html) {
+    logger.warn("Skipping Klaviyo campaign without HTML yet", {
       campaignID: details.id,
     });
     return undefined;
   }
-  return text;
+  return html;
 }
 
 function statsDiffer(
@@ -533,9 +534,9 @@ async function syncCampaign(
     return;
   }
   // Checked before the audience lookups so a campaign still waiting on its
-  // plain text does not repeat them on every sync.
-  const text = isNew ? await fetchCampaignText(details) : undefined;
-  if (isNew && text === undefined) return;
+  // HTML does not repeat them on every sync.
+  const html = isNew ? await fetchCampaignHtml(details) : undefined;
+  if (isNew && html === undefined) return;
 
   // Without stats only `lastFetchedAt` is written, so the lookups would be
   // wasted requests that could also fail the campaign needlessly.
@@ -547,7 +548,7 @@ async function syncCampaign(
   await db.runTransaction(async (tx) => {
     const existing = await tx.get(ref);
     if (!existing.exists) {
-      if (text === undefined || !fresh) {
+      if (html === undefined || !fresh) {
         logger.warn("Skipping Klaviyo campaign created since it was checked", {
           campaignID: details.id,
         });
@@ -560,7 +561,7 @@ async function syncCampaign(
           platformCampaignID: details.id,
           listIDs: fresh.listIDs,
           name: details.name,
-          content: text,
+          content: html,
           sentAt: details.sendTime,
           sent: fresh.stats.sent,
           lastFetchedAt: now,
