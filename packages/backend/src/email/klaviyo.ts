@@ -3,6 +3,7 @@ import { EmailCampaignRecord, EmailList } from "@repo/common";
 import type { EmailCampaignSnapshot, EmailPlatform } from "@repo/common";
 import { Timestamp } from "firebase-admin/firestore";
 import type { Firestore } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 import { logger } from "firebase-functions/logger";
 import {
   klaviyoGet,
@@ -13,7 +14,14 @@ import {
 
 const LISTS_COLLECTION = "email-lists";
 const CAMPAIGNS_COLLECTION = "email-campaigns";
+const CAMPAIGN_CONTENT_FOLDER = "email-campaign-content";
 const PLATFORM: EmailPlatform = "Klaviyo";
+/**
+ * The HTML is a file because the campaign document is capped at 1 MiB and an
+ * indexed string field cannot exceed 1500 bytes. A normal template is about
+ * 100 KB; anything past this is not stored.
+ */
+const MAX_CAMPAIGN_HTML_BYTES = 5 * 1024 * 1024;
 
 /**
  * The stats report accepts at most 100 campaign IDs in its filter, and it is
@@ -491,7 +499,25 @@ async function fetchCampaignHtml(
     });
     return undefined;
   }
+  if (Buffer.byteLength(html, "utf8") > MAX_CAMPAIGN_HTML_BYTES) {
+    logger.warn("Skipping Klaviyo campaign whose HTML is too large", {
+      campaignID: details.id,
+    });
+    return undefined;
+  }
   return html;
+}
+
+async function storeCampaignHtml(
+  campaignID: string,
+  html: string,
+): Promise<string> {
+  const path = `${CAMPAIGN_CONTENT_FOLDER}/${PLATFORM}_${campaignID}.html`;
+  await getStorage().bucket().file(path).save(Buffer.from(html, "utf8"), {
+    contentType: "text/html; charset=utf-8",
+    resumable: false,
+  });
+  return path;
 }
 
 function statsDiffer(
@@ -544,11 +570,15 @@ async function syncCampaign(
     stats,
     ...(await resolveAudience(db, cache, details)),
   };
+  // After the lookups, so a failed lookup leaves no file. One path per
+  // campaign: a retry overwrites it, and it is never deleted.
+  const contentPath =
+    html === undefined ? undefined : await storeCampaignHtml(details.id, html);
 
   await db.runTransaction(async (tx) => {
     const existing = await tx.get(ref);
     if (!existing.exists) {
-      if (html === undefined || !fresh) {
+      if (contentPath === undefined || !fresh) {
         logger.warn("Skipping Klaviyo campaign created since it was checked", {
           campaignID: details.id,
         });
@@ -561,7 +591,7 @@ async function syncCampaign(
           platformCampaignID: details.id,
           listIDs: fresh.listIDs,
           name: details.name,
-          content: html,
+          content: contentPath,
           sentAt: details.sendTime,
           sent: fresh.stats.sent,
           lastFetchedAt: now,
