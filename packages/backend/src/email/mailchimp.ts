@@ -7,6 +7,7 @@ import type {
 import { getFirestore } from "firebase-admin/firestore";
 import { randomUUID } from "node:crypto";
 import { getStorage } from "firebase-admin/storage";
+import { type } from "arktype";
 
 function envCheck(name: string): string {
   const value = process.env[name];
@@ -19,13 +20,52 @@ function envCheck(name: string): string {
 const API_KEY = envCheck("MAILCHIMP_API");
 const BASE = "https://api.mailchimp.com/3.0";
 
-// interface ListsPage{
-//   total_items: number,
-//   lists: {id: string}[];
-// }
+const ListsPage = type({
+  total_items: "number.integer >=0",
+  lists: type({id: "string"}).array(),
+});
+
+const CampaignsPage = type({
+  total_items: type("number.integer >=0"),
+  campaigns:type({id: "string"}).array(),
+});
+
+const ListInf = type({
+  name: "string >=1", 
+  stats: {member_count: "number.integer >=0"},
+});
+
+const CampaignInf = type({
+  recipients: {list_id:"string"}, 
+  settings: {title:"string"}, 
+  "send_time?": "string | null", 
+  status:"string",
+}); 
+
+const CampaignReport = type({
+  bounces: {hard_bounces: "number.integer >=0", soft_bounces: "number.integer >=0"}, 
+  opens: {unique_opens:"number.integer >=0"}, 
+  clicks: {unique_clicks: "number.integer >=0"}, 
+  unsubscribed: "number.integer >=0", 
+  abuse_reports: "number.integer >= 0", 
+  emails_sent: "number.integer>=0", 
+});
+
+const CampaignContent =type({
+  "html?": "string"
+});
+
+type ListsPage = typeof ListsPage.infer;
+type CampaignsPage = typeof CampaignsPage.infer; 
+type ListInf = typeof ListInf.infer;
+type CampaignInf = typeof CampaignInf.infer; 
+type CampaignReport = typeof CampaignReport.infer; 
+type CampaignContent = typeof CampaignContent.infer;
+
 
 //Will switch to generic T soon
-async function get(path: string): Promise<any> {
+// async function get(path: string): Promise<any> {
+async function get<T>(path: string): Promise<T> {
   const res = await fetch(BASE + path, {
     headers: { Authorization: `Bearer ${API_KEY}` },
   });
@@ -34,17 +74,17 @@ async function get(path: string): Promise<any> {
     throw new Error(`Mailchimp ${res.status}: ${await res.text()}`);
   }
 
-  return await res.json();
-  // return (await res.json()) as T;
+  // return await res.json();
+  return (await res.json()) as T;
 }
 
 async function saveCampaignHtml(campaignID: string): Promise<string> {
-  const { html } = await get(`/campaigns/${campaignID}/content?fields=html`);
+  const { html } = await get<CampaignContent>(`/campaigns/${campaignID}/content?fields=html`);
   if (!html) {
     throw new Error(`Campaign ${campaignID} has no HTML content`);
   }
 
-  const path = `email-integrations/mail-chil/${randomUUID()}.html`;
+  const path = `email-integrations/mail-chimp/${randomUUID()}.html`;
   await getStorage().bucket().file(path).save(html, {
     contentType: "text/html; charset=utf-8",
   });
@@ -58,7 +98,7 @@ export async function getAllLists(): Promise<string[]> {
   let total = 1;
 
   while (offset < total) {
-    const data = await get(
+    const data = await get<ListsPage>(
       `/lists?count=1000&offset=${offset}&fields=lists.id,total_items`,
     );
     total = data.total_items;
@@ -70,7 +110,7 @@ export async function getAllLists(): Promise<string[]> {
 }
 
 export async function updateList(_platformListID: string): Promise<void> {
-  const list = await get(`/lists/${_platformListID}`);
+  const list = await get<ListInf>(`/lists/${_platformListID}`);
   const now = new Date();
 
   const snapshot: EmailListCountSnapshot = {
@@ -105,7 +145,7 @@ export async function getAllCampaigns(): Promise<string[]> {
   let total = 1;
 
   while (offset < total) {
-    const data = await get(
+    const data = await get<CampaignsPage>(
       `/campaigns?count=1000&offset=${offset}&fields=campaigns.id,total_items`,
     );
     total = data.total_items;
@@ -121,11 +161,11 @@ export async function getAllCampaigns(): Promise<string[]> {
 export async function updateCampaign(
   _platformCampaignID: string,
 ): Promise<void> {
-  const campaign = await get(`/campaigns/${_platformCampaignID}`);
+  const campaign = await get<CampaignInf>(`/campaigns/${_platformCampaignID}`);
 
-  if (campaign.status !== "sent") return;
+  if (campaign.status !== "sent" || !campaign.send_time) return;
 
-  const report = await get(`/reports/${_platformCampaignID}`);
+  const report = await get<CampaignReport>(`/reports/${_platformCampaignID}`);
   const now = new Date();
 
   const snapshot: EmailCampaignSnapshot = {
