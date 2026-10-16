@@ -24,8 +24,8 @@ export function ProfileField({
   if (!editing || (!input && !locked)) {
     return (
       <div>
-        <dt className="field-label">{label}</dt>
-        <dd className="field-value">{value}</dd>
+        <dt className="field-label text-base">{label}</dt>
+        <dd className="field-value text-lg font-semibold">{value}</dd>
       </div>
     );
   }
@@ -37,11 +37,11 @@ export function ProfileField({
             clicking a label clicks its input, so the tooltip would open from
             the label's area too. */}
         {input ? (
-          <label htmlFor={id} className="field-label">
+          <label htmlFor={id} className="field-label text-base">
             {label}
           </label>
         ) : (
-          <span id={id} className="field-label">
+          <span id={id} className="field-label text-base">
             {label}
           </span>
         )}

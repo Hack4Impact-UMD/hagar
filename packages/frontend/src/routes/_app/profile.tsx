@@ -1,3 +1,4 @@
+import { PencilSimpleIcon } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
@@ -97,21 +98,43 @@ function Profile() {
         }
       }}
     >
-      <main className="page">
+      <main className="page mx-0 max-w-none md:px-12">
         <header className="page-header">
-          <h1 data-testid="profile" className="page-title">
+          <h1 data-testid="profile" className="page-title text-3xl">
             My Profile
           </h1>
           {/* Separate keys give each mode its own button element. Reusing one
               and flipping its type would let the click that enters edit mode
               also submit the form. */}
           {editing ? (
-            <Button key="save" type="submit" disabled={isSaving}>
-              Save Changes
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 rounded-sm px-5 text-base"
+                disabled={isSaving}
+                onClick={stopEditing}
+              >
+                Cancel
+              </Button>
+              <Button
+                key="save"
+                type="submit"
+                className="h-11 rounded-sm px-5 text-base"
+                disabled={isSaving}
+              >
+                Save Changes
+              </Button>
+            </div>
           ) : (
-            <Button key="edit" type="button" onClick={startEditing}>
+            <Button
+              key="edit"
+              type="button"
+              className="h-11 rounded-sm px-5 text-base"
+              onClick={startEditing}
+            >
               Edit Profile
+              <PencilSimpleIcon data-icon="inline-end" />
             </Button>
           )}
         </header>
@@ -151,7 +174,7 @@ function Profile() {
             ) : null}
           </div>
           <div className="flex flex-col gap-1">
-            <h2 className="summary-name">
+            <h2 className="summary-name font-bold">
               {profile.firstName} {profile.lastName}
             </h2>
             <p className="text-primary">{profile.role}</p>
@@ -176,6 +199,12 @@ function Profile() {
               editing={editing}
             />
             <ProfileField
+              label="Region"
+              value={profile.region}
+              locked
+              editing={editing}
+            />
+            <ProfileField
               label="Email Address"
               value={profile.email}
               locked
@@ -190,12 +219,6 @@ function Profile() {
             <ProfileField
               label="User Role"
               value={profile.role}
-              locked
-              editing={editing}
-            />
-            <ProfileField
-              label="Region"
-              value={profile.region}
               locked
               editing={editing}
             />
