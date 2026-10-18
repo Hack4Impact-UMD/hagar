@@ -15,9 +15,9 @@ export function ProfileSection({
   children,
 }: ProfileSectionProps) {
   return (
-    <section className="card rounded-none">
-      <header className="card-header min-h-20 px-6 md:px-8">
-        <h2 className="card-title text-2xl">{title}</h2>
+    <section className="rounded-none border bg-card text-card-foreground">
+      <header className="flex min-h-20 items-center justify-between border-b px-6 py-2 md:px-8">
+        <h2 className="text-2xl font-medium">{title}</h2>
         {onEdit ? (
           <Button
             type="button"
@@ -30,7 +30,7 @@ export function ProfileSection({
           </Button>
         ) : null}
       </header>
-      <div className="card-body px-6 py-6 md:px-8">{children}</div>
+      <div className="px-6 py-6 md:px-8">{children}</div>
     </section>
   );
 }
