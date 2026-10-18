@@ -1,4 +1,5 @@
 import { MAX_NAME_LENGTH, MAX_PHONE_NUMBER_LENGTH } from "@repo/common";
+import type { UpdateProfileInput } from "@repo/common";
 import { PencilSimpleIcon } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useBlocker, useRouter } from "@tanstack/react-router";
@@ -26,10 +27,12 @@ import {
 import { Button } from "@frontend/components/ui/button.tsx";
 import { useObjectUrl } from "@frontend/hooks/use-object-url.ts";
 import { usePasswordChange } from "@frontend/hooks/use-password-change.ts";
+import { uploadAvatar } from "@frontend/lib/avatarUpload.ts";
 import {
+  PROFILE_PHOTO_URL_KEY,
   profilePhotoProblem,
-  uploadProfilePhoto,
 } from "@frontend/lib/profilePhotos.ts";
+import { saveProfileEdits } from "@frontend/lib/saveProfile.ts";
 import { queryClient, trpc } from "@frontend/lib/trpc.ts";
 
 export const Route = createFileRoute("/_app/profile")({ component: Profile });
@@ -55,7 +58,7 @@ function Profile() {
   const formRef = useRef<HTMLFormElement>(null);
   const photoPreviewUrl = useObjectUrl(photo);
 
-  const uploadPhoto = useMutation({ mutationFn: uploadProfilePhoto });
+  const uploadPhoto = useMutation({ mutationFn: uploadAvatar });
   const updateProfile = useMutation(
     trpc.users.updateProfile.mutationOptions({
       // `me` is cached for good, so the page keeps showing the old values
@@ -166,6 +169,27 @@ function Profile() {
 
   const startEditing = () => setEditing(true);
 
+  const saveEdits = async (changes: UpdateProfileInput) => {
+    try {
+      await saveProfileEdits({
+        changes,
+        photo,
+        saveChanges: updateProfile.mutateAsync,
+        savePhoto: async (file) => {
+          await uploadPhoto.mutateAsync(file);
+          // Waits for the new URL so the old photo doesn't flash back once the
+          // preview is dropped.
+          await queryClient.invalidateQueries({
+            queryKey: PROFILE_PHOTO_URL_KEY,
+          });
+        },
+      });
+      stopEditing();
+    } catch {
+      // The mutations hold the error, and it is shown above the page.
+    }
+  };
+
   return (
     <>
       <main className="mx-auto flex w-full max-w-344 flex-col gap-8 p-4 md:pt-12.5 md:pr-14 md:pb-8 md:pl-13.25">
@@ -182,19 +206,7 @@ function Profile() {
               stopEditing();
               return;
             }
-            // The photo is uploaded first because the profile only stores its
-            // path.
-            if (photo) {
-              uploadPhoto.mutate(photo, {
-                onSuccess: (photoPath) =>
-                  updateProfile.mutate(
-                    { ...changes, photoPath },
-                    { onSuccess: stopEditing },
-                  ),
-              });
-            } else {
-              updateProfile.mutate(changes, { onSuccess: stopEditing });
-            }
+            void saveEdits(changes);
           }}
         >
           <header className="flex flex-wrap items-center justify-between gap-4">
