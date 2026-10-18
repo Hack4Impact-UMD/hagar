@@ -69,6 +69,43 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
 
   await page.getByRole("link", { name: "Profile" }).click();
   await expect(page.getByTestId("profile")).toHaveText("My Profile");
+
+  // Backing out of edit mode with nothing changed doesn't ask anything.
+  const editProfile = page.getByRole("button", {
+    name: "Edit Profile",
+    exact: true,
+  });
+  const discardDialog = page.getByRole("alertdialog", {
+    name: "Your changes will not be saved",
+  });
+  await editProfile.click();
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByTestId("firstName")).toHaveCount(0);
+  await expect(discardDialog).toHaveCount(0);
+
+  // Leaving with unsaved changes asks first, and keeping them keeps the draft.
+  await editProfile.click();
+  await page.getByTestId("firstName").fill("Grace");
+  await page.getByRole("link", { name: "User management" }).click();
+  await expect(discardDialog).toBeVisible();
+  await page.getByRole("button", { name: "Keep editing" }).click();
+  await expect(discardDialog).toHaveCount(0);
+  await expect(page).toHaveURL(/\/profile$/);
+  await expect(page.getByTestId("firstName")).toHaveValue("Grace");
+
+  // Cancelling with changes asks too, and discarding drops them.
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await expect(discardDialog).toBeVisible();
+  await page.getByRole("button", { name: "Discard changes" }).click();
+  await expect(page.getByTestId("firstName")).toHaveCount(0);
+  await expect(page.getByTestId("profile")).toHaveText("My Profile");
+
+  // Discarding while leaving carries on to the page that was asked for.
+  await editProfile.click();
+  await page.getByTestId("lastName").fill("Hopper");
+  await page.getByRole("link", { name: "User management" }).click();
+  await page.getByRole("button", { name: "Discard changes" }).click();
+  await expect(page).toHaveURL(/\/user-management$/);
   await page.getByRole("link", { name: "User management" }).click();
   await expect(page.getByTestId("user-management")).toHaveText(
     "User management",
