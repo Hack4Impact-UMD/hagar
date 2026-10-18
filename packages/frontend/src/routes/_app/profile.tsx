@@ -16,6 +16,9 @@ import {
 } from "@frontend/lib/profilePhotos.ts";
 import { queryClient, trpc } from "@frontend/lib/trpc.ts";
 
+// The Figma gives every header button the same fixed size.
+const HEADER_BUTTON = "h-9.25 w-43.25 gap-2.5 rounded-sm text-lg leading-4";
+
 export const Route = createFileRoute("/_app/profile")({ component: Profile });
 
 function Profile() {
@@ -102,9 +105,12 @@ function Profile() {
         }
       }}
     >
-      <main className="flex w-full flex-col gap-8 p-4 md:px-12 md:py-8">
+      <main className="mx-auto flex w-full max-w-344 flex-col gap-8 p-4 md:pt-12.5 md:pr-14 md:pb-8 md:pl-13.25">
         <header className="flex flex-wrap items-center justify-between gap-4">
-          <h1 data-testid="profile" className="text-3xl font-semibold">
+          <h1
+            data-testid="profile"
+            className="text-[1.5625rem] leading-[1.2] font-semibold text-black"
+          >
             My Profile
           </h1>
           {/* Separate keys give each mode its own button element. Reusing one
@@ -115,7 +121,7 @@ function Profile() {
               <Button
                 type="button"
                 variant="outline"
-                className="h-11 rounded-sm px-5 text-base"
+                className={HEADER_BUTTON}
                 disabled={isSaving}
                 onClick={stopEditing}
               >
@@ -124,7 +130,7 @@ function Profile() {
               <Button
                 key="save"
                 type="submit"
-                className="h-11 rounded-sm px-5 text-base"
+                className={`${HEADER_BUTTON} text-[#fafafa]`}
                 disabled={isSaving}
               >
                 Save Changes
@@ -134,11 +140,11 @@ function Profile() {
             <Button
               key="edit"
               type="button"
-              className="h-11 rounded-sm px-5 text-base"
+              className={`${HEADER_BUTTON} text-[#fafafa]`}
               onClick={startEditing}
             >
               Edit Profile
-              <PencilSimpleIcon data-icon="inline-end" />
+              <PencilSimpleIcon data-icon="inline-end" className="size-4.25" />
             </Button>
           )}
         </header>
@@ -156,40 +162,48 @@ function Profile() {
             ) : null}
           </div>
         ) : null}
-        <section className="flex flex-col gap-4 border-b pb-8 sm:flex-row sm:items-center sm:gap-6">
-          <div className="relative w-fit shrink-0">
+        {/* The margins are the Figma spacing less the 2rem gap between the
+            page's children. */}
+        <section className="flex flex-col gap-4 border-b pb-11.75 sm:flex-row sm:items-start sm:gap-4.75 md:mt-7.25 md:mr-1.5 md:ml-4.5">
+          <PhotoPicker
+            onPick={(file) => {
+              const problem = profilePhotoProblem(file);
+              setPhotoError(problem);
+              // A rejected pick keeps the previous valid choice.
+              if (problem) return;
+              setPhoto(file);
+              // The photo is only saved with the form, so the form has to be
+              // open for the Save button to appear.
+              startEditing();
+            }}
+          >
             <ProfileAvatar
               photoPath={profile.photoPath}
               firstName={profile.firstName}
               lastName={profile.lastName}
               previewUrl={photoPreviewUrl}
-              className="size-28 *:data-[slot=avatar-fallback]:text-3xl"
+              className="size-27.5 *:data-[slot=avatar-fallback]:text-3xl"
             />
-            {editing ? (
-              <PhotoPicker
-                className="absolute right-0 bottom-0 rounded-full bg-background"
-                onPick={(file) => {
-                  const problem = profilePhotoProblem(file);
-                  setPhotoError(problem);
-                  // A rejected pick keeps the previous valid choice.
-                  if (!problem) setPhoto(file);
-                }}
-              />
-            ) : null}
-          </div>
-          <div className="flex flex-col gap-1">
-            <h2 className="text-3xl font-bold">
+          </PhotoPicker>
+          <div className="flex h-28.25 min-w-0 flex-col">
+            <h2 className="h-9.75 truncate text-[2rem] leading-none font-semibold text-black">
               {profile.firstName} {profile.lastName}
             </h2>
-            <p className="text-primary">{profile.role}</p>
-            <p>{profile.email}</p>
+            <p className="mt-1.5 h-5.5 truncate text-lg leading-none font-medium text-primary">
+              {profile.role}
+            </p>
+            <p className="mt-5.5 h-5.5 truncate text-lg leading-none font-medium text-black">
+              {profile.email}
+            </p>
           </div>
         </section>
         <ProfileSection
           title="Personal Information"
           onEdit={editing ? undefined : startEditing}
         >
-          <dl className="grid gap-6 md:grid-cols-3">
+          {/* Both modes share one grid, so entering edit mode doesn't move any
+              field. */}
+          <dl className="grid grid-cols-1 gap-6 md:grid-cols-[repeat(3,minmax(0,12.125rem))] md:gap-x-50 md:gap-y-11.25">
             <ProfileField
               label="First Name"
               value={profile.firstName}
