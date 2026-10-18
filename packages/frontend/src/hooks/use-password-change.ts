@@ -144,6 +144,8 @@ export function usePasswordChange() {
     sendPasswordReset: () => forgotPassword.mutate(),
     /** The address the reset email went to, once it has been sent. */
     resetEmailSentTo: forgotPassword.data ?? null,
+    sendingResetEmail: forgotPassword.isPending,
+    resetEmailFailed: forgotPassword.isError,
     /** Whether leaving now would throw away something the user typed. */
     isDirty:
       editing &&
