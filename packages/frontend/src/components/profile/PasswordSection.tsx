@@ -68,7 +68,8 @@ export function PasswordSection({ password, onCancel }: PasswordSectionProps) {
                     <button
                       type="button"
                       onClick={password.sendPasswordReset}
-                      className="rounded-sm text-base leading-9.25 text-[#c75c3b] underline outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                      disabled={password.sendingResetEmail}
+                      className="rounded-sm text-base leading-9.25 text-[#c75c3b] underline outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
                     >
                       Forgot password?
                     </button>
@@ -76,6 +77,11 @@ export function PasswordSection({ password, onCancel }: PasswordSectionProps) {
                       <output className="block text-sm text-black/80">
                         Reset email sent to {password.resetEmailSentTo}
                       </output>
+                    ) : null}
+                    {password.resetEmailFailed ? (
+                      <p role="alert" className="text-sm text-destructive">
+                        Couldn&rsquo;t send the reset email. Try again.
+                      </p>
                     ) : null}
                   </>
                 }
