@@ -1,5 +1,5 @@
 import type { ActiveUserProfile, StoredUserProfile } from "@repo/common";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeFirestore } from "@backend/testing/fakeFirestore.ts";
 import {
   approveUser,
@@ -61,7 +61,7 @@ function user(
       },
     ];
   }
-  const photoPath = `profile-photos/${uid}/123e4567-e89b-42d3-a456-426614174000.png`;
+  const photoPath = `profile-photos/${uid}/avatar`;
   return [
     uid,
     { ...base, ...details, photoPath, ...fields } as StoredUserProfile,
@@ -667,6 +667,68 @@ describe("deleteUser", () => {
       deleteUser(db, actor("usLocal"), { uid: "usPending" }),
     ).resolves.toBeUndefined();
     expect(doc("users", "usPending")).toBeUndefined();
+  });
+
+  /** What `promise` rejects with, so a test can wait on fake timers first. */
+  async function rejectionOf(promise: Promise<unknown>): Promise<unknown> {
+    try {
+      await promise;
+    } catch (error) {
+      return error;
+    }
+    return "resolved";
+  }
+
+  describe("when cleanup fails", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("retries a failed Auth deletion", async () => {
+      const { db, doc } = seeded();
+      auth.deleteUser
+        .mockRejectedValueOnce(new Error("Network blip."))
+        .mockResolvedValue();
+
+      const deleted = deleteUser(db, actor("usLocal"), { uid: "usPending" });
+      await vi.runAllTimersAsync();
+
+      await expect(deleted).resolves.toBeUndefined();
+      expect(auth.deleteUser).toHaveBeenCalledTimes(2);
+      expect(doc("users", "usPending")).toBeUndefined();
+    });
+
+    it("reports an Auth failure that outlasts the retries, still removing the photos", async () => {
+      const { db } = seeded();
+      const failure = new Error("Auth is down.");
+      auth.deleteUser.mockRejectedValue(failure);
+      vi.spyOn(console, "error").mockReturnValue();
+
+      const outcome = rejectionOf(
+        deleteUser(db, actor("usLocal"), { uid: "usPending" }),
+      );
+      await vi.runAllTimersAsync();
+
+      expect(await outcome).toBe(failure);
+      expect(auth.deleteUser).toHaveBeenCalledTimes(3);
+      expect(photos.deleteProfilePhotos).toHaveBeenCalledOnce();
+    });
+
+    it("reports a non-Error Auth failure instead of crashing on it", async () => {
+      const { db } = seeded();
+      auth.deleteUser.mockRejectedValue(null);
+      vi.spyOn(console, "error").mockReturnValue();
+
+      const outcome = rejectionOf(
+        deleteUser(db, actor("usLocal"), { uid: "usPending" }),
+      );
+      await vi.runAllTimersAsync();
+
+      expect(await outcome).toBeNull();
+    });
   });
 
   it("re-reads the caller, so an admin demoted mid-request is refused", async () => {

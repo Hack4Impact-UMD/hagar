@@ -1,17 +1,21 @@
 import {
   isProfilePhotoType,
   MAX_PROFILE_PHOTO_BYTES,
-  profilePhotoExtensions,
-  profilePhotoFolder,
+  ownProfilePhotoPath,
+  profilePhotoTypes,
 } from "@repo/common";
 import { queryOptions, skipToken } from "@tanstack/react-query";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import {
+  getDownloadURL,
+  getMetadata,
+  ref,
+  uploadBytes,
+} from "firebase/storage";
 import { auth, storage } from "@frontend/lib/firebase.ts";
+import { queryClient } from "@frontend/lib/trpc.ts";
 
 /** For a file input's `accept` attribute. */
-export const PROFILE_PHOTO_ACCEPT = Object.keys(profilePhotoExtensions).join(
-  ",",
-);
+export const PROFILE_PHOTO_ACCEPT = profilePhotoTypes.join(",");
 
 /** Why `file` can't be a profile photo, or `null` if it can. */
 export function profilePhotoProblem(file: File): string | null {
@@ -24,11 +28,13 @@ export function profilePhotoProblem(file: File): string | null {
   return null;
 }
 
+const PHOTO_URL_KEY = ["profilePhotoUrl"];
+
 /**
- * Uploads a photo to the signed-in user's folder and returns the path to save
- * on their profile. Uploading does not change the profile: the photo only
- * takes effect once that path is saved, and the backend then deletes the
- * photo it replaced.
+ * Uploads a photo over the signed-in user's avatar and returns the path to
+ * save on their profile. The path is the same every time, so the new photo is
+ * live as soon as the upload finishes, before the profile is saved. Callers
+ * should upload only when the user commits to the change.
  */
 export async function uploadProfilePhoto(file: File): Promise<string> {
   const user = auth.currentUser;
@@ -38,19 +44,32 @@ export async function uploadProfilePhoto(file: File): Promise<string> {
     throw new Error(problem ?? "Choose a PNG, JPEG, or WebP image.");
   }
 
-  const extension = profilePhotoExtensions[file.type];
-  const path = `${profilePhotoFolder(user.uid)}${crypto.randomUUID()}.${extension}`;
+  const path = ownProfilePhotoPath(user.uid);
   await uploadBytes(ref(storage, path), file, { contentType: file.type });
+  await queryClient.invalidateQueries({ queryKey: PHOTO_URL_KEY });
   return path;
 }
 
 /** Looks up the URL to show a stored photo, e.g. in an `<img>`. */
 export function profilePhotoUrlOptions(path: string | null) {
   return queryOptions({
-    queryKey: ["profilePhotoUrl", path],
+    queryKey: [...PHOTO_URL_KEY, path],
     queryFn:
-      path === null ? skipToken : () => getDownloadURL(ref(storage, path)),
-    // A new photo always gets a new path, so a path's URL never changes.
+      path === null
+        ? skipToken
+        : async () => {
+            const photo = ref(storage, path);
+            const [url, metadata] = await Promise.all([
+              getDownloadURL(photo),
+              getMetadata(photo),
+            ]);
+            // The path never changes when the photo does, so the generation
+            // number keeps the browser from showing a cached older photo.
+            const versioned = new URL(url);
+            versioned.searchParams.set("v", metadata.generation);
+            return versioned.toString();
+          },
+    // The URL only changes when a new photo is uploaded, which invalidates it.
     staleTime: Infinity,
   });
 }

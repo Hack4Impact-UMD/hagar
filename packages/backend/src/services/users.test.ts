@@ -1,6 +1,6 @@
 import type { ActiveUserProfile } from "@repo/common";
 import type { Firestore } from "firebase-admin/firestore";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { fakeFirestore } from "@backend/testing/fakeFirestore.ts";
 import {
   completeProfile,
@@ -8,19 +8,6 @@ import {
   getOrCreateUserProfile,
   updateProfile,
 } from "@backend/services/users.ts";
-
-const photos = vi.hoisted(() => ({
-  deleteProfilePhoto: vi.fn<(path: string) => Promise<void>>(),
-}));
-vi.mock("@backend/services/profilePhotos.ts", async (importOriginal) => ({
-  ...(await importOriginal<object>()),
-  deleteProfilePhoto: photos.deleteProfilePhoto,
-}));
-
-beforeEach(() => {
-  photos.deleteProfilePhoto.mockReset();
-  photos.deleteProfilePhoto.mockImplementation(() => Promise.resolve());
-});
 
 /** Just enough of Firestore for single-document reads and transactions. */
 function fakeDb(initial: Record<string, unknown> = {}) {
@@ -46,7 +33,7 @@ const unverified = {
 const verified = { ...unverified, emailVerified: true };
 
 const details = {
-  photoPath: "profile-photos/user-1/123e4567-e89b-42d3-a456-426614174000.png",
+  photoPath: "profile-photos/user-1/avatar",
   phoneNumber: "+15555550100",
   firstName: "Ada",
   lastName: "Lovelace",
@@ -204,8 +191,7 @@ describe("completeProfile", () => {
     await expect(
       completeProfile(db, unverified, {
         ...details,
-        photoPath:
-          "profile-photos/user-2/123e4567-e89b-42d3-a456-426614174000.png",
+        photoPath: "profile-photos/user-2/avatar",
       }),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     expect(docs.get("user-1")).toBe(settingUp);
@@ -303,39 +289,12 @@ describe("updateProfile", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
-  it("deletes the photo a new one replaces, once saved", async () => {
+  it("accepts the caller's own avatar path", async () => {
     const { db, doc } = fakeFirestore({ users: { "user-1": active } });
-    const photoPath =
-      "profile-photos/user-1/00000000-0000-4000-8000-000000000000.webp";
 
-    await updateProfile(db, profile, { photoPath });
-
-    expect(doc("users", "user-1")).toEqual({ ...active, photoPath });
-    expect(photos.deleteProfilePhoto).toHaveBeenCalledExactlyOnceWith(
-      active.photoPath,
-    );
-  });
-
-  it("keeps the photo when it is not replaced", async () => {
-    const { db } = fakeFirestore({ users: { "user-1": active } });
-
-    await updateProfile(db, profile, { firstName: "Grace" });
     await updateProfile(db, profile, { photoPath: active.photoPath });
 
-    expect(photos.deleteProfilePhoto).not.toHaveBeenCalled();
-  });
-
-  it("still saves when deleting the old photo fails", async () => {
-    const { db, doc } = fakeFirestore({ users: { "user-1": active } });
-    const photoPath =
-      "profile-photos/user-1/00000000-0000-4000-8000-000000000000.webp";
-    photos.deleteProfilePhoto.mockRejectedValue(new Error("Storage is down."));
-
-    await expect(updateProfile(db, profile, { photoPath })).resolves.toEqual({
-      ...profile,
-      photoPath,
-    });
-    expect(doc("users", "user-1")).toEqual({ ...active, photoPath });
+    expect(doc("users", "user-1")).toEqual(active);
   });
 
   it("refuses a photo from someone else's folder", async () => {
@@ -343,12 +302,10 @@ describe("updateProfile", () => {
 
     await expect(
       updateProfile(db, profile, {
-        photoPath:
-          "profile-photos/user-2/123e4567-e89b-42d3-a456-426614174000.png",
+        photoPath: "profile-photos/user-2/avatar",
       }),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     expect(doc("users", "user-1")).toEqual(active);
-    expect(photos.deleteProfilePhoto).not.toHaveBeenCalled();
   });
 
   it("refuses a user sent back to approval since the request began", async () => {
@@ -359,6 +316,5 @@ describe("updateProfile", () => {
       updateProfile(db, profile, { firstName: "Grace" }),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     expect(doc("users", "user-1")).toEqual(awaiting);
-    expect(photos.deleteProfilePhoto).not.toHaveBeenCalled();
   });
 });
