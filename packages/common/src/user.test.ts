@@ -6,6 +6,8 @@ import {
   deleteUserInput,
   isAdminRole,
   listUsersInput,
+  MAX_NAME_LENGTH,
+  MAX_PHONE_NUMBER_LENGTH,
   setUserRegionInput,
   setUserRoleInput,
   storedUserProfile,
@@ -101,9 +103,13 @@ describe("user schemas", () => {
 
   it("caps the length of every free-text detail", () => {
     const caps = [
-      ["phoneNumber", 100, (length: number) => "1".repeat(length)],
-      ["firstName", 500, (length: number) => "a".repeat(length)],
-      ["lastName", 500, (length: number) => "a".repeat(length)],
+      [
+        "phoneNumber",
+        MAX_PHONE_NUMBER_LENGTH,
+        (length: number) => "1".repeat(length),
+      ],
+      ["firstName", MAX_NAME_LENGTH, (length: number) => "a".repeat(length)],
+      ["lastName", MAX_NAME_LENGTH, (length: number) => "a".repeat(length)],
     ] as const;
 
     for (const [field, max, valueOfLength] of caps) {

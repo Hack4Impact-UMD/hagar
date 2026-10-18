@@ -27,9 +27,12 @@ const storedBase = type({
 });
 
 // Length caps exist only to bound abuse. They sit far above any real value,
-// so no genuine user should ever reach them.
-const phoneNumber = type("string <= 100");
-const name = type("string <= 500");
+// so no genuine user should ever reach them. They are exported so form inputs
+// can enforce the same limits as the server.
+export const MAX_PHONE_NUMBER_LENGTH = 100;
+export const MAX_NAME_LENGTH = 500;
+const phoneNumber = type(`string <= ${MAX_PHONE_NUMBER_LENGTH}`);
+const name = type(`string <= ${MAX_NAME_LENGTH}`);
 // Rejects empty and whitespace-only values without altering what is stored.
 const hasContent = type(/\S/);
 

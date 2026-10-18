@@ -6,7 +6,7 @@ interface ProfileFieldProps {
   label: string;
   value: string;
   /** Renders an input in place of the value while `editing`. */
-  input?: { name: string; type: "text" | "tel" };
+  input?: { name: string; type: "text" | "tel"; maxLength: number };
   /** Renders a read-only input with a tooltip while `editing`. */
   locked?: boolean;
   editing?: boolean;
@@ -51,6 +51,7 @@ export function ProfileField({
           <Input
             id={id}
             name={input.name}
+            maxLength={input.maxLength}
             type={input.type}
             defaultValue={value}
             required
