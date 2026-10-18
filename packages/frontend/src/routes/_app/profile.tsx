@@ -1,3 +1,4 @@
+import { MAX_NAME_LENGTH, MAX_PHONE_NUMBER_LENGTH } from "@repo/common";
 import { PencilSimpleIcon } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
@@ -192,13 +193,21 @@ function Profile() {
             <ProfileField
               label="First Name"
               value={profile.firstName}
-              input={{ name: "firstName", type: "text" }}
+              input={{
+                name: "firstName",
+                type: "text",
+                maxLength: MAX_NAME_LENGTH,
+              }}
               editing={editing}
             />
             <ProfileField
               label="Last Name"
               value={profile.lastName}
-              input={{ name: "lastName", type: "text" }}
+              input={{
+                name: "lastName",
+                type: "text",
+                maxLength: MAX_NAME_LENGTH,
+              }}
               editing={editing}
             />
             <ProfileField
@@ -216,7 +225,11 @@ function Profile() {
             <ProfileField
               label="Phone Number"
               value={profile.phoneNumber}
-              input={{ name: "phoneNumber", type: "tel" }}
+              input={{
+                name: "phoneNumber",
+                type: "tel",
+                maxLength: MAX_PHONE_NUMBER_LENGTH,
+              }}
               editing={editing}
             />
             <ProfileField
