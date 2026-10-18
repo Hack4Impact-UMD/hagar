@@ -58,7 +58,7 @@ export function PasswordField({
       >
         {label}
       </label>
-      <div className="-mt-0.5 md:w-65.75">
+      <div className="-mt-0.5 md:max-w-65.75">
         <div className="relative">
           <Input
             id={id}

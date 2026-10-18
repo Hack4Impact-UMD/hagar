@@ -50,7 +50,7 @@ export function PasswordSection({ password, onCancel }: PasswordSectionProps) {
       >
         {password.editing ? (
           <>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-[repeat(3,minmax(0,12.125rem))] md:gap-x-50 md:gap-y-11.25">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-[repeat(3,minmax(0,16.4375rem))] md:gap-x-40 md:gap-y-11.25">
               <PasswordField
                 label="Old Password"
                 testId="oldPassword"
@@ -103,7 +103,7 @@ export function PasswordSection({ password, onCancel }: PasswordSectionProps) {
             {/* The Figma leaves 140px between the fields and the buttons, and
                 the requirements fill it, so they appear without moving the
                 buttons. */}
-            <div className="mt-6 grid grid-cols-1 md:mt-0 md:h-35 md:grid-cols-[repeat(3,minmax(0,12.125rem))] md:gap-x-50 md:pt-2.5">
+            <div className="mt-6 grid grid-cols-1 md:mt-0 md:h-35 md:grid-cols-[repeat(3,minmax(0,16.4375rem))] md:gap-x-40 md:pt-2.5">
               {password.newPasswordTooShort ? (
                 <div
                   id={hintId}
@@ -122,7 +122,7 @@ export function PasswordSection({ password, onCancel }: PasswordSectionProps) {
             </div>
             {/* Its right end is 45px past the right end of the Confirm New
                 Password input, when there is room for that. */}
-            <div className="flex flex-wrap items-center justify-end gap-4.25 md:max-w-[68.5rem]">
+            <div className="flex flex-wrap items-center justify-end gap-4.25 md:max-w-[72.125rem]">
               {password.saveFailed ? (
                 <p role="alert" className="mr-auto text-sm text-destructive">
                   Couldn&rsquo;t update your password. Try again.

@@ -309,8 +309,9 @@ function Profile() {
             onEdit={editing ? undefined : startEditing}
           >
             {/* Both modes share one grid, so entering edit mode doesn't move any
-              field. */}
-            <dl className="grid grid-cols-1 gap-6 md:grid-cols-[repeat(3,minmax(0,12.125rem))] md:gap-x-50 md:gap-y-11.25">
+              field. Spare room goes between the columns, so they spread across
+              the card instead of hugging its left side. */}
+            <dl className="grid grid-cols-1 gap-6 md:grid-cols-[repeat(3,minmax(0,16.4375rem))] md:justify-between md:gap-x-32.75 md:gap-y-11.25">
               <ProfileField
                 label="First Name"
                 value={profile.firstName}

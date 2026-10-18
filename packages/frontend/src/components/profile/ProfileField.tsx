@@ -55,9 +55,8 @@ export function ProfileField({
       </dt>
       {/* The input is offset by its border and padding, so its text sits
           exactly where the value did, and pulled up into the label's line box
-          to line up with the value vertically. It is wider than the column
-          and spills into the gap beside it. */}
-      <dd className="-mt-0.5 md:-ml-[0.6875rem] md:w-65.75">
+          to line up with the value vertically. */}
+      <dd className="-mt-0.5 md:-ml-[0.6875rem] md:max-w-65.75">
         {input ? (
           <div className="relative">
             <Input
