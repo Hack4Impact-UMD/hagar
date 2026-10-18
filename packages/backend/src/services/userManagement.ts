@@ -128,16 +128,18 @@ export async function deleteUser(
   // Kept outside the transaction: Firestore may run the transaction body more
   // than once, and the commit can still fail after the account is gone.
   // Both cleanups are attempted even if one fails, because a retry finds no
-  // profile and stops at NOT_FOUND before reaching them.
+  // profile and stops at NOT_FOUND before reaching them. That is also why each
+  // is retried here: a login that survives would let the user sign back in and
+  // start a new profile.
   const results = await Promise.allSettled([
-    getAuth()
-      .deleteUser(input.uid)
-      .catch((error: unknown) => {
-        if ((error as { code?: unknown }).code !== "auth/user-not-found") {
-          throw error;
-        }
-      }),
-    deleteProfilePhotos(input.uid),
+    withRetries(() =>
+      getAuth()
+        .deleteUser(input.uid)
+        .catch((error: unknown) => {
+          if (!isAuthUserNotFound(error)) throw error;
+        }),
+    ),
+    withRetries(() => deleteProfilePhotos(input.uid)),
   ]);
   const failures = results.filter((result) => result.status === "rejected");
   for (const failure of failures) {
@@ -147,6 +149,32 @@ export async function deleteUser(
     );
   }
   if (failures[0]) throw failures[0].reason;
+}
+
+function isAuthUserNotFound(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "auth/user-not-found"
+  );
+}
+
+const CLEANUP_ATTEMPTS = 3;
+const CLEANUP_RETRY_DELAY_MS = 250;
+
+/** Retries a cleanup that may fail for a moment, e.g. a network blip. */
+async function withRetries(action: () => Promise<void>): Promise<void> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await action();
+    } catch (error) {
+      if (attempt >= CLEANUP_ATTEMPTS) throw error;
+      await new Promise((resolve) =>
+        setTimeout(resolve, CLEANUP_RETRY_DELAY_MS * attempt),
+      );
+    }
+  }
 }
 
 type ManageContext = {
