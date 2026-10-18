@@ -65,6 +65,11 @@ export function PasswordField({
             type="text"
             value={focused || value === "" ? value : HIDDEN_PASSWORD}
             autoComplete={autoComplete}
+            // A text input gets the phone keyboard's capitalizing and
+            // autocorrect by default, which would change what the user typed
+            // and so the password that gets saved.
+            autoCapitalize="none"
+            autoCorrect="off"
             spellCheck={false}
             aria-invalid={invalid}
             aria-describedby={describedBy}

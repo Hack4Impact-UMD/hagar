@@ -114,6 +114,15 @@ describe("old password", () => {
 });
 
 describe("typed passwords", () => {
+  it("turn off the phone keyboard's capitalizing and autocorrect", () => {
+    renderSection();
+
+    for (const testId of ["oldPassword", "newPassword", "confirmPassword"]) {
+      expect(field(testId)).toHaveAttribute("autocapitalize", "none");
+      expect(field(testId)).toHaveAttribute("autocorrect", "off");
+    }
+  });
+
   it("show while typing and as x's after leaving the field", () => {
     renderSection();
 
@@ -283,6 +292,35 @@ describe("forgot password", () => {
     expect(screen.getByRole("status")).toHaveTextContent(
       "Reset email sent to ada@example.com",
     );
+  });
+
+  it("can't be clicked again while the email is being sent", async () => {
+    sendPasswordReset.mockReturnValue(new Promise<string>(() => {}));
+    renderSection();
+    const link = screen.getByRole("button", { name: "Forgot password?" });
+
+    fireEvent.click(link);
+    await settle(0);
+    fireEvent.click(link);
+
+    expect(link).toBeDisabled();
+    expect(sendPasswordReset).toHaveBeenCalledTimes(1);
+  });
+
+  it("says so when the email couldn't be sent", async () => {
+    sendPasswordReset.mockRejectedValue(new Error("offline"));
+    renderSection();
+
+    fireEvent.click(screen.getByRole("button", { name: "Forgot password?" }));
+    await settle(0);
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Couldn’t send the reset email. Try again.",
+    );
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Forgot password?" }),
+    ).toBeEnabled();
   });
 
   it("forgets the message once the form is closed", async () => {

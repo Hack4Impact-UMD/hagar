@@ -35,6 +35,15 @@ import {
 import { saveProfileEdits } from "@frontend/lib/saveProfile.ts";
 import { queryClient, trpc } from "@frontend/lib/trpc.ts";
 
+function isForbidden(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "data" in error &&
+    (error.data as { code?: string } | null)?.code === "FORBIDDEN"
+  );
+}
+
 export const Route = createFileRoute("/_app/profile")({ component: Profile });
 
 function Profile() {
@@ -56,6 +65,8 @@ function Profile() {
     reset: resetPassword,
   } = password;
   const formRef = useRef<HTMLFormElement>(null);
+  // Lets a redirect forced on the user through the unsaved-changes prompt.
+  const allowLeaving = useRef(false);
   const photoPreviewUrl = useObjectUrl(photo);
 
   const uploadPhoto = useMutation({ mutationFn: uploadAvatar });
@@ -64,14 +75,6 @@ function Profile() {
       // `me` is cached for good, so the page keeps showing the old values
       // unless the saved profile replaces them.
       onSuccess: (saved) => queryClient.setQueryData(trpc.me.queryKey(), saved),
-      onError: async (error) => {
-        // The user is no longer approved, e.g. an admin moved them back to
-        // awaiting approval or deleted them. Refetch `me` and re-run the
-        // route guard so they land on the page for their new state.
-        if (error.data?.code !== "FORBIDDEN") return;
-        await queryClient.query({ ...trpc.me.queryOptions(), staleTime: 0 });
-        await router.invalidate();
-      },
     }),
   );
   const isSaving = uploadPhoto.isPending || updateProfile.isPending;
@@ -102,7 +105,7 @@ function Profile() {
     );
   }, [editing, photo, profile]);
   const hasUnsavedChanges = useCallback(
-    () => profileHasChanges() || passwordDirty,
+    () => !allowLeaving.current && (profileHasChanges() || passwordDirty),
     [profileHasChanges, passwordDirty],
   );
 
@@ -185,8 +188,23 @@ function Profile() {
         },
       });
       stopEditing();
-    } catch {
+    } catch (error) {
       // The mutations hold the error, and it is shown above the page.
+      if (isForbidden(error)) await leaveAfterLosingAccess();
+    }
+  };
+
+  // The user is no longer approved, e.g. an admin moved them back to awaiting
+  // approval or deleted them. Refetch `me` and re-run the route guard so they
+  // land on the page for their new state. The unsaved-changes prompt must not
+  // hold that back, or they would stay on a page they can't use.
+  const leaveAfterLosingAccess = async () => {
+    allowLeaving.current = true;
+    try {
+      await queryClient.query({ ...trpc.me.queryOptions(), staleTime: 0 });
+      await router.invalidate();
+    } finally {
+      allowLeaving.current = false;
     }
   };
 
