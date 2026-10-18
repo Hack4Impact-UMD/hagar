@@ -8,9 +8,10 @@ import { Input } from "@frontend/components/ui/input.tsx";
 // real password.
 const HIDDEN_PASSWORD = "xxxxxxxxxxxxxx";
 
-// Stub: Firebase never hands the page a user's password, so there is nothing
-// real to reveal yet.
-const STUBBED_PASSWORD = "stub-password";
+// Firebase never hands the page a user's password, so there is nothing real to
+// reveal. Showing this keeps the Figma's toggle without presenting made-up
+// text as the password.
+const NOT_AVAILABLE = "Password not available";
 
 /** The user's password, hidden as x's until the toggle reveals it. */
 export function PasswordDisplay() {
@@ -20,7 +21,7 @@ export function PasswordDisplay() {
     <div className="relative md:w-65.75">
       <Input
         aria-label="Password"
-        value={visible ? STUBBED_PASSWORD : HIDDEN_PASSWORD}
+        value={visible ? NOT_AVAILABLE : HIDDEN_PASSWORD}
         readOnly
         className={`${PROFILE_INPUT_CLASS} border-[#898887] pr-10 text-black`}
       />
