@@ -1,13 +1,23 @@
 import { MAX_NAME_LENGTH, MAX_PHONE_NUMBER_LENGTH } from "@repo/common";
 import { PencilSimpleIcon } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { createFileRoute, useBlocker, useRouter } from "@tanstack/react-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { changedFields } from "@frontend/components/profile/changedFields.ts";
 import { PhotoPicker } from "@frontend/components/profile/PhotoPicker.tsx";
 import { ProfileAvatar } from "@frontend/components/profile/ProfileAvatar.tsx";
 import { ProfileField } from "@frontend/components/profile/ProfileField.tsx";
 import { ProfileSection } from "@frontend/components/profile/ProfileSection.tsx";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@frontend/components/ui/alert-dialog.tsx";
 import { Button } from "@frontend/components/ui/button.tsx";
 import { useObjectUrl } from "@frontend/hooks/use-object-url.ts";
 import {
@@ -27,6 +37,8 @@ function Profile() {
   const [editing, setEditing] = useState(false);
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const photoPreviewUrl = useObjectUrl(photo);
 
   const uploadPhoto = useMutation({ mutationFn: uploadProfilePhoto });
@@ -60,17 +72,57 @@ function Profile() {
     resetUpdate();
   }, [resetUpload, resetUpdate]);
 
+  // The typed text lives in the inputs, not in state, so the form is read at
+  // the moment the answer is needed.
+  const hasUnsavedChanges = useCallback(() => {
+    const form = formRef.current;
+    if (!editing || !form || !profile || profile.stage === "PROFILE SETUP") {
+      return false;
+    }
+    return (
+      photo !== null ||
+      Object.keys(changedFields(profile, new FormData(form))).length > 0
+    );
+  }, [editing, photo, profile]);
+
+  // Leaving the page (a sidebar link, back, closing the tab) would throw the
+  // edits away. The browser shows its own prompt for closing the tab.
+  const blocker = useBlocker({
+    shouldBlockFn: hasUnsavedChanges,
+    enableBeforeUnload: hasUnsavedChanges,
+    withResolver: true,
+  });
+  const dialogOpen = confirmingDiscard || blocker.status === "blocked";
+
+  // Backing out of edit mode only asks when there is something to lose.
+  const cancelEditing = useCallback(() => {
+    if (hasUnsavedChanges()) setConfirmingDiscard(true);
+    else stopEditing();
+  }, [hasUnsavedChanges, stopEditing]);
+
+  const keepEditing = () => {
+    setConfirmingDiscard(false);
+    blocker.reset?.();
+  };
+
+  const discardChanges = () => {
+    stopEditing();
+    setConfirmingDiscard(false);
+    blocker.proceed?.();
+  };
+
   useEffect(() => {
     if (!editing) return;
     const onKeyDown = (event: KeyboardEvent) => {
       // Resetting a mutation doesn't cancel its request, so cancelling mid-save
       // would still update the cache afterwards. The Cancel button is disabled
-      // while saving for the same reason.
-      if (event.key === "Escape" && !isSaving) stopEditing();
+      // while saving for the same reason. While the dialog is open, Escape
+      // belongs to the dialog.
+      if (event.key === "Escape" && !isSaving && !dialogOpen) cancelEditing();
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [editing, isSaving, stopEditing]);
+  }, [editing, isSaving, dialogOpen, cancelEditing]);
 
   // The route guard only lets complete profiles in, but the type can't know
   // that: the details are null while the stage is 'PROFILE SETUP'.
@@ -80,6 +132,7 @@ function Profile() {
 
   return (
     <form
+      ref={formRef}
       onSubmit={(event) => {
         event.preventDefault();
         const changes = changedFields(
@@ -123,7 +176,7 @@ function Profile() {
                 variant="outline"
                 className={HEADER_BUTTON}
                 disabled={isSaving}
-                onClick={stopEditing}
+                onClick={cancelEditing}
               >
                 Cancel
               </Button>
@@ -255,6 +308,36 @@ function Profile() {
           </dl>
         </ProfileSection>
       </main>
+      <AlertDialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          if (!open) keepEditing();
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Your changes will not be saved</AlertDialogTitle>
+            <AlertDialogDescription>
+              If you leave now, the changes you made to your profile will be
+              lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep editing</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={(event) => {
+                // Radix would also report the dialog closing, which would
+                // undo the discard by cancelling the navigation.
+                event.preventDefault();
+                discardChanges();
+              }}
+            >
+              Discard changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </form>
   );
 }
