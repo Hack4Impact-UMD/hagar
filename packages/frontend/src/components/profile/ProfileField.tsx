@@ -1,6 +1,9 @@
 import { useId } from "react";
 import { LockedInput } from "@frontend/components/profile/LockedInput.tsx";
-import { PROFILE_INPUT_CLASS } from "@frontend/components/profile/profileInputStyles.ts";
+import {
+  PROFILE_INPUT_CLASS,
+  PROFILE_LABEL_CLASS,
+} from "@frontend/components/profile/profileInputStyles.ts";
 import { ResizeGrip } from "@frontend/components/profile/ResizeGrip.tsx";
 import { Input } from "@frontend/components/ui/input.tsx";
 
@@ -14,8 +17,6 @@ interface ProfileFieldProps {
   editing?: boolean;
 }
 
-const labelClass = "block text-lg leading-8.5 text-muted-foreground";
-
 export function ProfileField({
   label,
   value,
@@ -28,7 +29,7 @@ export function ProfileField({
   if (!editing || (!input && !locked)) {
     return (
       <div className="md:min-h-17">
-        <dt className={labelClass}>{label}</dt>
+        <dt className={PROFILE_LABEL_CLASS}>{label}</dt>
         <dd className="text-lg leading-8.5 font-semibold break-words text-black/80">
           {value}
         </dd>
@@ -43,11 +44,11 @@ export function ProfileField({
             clicking a label clicks its input, so the tooltip would open from
             the label's area too. */}
         {input ? (
-          <label htmlFor={id} className={labelClass}>
+          <label htmlFor={id} className={PROFILE_LABEL_CLASS}>
             {label}
           </label>
         ) : (
-          <span id={id} className={labelClass}>
+          <span id={id} className={PROFILE_LABEL_CLASS}>
             {label}
           </span>
         )}
