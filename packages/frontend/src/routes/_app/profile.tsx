@@ -102,9 +102,9 @@ function Profile() {
         }
       }}
     >
-      <main className="page mx-0 max-w-none md:px-12">
-        <header className="page-header">
-          <h1 data-testid="profile" className="page-title text-3xl">
+      <main className="flex w-full flex-col gap-8 p-4 md:px-12 md:py-8">
+        <header className="flex flex-wrap items-center justify-between gap-4">
+          <h1 data-testid="profile" className="text-3xl font-semibold">
             My Profile
           </h1>
           {/* Separate keys give each mode its own button element. Reusing one
@@ -145,19 +145,19 @@ function Profile() {
         {photoError || saveError ? (
           <div className="flex flex-col gap-1">
             {photoError ? (
-              <p role="alert" className="form-error">
+              <p role="alert" className="text-sm text-destructive">
                 {photoError}
               </p>
             ) : null}
             {saveError ? (
-              <p role="alert" className="form-error">
+              <p role="alert" className="text-sm text-destructive">
                 {saveError.message}
               </p>
             ) : null}
           </div>
         ) : null}
-        <section className="page-summary">
-          <div className="avatar-with-badge">
+        <section className="flex flex-col gap-4 border-b pb-8 sm:flex-row sm:items-center sm:gap-6">
+          <div className="relative w-fit shrink-0">
             <ProfileAvatar
               photoPath={profile.photoPath}
               firstName={profile.firstName}
@@ -178,7 +178,7 @@ function Profile() {
             ) : null}
           </div>
           <div className="flex flex-col gap-1">
-            <h2 className="summary-name font-bold">
+            <h2 className="text-3xl font-bold">
               {profile.firstName} {profile.lastName}
             </h2>
             <p className="text-primary">{profile.role}</p>
@@ -189,7 +189,7 @@ function Profile() {
           title="Personal Information"
           onEdit={editing ? undefined : startEditing}
         >
-          <dl className="field-grid">
+          <dl className="grid gap-6 md:grid-cols-3">
             <ProfileField
               label="First Name"
               value={profile.firstName}

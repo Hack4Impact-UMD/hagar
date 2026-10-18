@@ -12,6 +12,8 @@ interface ProfileFieldProps {
   editing?: boolean;
 }
 
+const labelClass = "mb-2 block text-base text-muted-foreground";
+
 export function ProfileField({
   label,
   value,
@@ -24,8 +26,8 @@ export function ProfileField({
   if (!editing || (!input && !locked)) {
     return (
       <div>
-        <dt className="field-label text-base">{label}</dt>
-        <dd className="field-value text-lg font-semibold">{value}</dd>
+        <dt className={labelClass}>{label}</dt>
+        <dd className="text-lg font-semibold break-words">{value}</dd>
       </div>
     );
   }
@@ -37,11 +39,11 @@ export function ProfileField({
             clicking a label clicks its input, so the tooltip would open from
             the label's area too. */}
         {input ? (
-          <label htmlFor={id} className="field-label text-base">
+          <label htmlFor={id} className={labelClass}>
             {label}
           </label>
         ) : (
-          <span id={id} className="field-label text-base">
+          <span id={id} className={labelClass}>
             {label}
           </span>
         )}
