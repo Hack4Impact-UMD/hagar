@@ -1,5 +1,5 @@
 import type { ActiveUserProfile, StoredUserProfile } from "@repo/common";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeFirestore } from "@backend/testing/fakeFirestore.ts";
 import {
   approveUser,
@@ -61,7 +61,7 @@ function user(
       },
     ];
   }
-  const photoPath = `profile-photos/${uid}/123e4567-e89b-42d3-a456-426614174000.png`;
+  const photoPath = `profile-photos/${uid}/avatar`;
   return [
     uid,
     { ...base, ...details, photoPath, ...fields } as StoredUserProfile,
@@ -110,7 +110,7 @@ function profileOf(uid: string, changes: Partial<StoredUserProfile> = {}) {
 }
 
 describe("listUsers", () => {
-  it.fails("lists awaiting users in every region for a Global Admin, oldest first", async () => {
+  it("lists awaiting users in every region for a Global Admin, oldest first", async () => {
     const { db } = seeded();
 
     const users = await listUsers(db, actor("usGlobal"), {
@@ -120,7 +120,7 @@ describe("listUsers", () => {
     expect(users).toEqual([profileOf("usPending"), profileOf("caPending")]);
   });
 
-  it.fails("narrows a Global Admin's list to one region on request", async () => {
+  it("narrows a Global Admin's list to one region on request", async () => {
     const { db } = seeded();
 
     const users = await listUsers(db, actor("usGlobal"), {
@@ -135,7 +135,7 @@ describe("listUsers", () => {
     ]);
   });
 
-  it.fails("lists every active user, including the caller, for a Global Admin", async () => {
+  it("lists every active user, including the caller, for a Global Admin", async () => {
     const { db } = seeded();
 
     const users = await listUsers(db, actor("usGlobal"), { stage: "ACTIVE" });
@@ -151,7 +151,7 @@ describe("listUsers", () => {
     ]);
   });
 
-  it.fails("limits a Local Admin to their own region", async () => {
+  it("limits a Local Admin to their own region", async () => {
     const { db } = seeded();
 
     const pendingUsers = await listUsers(db, actor("usLocal"), {
@@ -172,7 +172,7 @@ describe("listUsers", () => {
     ]);
   });
 
-  it.fails("accepts a Local Admin's own region as a filter", async () => {
+  it("accepts a Local Admin's own region as a filter", async () => {
     const { db } = seeded();
 
     const users = await listUsers(db, actor("usLocal"), {
@@ -183,7 +183,7 @@ describe("listUsers", () => {
     expect(users.map((u) => u.uid)).toEqual(["usPending"]);
   });
 
-  it.fails("forbids a Local Admin from listing another region", async () => {
+  it("forbids a Local Admin from listing another region", async () => {
     const { db } = seeded();
 
     await expect(
@@ -194,7 +194,7 @@ describe("listUsers", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it.fails("returns an empty list when nobody matches", async () => {
+  it("returns an empty list when nobody matches", async () => {
     const { db } = seeded();
 
     await expect(
@@ -205,7 +205,7 @@ describe("listUsers", () => {
     ).resolves.toEqual([]);
   });
 
-  it.fails("drops undeclared fields from listed documents", async () => {
+  it("drops undeclared fields from listed documents", async () => {
     const { db } = fakeFirestore({
       users: { ...USERS, usPending: { ...USERS.usPending, legacy: "stray" } },
     });
@@ -219,7 +219,7 @@ describe("listUsers", () => {
 });
 
 describe("approveUser", () => {
-  it.fails("activates an awaiting user as a Viewer when no role is given", async () => {
+  it("activates an awaiting user as a Viewer when no role is given", async () => {
     const { db, doc } = seeded();
 
     const approved = await approveUser(db, actor("usLocal"), {
@@ -234,7 +234,7 @@ describe("approveUser", () => {
     });
   });
 
-  it.fails("lets a Local Admin approve someone as a Local Admin", async () => {
+  it("lets a Local Admin approve someone as a Local Admin", async () => {
     const { db, doc } = seeded();
 
     await approveUser(db, actor("usLocal"), {
@@ -248,7 +248,7 @@ describe("approveUser", () => {
     });
   });
 
-  it.fails("forbids a Local Admin from approving someone as a Global Admin", async () => {
+  it("forbids a Local Admin from approving someone as a Global Admin", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -260,7 +260,7 @@ describe("approveUser", () => {
     expect(doc("users", "usPending")).toEqual(USERS.usPending);
   });
 
-  it.fails("forbids a Local Admin from approving someone in another region", async () => {
+  it("forbids a Local Admin from approving someone in another region", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -269,7 +269,7 @@ describe("approveUser", () => {
     expect(doc("users", "caPending")).toEqual(USERS.caPending);
   });
 
-  it.fails("lets a Global Admin approve anyone, with any role, in any region", async () => {
+  it("lets a Global Admin approve anyone, with any role, in any region", async () => {
     const { db, doc } = seeded();
 
     await approveUser(db, actor("usGlobal"), {
@@ -283,7 +283,7 @@ describe("approveUser", () => {
     });
   });
 
-  it.fails("refuses a user who is not awaiting approval", async () => {
+  it("refuses a user who is not awaiting approval", async () => {
     const { db } = seeded();
 
     for (const uid of ["usViewer", "usVerifying", "settingUp"]) {
@@ -293,7 +293,7 @@ describe("approveUser", () => {
     }
   });
 
-  it.fails("reports a user who does not exist", async () => {
+  it("reports a user who does not exist", async () => {
     const { db } = seeded();
 
     await expect(
@@ -301,7 +301,7 @@ describe("approveUser", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
-  it.fails("re-reads the caller, so an admin demoted mid-request is refused", async () => {
+  it("re-reads the caller, so an admin demoted mid-request is refused", async () => {
     const { db, doc } = fakeFirestore({
       users: { ...USERS, usLocal: { ...USERS.usLocal, role: "Viewer" } },
     });
@@ -315,7 +315,7 @@ describe("approveUser", () => {
 });
 
 describe("setUserRole", () => {
-  it.fails("lets a Local Admin promote a Viewer to Local Admin", async () => {
+  it("lets a Local Admin promote a Viewer to Local Admin", async () => {
     const { db, doc } = seeded();
 
     const updated = await setUserRole(db, actor("usLocal"), {
@@ -330,7 +330,7 @@ describe("setUserRole", () => {
     });
   });
 
-  it.fails("lets a Local Admin demote another Local Admin", async () => {
+  it("lets a Local Admin demote another Local Admin", async () => {
     const { db, doc } = seeded();
 
     await setUserRole(db, actor("usLocal"), {
@@ -341,7 +341,7 @@ describe("setUserRole", () => {
     expect(doc("users", "usLocal2")).toMatchObject({ role: "Viewer" });
   });
 
-  it.fails("forbids a Local Admin from granting Global Admin", async () => {
+  it("forbids a Local Admin from granting Global Admin", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -353,7 +353,7 @@ describe("setUserRole", () => {
     expect(doc("users", "usViewer")).toEqual(USERS.usViewer);
   });
 
-  it.fails("forbids a Local Admin from changing a Global Admin in their region", async () => {
+  it("forbids a Local Admin from changing a Global Admin in their region", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -362,7 +362,7 @@ describe("setUserRole", () => {
     expect(doc("users", "usGlobal")).toEqual(USERS.usGlobal);
   });
 
-  it.fails("forbids a Local Admin from changing someone in another region", async () => {
+  it("forbids a Local Admin from changing someone in another region", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -374,7 +374,7 @@ describe("setUserRole", () => {
     expect(doc("users", "caViewer")).toEqual(USERS.caViewer);
   });
 
-  it.fails("lets a Global Admin promote and demote anyone, anywhere", async () => {
+  it("lets a Global Admin promote and demote anyone, anywhere", async () => {
     const { db, doc } = seeded();
 
     await setUserRole(db, actor("usGlobal"), {
@@ -390,7 +390,7 @@ describe("setUserRole", () => {
     expect(doc("users", "caGlobal")).toMatchObject({ role: "Viewer" });
   });
 
-  it.fails("forbids an admin from changing their own role, so a Global Admin always remains", async () => {
+  it("forbids an admin from changing their own role, so a Global Admin always remains", async () => {
     const { db, doc } = seeded();
 
     for (const uid of ["usGlobal", "usLocal"]) {
@@ -401,7 +401,7 @@ describe("setUserRole", () => {
     }
   });
 
-  it.fails("refuses a user who is not active, whose role is set on approval", async () => {
+  it("refuses a user who is not active, whose role is set on approval", async () => {
     const { db } = seeded();
 
     for (const uid of ["usPending", "usVerifying", "settingUp"]) {
@@ -411,7 +411,7 @@ describe("setUserRole", () => {
     }
   });
 
-  it.fails("reports a user who does not exist", async () => {
+  it("reports a user who does not exist", async () => {
     const { db } = seeded();
 
     await expect(
@@ -419,7 +419,7 @@ describe("setUserRole", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
-  it.fails("re-reads the caller, so an admin demoted mid-request is refused", async () => {
+  it("re-reads the caller, so an admin demoted mid-request is refused", async () => {
     const { db, doc } = fakeFirestore({
       users: { ...USERS, usLocal: { ...USERS.usLocal, role: "Viewer" } },
     });
@@ -435,7 +435,7 @@ describe("setUserRole", () => {
 });
 
 describe("setUserRegion", () => {
-  it.fails("lets a Global Admin move an active user, keeping their role and stage", async () => {
+  it("lets a Global Admin move an active user, keeping their role and stage", async () => {
     const { db, doc } = seeded();
 
     const moved = await setUserRegion(db, actor("usGlobal"), {
@@ -450,7 +450,7 @@ describe("setUserRegion", () => {
     });
   });
 
-  it.fails("lets a Global Admin move an awaiting user, who keeps waiting", async () => {
+  it("lets a Global Admin move an awaiting user, who keeps waiting", async () => {
     const { db, doc } = seeded();
 
     await setUserRegion(db, actor("caGlobal"), {
@@ -464,7 +464,7 @@ describe("setUserRegion", () => {
     });
   });
 
-  it.fails("sends a user a Local Admin moves back to approval as a Viewer", async () => {
+  it("sends a user a Local Admin moves back to approval as a Viewer", async () => {
     const { db, doc } = seeded();
 
     const moved = await setUserRegion(db, actor("usLocal"), {
@@ -484,7 +484,7 @@ describe("setUserRegion", () => {
     });
   });
 
-  it.fails("keeps an awaiting user waiting when a Local Admin moves them", async () => {
+  it("keeps an awaiting user waiting when a Local Admin moves them", async () => {
     const { db, doc } = seeded();
 
     await setUserRegion(db, actor("usLocal"), {
@@ -499,7 +499,7 @@ describe("setUserRegion", () => {
     });
   });
 
-  it.fails("changes nothing when the user is already in that region", async () => {
+  it("changes nothing when the user is already in that region", async () => {
     const { db, doc } = seeded();
 
     const unchanged = await setUserRegion(db, actor("usLocal"), {
@@ -512,7 +512,7 @@ describe("setUserRegion", () => {
     expect(doc("users", "usLocal2")).toEqual(USERS.usLocal2);
   });
 
-  it.fails("forbids a Local Admin from moving someone in another region", async () => {
+  it("forbids a Local Admin from moving someone in another region", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -524,7 +524,7 @@ describe("setUserRegion", () => {
     expect(doc("users", "caViewer")).toEqual(USERS.caViewer);
   });
 
-  it.fails("forbids a Local Admin from moving a Global Admin in their region", async () => {
+  it("forbids a Local Admin from moving a Global Admin in their region", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -536,7 +536,7 @@ describe("setUserRegion", () => {
     expect(doc("users", "usGlobal")).toEqual(USERS.usGlobal);
   });
 
-  it.fails("forbids an admin from moving themselves", async () => {
+  it("forbids an admin from moving themselves", async () => {
     const { db, doc } = seeded();
 
     for (const uid of ["usGlobal", "usLocal"]) {
@@ -547,7 +547,7 @@ describe("setUserRegion", () => {
     }
   });
 
-  it.fails("refuses a user who has not finished onboarding", async () => {
+  it("refuses a user who has not finished onboarding", async () => {
     const { db } = seeded();
 
     for (const uid of ["usVerifying", "settingUp"]) {
@@ -557,7 +557,7 @@ describe("setUserRegion", () => {
     }
   });
 
-  it.fails("reports a user who does not exist", async () => {
+  it("reports a user who does not exist", async () => {
     const { db } = seeded();
 
     await expect(
@@ -565,7 +565,7 @@ describe("setUserRegion", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
-  it.fails("re-reads the caller, so an admin demoted mid-request is refused", async () => {
+  it("re-reads the caller, so an admin demoted mid-request is refused", async () => {
     const { db, doc } = fakeFirestore({
       users: { ...USERS, usLocal: { ...USERS.usLocal, role: "Viewer" } },
     });
@@ -581,7 +581,7 @@ describe("setUserRegion", () => {
 });
 
 describe("deleteUser", () => {
-  it.fails("lets a Local Admin reject an awaiting user in their region", async () => {
+  it("lets a Local Admin reject an awaiting user in their region", async () => {
     const { db, doc } = seeded();
 
     await deleteUser(db, actor("usLocal"), { uid: "usPending" });
@@ -590,7 +590,7 @@ describe("deleteUser", () => {
     expect(auth.deleteUser).toHaveBeenCalledWith("usPending");
   });
 
-  it.fails("deletes the user's profile photos", async () => {
+  it("deletes the user's profile photos", async () => {
     const { db } = seeded();
 
     await deleteUser(db, actor("usLocal"), { uid: "usLocal2" });
@@ -600,7 +600,7 @@ describe("deleteUser", () => {
     );
   });
 
-  it.fails("lets a Local Admin delete an active user in their region", async () => {
+  it("lets a Local Admin delete an active user in their region", async () => {
     const { db, doc } = seeded();
 
     await deleteUser(db, actor("usLocal"), { uid: "usLocal2" });
@@ -609,7 +609,7 @@ describe("deleteUser", () => {
     expect(auth.deleteUser).toHaveBeenCalledWith("usLocal2");
   });
 
-  it.fails("lets a Global Admin delete anyone, including another Global Admin and an unfinished signup", async () => {
+  it("lets a Global Admin delete anyone, including another Global Admin and an unfinished signup", async () => {
     const { db, doc } = seeded();
 
     for (const uid of ["caGlobal", "caPending", "settingUp"]) {
@@ -619,7 +619,7 @@ describe("deleteUser", () => {
     }
   });
 
-  it.fails("forbids a Local Admin from deleting outside their reach", async () => {
+  it("forbids a Local Admin from deleting outside their reach", async () => {
     const { db, doc } = seeded();
 
     // Another region, a Global Admin in their region, and an unfinished
@@ -634,7 +634,7 @@ describe("deleteUser", () => {
     expect(photos.deleteProfilePhotos).not.toHaveBeenCalled();
   });
 
-  it.fails("forbids an admin from deleting themselves", async () => {
+  it("forbids an admin from deleting themselves", async () => {
     const { db, doc } = seeded();
 
     for (const uid of ["usGlobal", "usLocal"]) {
@@ -646,7 +646,7 @@ describe("deleteUser", () => {
     expect(auth.deleteUser).not.toHaveBeenCalled();
   });
 
-  it.fails("reports a user who does not exist", async () => {
+  it("reports a user who does not exist", async () => {
     const { db } = seeded();
 
     await expect(
@@ -655,7 +655,7 @@ describe("deleteUser", () => {
     expect(auth.deleteUser).not.toHaveBeenCalled();
   });
 
-  it.fails("still deletes the profile when the Auth account is already gone", async () => {
+  it("still deletes the profile when the Auth account is already gone", async () => {
     const { db, doc } = seeded();
     auth.deleteUser.mockRejectedValue(
       Object.assign(new Error("No user record found."), {
@@ -669,7 +669,69 @@ describe("deleteUser", () => {
     expect(doc("users", "usPending")).toBeUndefined();
   });
 
-  it.fails("re-reads the caller, so an admin demoted mid-request is refused", async () => {
+  /** What `promise` rejects with, so a test can wait on fake timers first. */
+  async function rejectionOf(promise: Promise<unknown>): Promise<unknown> {
+    try {
+      await promise;
+    } catch (error) {
+      return error;
+    }
+    return "resolved";
+  }
+
+  describe("when cleanup fails", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("retries a failed Auth deletion", async () => {
+      const { db, doc } = seeded();
+      auth.deleteUser
+        .mockRejectedValueOnce(new Error("Network blip."))
+        .mockResolvedValue();
+
+      const deleted = deleteUser(db, actor("usLocal"), { uid: "usPending" });
+      await vi.runAllTimersAsync();
+
+      await expect(deleted).resolves.toBeUndefined();
+      expect(auth.deleteUser).toHaveBeenCalledTimes(2);
+      expect(doc("users", "usPending")).toBeUndefined();
+    });
+
+    it("reports an Auth failure that outlasts the retries, still removing the photos", async () => {
+      const { db } = seeded();
+      const failure = new Error("Auth is down.");
+      auth.deleteUser.mockRejectedValue(failure);
+      vi.spyOn(console, "error").mockReturnValue();
+
+      const outcome = rejectionOf(
+        deleteUser(db, actor("usLocal"), { uid: "usPending" }),
+      );
+      await vi.runAllTimersAsync();
+
+      expect(await outcome).toBe(failure);
+      expect(auth.deleteUser).toHaveBeenCalledTimes(3);
+      expect(photos.deleteProfilePhotos).toHaveBeenCalledOnce();
+    });
+
+    it("reports a non-Error Auth failure instead of crashing on it", async () => {
+      const { db } = seeded();
+      auth.deleteUser.mockRejectedValue(null);
+      vi.spyOn(console, "error").mockReturnValue();
+
+      const outcome = rejectionOf(
+        deleteUser(db, actor("usLocal"), { uid: "usPending" }),
+      );
+      await vi.runAllTimersAsync();
+
+      expect(await outcome).toBeNull();
+    });
+  });
+
+  it("re-reads the caller, so an admin demoted mid-request is refused", async () => {
     const { db, doc } = fakeFirestore({
       users: { ...USERS, usLocal: { ...USERS.usLocal, role: "Viewer" } },
     });

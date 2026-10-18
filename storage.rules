@@ -2,9 +2,10 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Each user uploads profile photos into their own folder, which is how
-    // the backend tells whose photo a path is. Clients may only add files:
-    // the backend, using the Admin SDK, replaces and deletes them.
+    // Each user has one profile photo, `avatar`, in their own folder, which is
+    // how the backend tells whose photo a path is. Uploading again overwrites
+    // it, so a user can never store more than one file. Only the backend,
+    // using the Admin SDK, deletes photos.
     match /profile-photos/{uid}/{file} {
       // Users who are not approved yet may only see their own photo.
       // Approval is read from the same `users/{uid}` document the backend uses.
@@ -15,9 +16,9 @@ service firebase.storage {
           ).data.stage == 'ACTIVE');
       // Keep the types and the size cap in step with
       // packages/common/src/profilePhoto.ts.
-      allow create: if request.auth != null
+      allow create, update: if request.auth != null
         && request.auth.uid == uid
-        && file.matches('[0-9a-f-]{36}[.](png|jpg|webp)')
+        && file == 'avatar'
         && request.resource.contentType.matches('image/(png|jpeg|webp)')
         && request.resource.size <= 5 * 1024 * 1024;
     }

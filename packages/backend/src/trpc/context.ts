@@ -23,7 +23,13 @@ async function resolveSession(header: string | undefined) {
   if (!header?.startsWith("Bearer ")) return null;
 
   try {
-    const token = await getAuth().verifyIdToken(header.slice("Bearer ".length));
+    // Checking revocation makes Firebase Auth refuse a token whose account was
+    // deleted or disabled. Without it a deleted user keeps a valid token for up
+    // to an hour and could sign their profile back into existence.
+    const token = await getAuth().verifyIdToken(
+      header.slice("Bearer ".length),
+      true,
+    );
     // The app only signs users up with email and password. An account without
     // an email comes from another sign-in provider enabled in the Firebase
     // console, and could never pass email verification or be told apart by
