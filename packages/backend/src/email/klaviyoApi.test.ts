@@ -5,7 +5,6 @@ import {
   isKlaviyoNotFound,
   klaviyoGet,
   klaviyoGetAllPages,
-  klaviyoPost,
   klaviyoPostAllPages,
 } from "@backend/email/klaviyoApi.ts";
 
@@ -87,7 +86,7 @@ describe("requests", () => {
   it("sends content-type and a JSON body on POST", async () => {
     fetchMock.mockResolvedValueOnce(json({ data: [] }));
 
-    await klaviyoPost("/api/campaign-values-reports", { a: 1 }, page);
+    await klaviyoPostAllPages("/api/campaign-values-reports", { a: 1 }, page);
 
     const [, init] = callAt(0);
     expect(init?.method).toBe("POST");

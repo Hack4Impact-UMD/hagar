@@ -272,7 +272,7 @@ describe("updateCampaigns", () => {
   const sendTime = "2026-03-01T12:00:00.000Z";
   const campaignHtml = "<p>Thanks for reading.</p>";
   const contentPath = (id: string) =>
-    `email-campaign-content/Klaviyo_${id}.html`;
+    `email-integrations/klaviyo/Klaviyo_${id}.html`;
   const zeroStats = {
     recipients: 0,
     bounced: 0,
@@ -596,7 +596,7 @@ describe("updateCampaigns", () => {
       ],
       [row("C1", { recipients: 3 })],
     );
-    routeHtml(klaviyo, "C1", "é".repeat((5 * 1024 * 1024) / 2 + 1));
+    routeHtml(klaviyo, "C1", "é".repeat((25 * 1024 * 1024) / 2 + 1));
     const { db, doc } = fakeFirestore();
 
     await updateCampaigns(db, ["C1"]);
@@ -824,7 +824,7 @@ describe("updateCampaigns", () => {
       );
     });
 
-    it("takes known lists from a segment's membership rules", async () => {
+    it("keeps membership-rule lists even when they are not synced yet", async () => {
       const klaviyo = setupOne(["SEG1"]);
       klaviyo.on(
         "GET",
@@ -838,12 +838,12 @@ describe("updateCampaigns", () => {
           ],
         ]),
       );
-      const { db, doc } = fakeFirestore(knownLists("L1", "L2", "L3"));
+      const { db, doc } = fakeFirestore();
 
       await updateCampaigns(db, ["C1"]);
 
       expect(doc("email-campaigns", "Klaviyo_C1")).toMatchObject({
-        listIDs: ["L1", "L2"],
+        listIDs: ["L1", "L2", "UNKNOWN", "SEG2"],
         notes: segmentNotes("Engaged (60 Days)"),
       });
       expect(klaviyo.to("GET", "/api/segments/SEG2")).toEqual([]);

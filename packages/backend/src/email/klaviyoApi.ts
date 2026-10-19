@@ -174,16 +174,6 @@ export async function klaviyoGet<S extends type.Any>(
   return validate(schema, await send("GET", url), "GET", url);
 }
 
-/** POSTs a JSON body and validates the response against `schema`. */
-export async function klaviyoPost<S extends type.Any>(
-  path: string,
-  body: unknown,
-  schema: S,
-): Promise<S["infer"]> {
-  const url = endpoint(path);
-  return validate(schema, await send("POST", url, body), "POST", url);
-}
-
 /**
  * Follows `links.next` until it runs out. The next URL is absolute and comes
  * from the response, so its origin is checked before the API key is attached,

@@ -14,14 +14,15 @@ import {
 
 const LISTS_COLLECTION = "email-lists";
 const CAMPAIGNS_COLLECTION = "email-campaigns";
-const CAMPAIGN_CONTENT_FOLDER = "email-campaign-content";
+const CAMPAIGN_CONTENT_FOLDER = "email-integrations/klaviyo";
 const PLATFORM: EmailPlatform = "Klaviyo";
 /**
  * The HTML is a file because the campaign document is capped at 1 MiB and an
- * indexed string field cannot exceed 1500 bytes. A normal template is about
- * 100 KB; anything past this is not stored.
+ * indexed string field cannot exceed 1500 bytes. 25 MB is the ceiling because
+ * this HTML comes from Klaviyo rather than a user upload; anything larger is
+ * not stored.
  */
-const MAX_CAMPAIGN_HTML_BYTES = 5 * 1024 * 1024;
+const MAX_CAMPAIGN_HTML_BYTES = 25 * 1024 * 1024;
 
 /**
  * The stats report accepts at most 100 campaign IDs in its filter, and it is
@@ -437,8 +438,9 @@ async function getSegment(
  * Maps a campaign's Klaviyo audiences to the lists it was sent to, plus notes.
  * Hagar shows who an email went to without modelling segments, so a segment's
  * list-membership rules stand in as the closest lists and the segment names
- * are kept in the notes. Nested segments are not followed, and an ID that
- * Klaviyo does not know as a segment is taken to be a list not yet synced.
+ * are kept in the notes. Those list IDs are kept whether or not the list is
+ * already synced. Nested segments are not followed, and an ID that Klaviyo
+ * does not know as a segment is taken to be a list not yet synced.
  */
 async function resolveAudience(
   db: Firestore,
@@ -460,7 +462,7 @@ async function resolveAudience(
     }
     segmentNames.add(segment.name);
     for (const groupID of segment.memberOfListIDs) {
-      if (await isKnownList(db, cache, groupID)) listIDs.add(groupID);
+      listIDs.add(groupID);
     }
   }
 
