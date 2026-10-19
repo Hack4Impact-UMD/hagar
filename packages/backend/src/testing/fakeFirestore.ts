@@ -22,7 +22,11 @@ type QueryState = {
  * Anything else throws. If an implementation needs more of the API, add it
  * here rather than working around it.
  */
-export function fakeFirestore(seed: Record<string, Record<string, Data>> = {}) {
+export function fakeFirestore(
+  seed: Record<string, Record<string, Data>> = {},
+  /** Firestore may rerun a transaction; only the last attempt's writes commit. */
+  transactionAttempts = 1,
+) {
   const store: Store = new Map(
     Object.entries(seed).map(([name, docs]) => [
       name,
@@ -172,7 +176,12 @@ export function fakeFirestore(seed: Record<string, Record<string, Data>> = {}) {
         update: queue(writes.update),
         delete: queue(writes.delete),
       };
-      const result = await fn(tx);
+      pending.length = 0;
+      let result = await fn(tx);
+      for (let attempt = 1; attempt < transactionAttempts; attempt++) {
+        pending.length = 0;
+        result = await fn(tx);
+      }
       for (const write of pending) write();
       return result;
     },
