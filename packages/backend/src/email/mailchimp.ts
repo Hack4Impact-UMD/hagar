@@ -57,14 +57,8 @@ const CampaignReport = type({
 
 const CampaignContent = type({
   "html?": "string",
+  "plain_text?": "string",
 });
-
-// type ListsPage = typeof ListsPage.infer;
-// type CampaignsPage = typeof CampaignsPage.infer;
-// type ListInf = typeof ListInf.infer;
-// type CampaignInf = typeof CampaignInf.infer;
-// type CampaignReport = typeof CampaignReport.infer;
-// type CampaignContent = typeof CampaignContent.infer;
 
 async function get<T>(
   path: string,
@@ -87,16 +81,20 @@ async function get<T>(
 }
 
 async function saveCampaignHtml(campaignID: string): Promise<string> {
-  const { html } = await get(
-    `/campaigns/${campaignID}/content?fields=html`,
+  const { html, plain_text } = await get(
+    `/campaigns/${campaignID}/content?fields=html,plain_text`,
     CampaignContent,
   );
-  if (!html) {
-    throw new Error(`Campaign ${campaignID} has no HTML content`);
+  const body =
+    html ||
+    (plain_text &&
+      `<pre>${plain_text.replaceAll("&", "&amp;").replaceAll("<", "&lt;")}</pre>`);
+  if (!body) {
+    throw new Error(`Campaign ${campaignID} has no content`);
   }
 
   const path = `email-integrations/mail-chimp/${randomUUID()}.html`;
-  await getStorage().bucket().file(path).save(html, {
+  await getStorage().bucket().file(path).save(body, {
     contentType: "text/html; charset=utf-8",
   });
 
