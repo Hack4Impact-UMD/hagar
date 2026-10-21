@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { describeUserError } from "@frontend/components/user-management/user-helpers.ts";
+import { describeUserError } from "@common/user-helpers.ts";
 import { queryClient, trpc } from "@frontend/lib/trpc.ts";
 
 /* Shows a message to the admin */

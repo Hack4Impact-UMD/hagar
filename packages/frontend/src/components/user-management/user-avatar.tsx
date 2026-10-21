@@ -5,7 +5,7 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@frontend/components/ui/avatar.tsx";
-import { initials } from "@frontend/components/user-management/user-helpers.ts";
+import { initials } from "@common/user-helpers.ts";
 import { profilePhotoUrlOptions } from "@frontend/lib/profilePhotos.ts";
 
 interface UserAvatarProps {
