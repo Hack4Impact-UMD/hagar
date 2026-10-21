@@ -8,6 +8,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { randomUUID } from "node:crypto";
 import { getStorage } from "firebase-admin/storage";
 import { type } from "arktype";
+import type { Type } from "arktype";
 
 function envCheck(name: string): string {
   const value = process.env[name];
@@ -58,16 +59,17 @@ const CampaignContent = type({
   "html?": "string",
 });
 
-type ListsPage = typeof ListsPage.infer;
-type CampaignsPage = typeof CampaignsPage.infer;
-type ListInf = typeof ListInf.infer;
-type CampaignInf = typeof CampaignInf.infer;
-type CampaignReport = typeof CampaignReport.infer;
-type CampaignContent = typeof CampaignContent.infer;
+// type ListsPage = typeof ListsPage.infer;
+// type CampaignsPage = typeof CampaignsPage.infer;
+// type ListInf = typeof ListInf.infer;
+// type CampaignInf = typeof CampaignInf.infer;
+// type CampaignReport = typeof CampaignReport.infer;
+// type CampaignContent = typeof CampaignContent.infer;
 
-//Will switch to generic T soon
-// async function get(path: string): Promise<any> {
-async function get<T>(path: string): Promise<T> {
+async function get<T>(
+  path: string,
+  schema: Type<T>,
+): Promise<Type<T>["infer"]> {
   const res = await fetch(BASE + path, {
     headers: { Authorization: `Bearer ${API_KEY}` },
   });
@@ -76,13 +78,18 @@ async function get<T>(path: string): Promise<T> {
     throw new Error(`Mailchimp ${res.status}: ${await res.text()}`);
   }
 
-  // return await res.json();
-  return (await res.json()) as T;
+  const data = schema(await res.json());
+  if (data instanceof type.errors) {
+    throw new Error(`Mailchimp ${path}: ${data.summary}`);
+  }
+
+  return data;
 }
 
 async function saveCampaignHtml(campaignID: string): Promise<string> {
-  const { html } = await get<CampaignContent>(
+  const { html } = await get(
     `/campaigns/${campaignID}/content?fields=html`,
+    CampaignContent,
   );
   if (!html) {
     throw new Error(`Campaign ${campaignID} has no HTML content`);
@@ -102,10 +109,12 @@ export async function getAllLists(): Promise<string[]> {
   let total = 1;
 
   while (offset < total) {
-    const data = await get<ListsPage>(
+    const data = await get(
       `/lists?count=1000&offset=${offset}&fields=lists.id,total_items`,
+      ListsPage,
     );
     total = data.total_items;
+    if (data.lists.length === 0) break;
     for (const list of data.lists) ids.push(list.id);
     offset += data.lists.length;
   }
@@ -114,7 +123,7 @@ export async function getAllLists(): Promise<string[]> {
 }
 
 export async function updateList(_platformListID: string): Promise<void> {
-  const list = await get<ListInf>(`/lists/${_platformListID}`);
+  const list = await get(`/lists/${_platformListID}`, ListInf);
   const now = new Date();
 
   const snapshot: EmailListCountSnapshot = {
@@ -149,8 +158,9 @@ export async function getAllCampaigns(): Promise<string[]> {
   let total = 1;
 
   while (offset < total) {
-    const data = await get<CampaignsPage>(
+    const data = await get(
       `/campaigns?count=1000&offset=${offset}&fields=campaigns.id,total_items`,
+      CampaignsPage,
     );
     total = data.total_items;
     for (const campaign of data.campaigns) {
@@ -165,11 +175,11 @@ export async function getAllCampaigns(): Promise<string[]> {
 export async function updateCampaign(
   _platformCampaignID: string,
 ): Promise<void> {
-  const campaign = await get<CampaignInf>(`/campaigns/${_platformCampaignID}`);
+  const campaign = await get(`/campaigns/${_platformCampaignID}`, CampaignInf);
 
   if (campaign.status !== "sent" || !campaign.send_time) return;
 
-  const report = await get<CampaignReport>(`/reports/${_platformCampaignID}`);
+  const report = await get(`/reports/${_platformCampaignID}`, CampaignReport);
   const now = new Date();
 
   const snapshot: EmailCampaignSnapshot = {
