@@ -12,8 +12,10 @@ function user(
   firstName: string | null,
   lastName: string | null,
   role: UserRole = "Viewer",
+  email = `${firstName ?? "x"}@example.com`.toLowerCase(),
+  phoneNumber: string | null = null,
 ) {
-  return { firstName, lastName, role };
+  return { firstName, lastName, role, email, phoneNumber };
 }
 
 describe("fullName", () => {
@@ -40,9 +42,9 @@ describe("initials", () => {
 
 describe("filterUsers", () => {
   const users = [
-    user("Jane", "Doe", "Viewer"),
-    user("John", "Smith", "Local Admin"),
-    user("Janet", "Ng", "Global Admin"),
+    user("Jane", "Doe", "Viewer", "jane.doe@example.com", "(555) 123-4567"),
+    user("John", "Smith", "Local Admin", "jsmith@corp.io", "+1 555 987 6543"),
+    user("Janet", "Ng", "Global Admin", "janet@example.com", null),
   ];
 
   it("matches names case-insensitively, across first and last name", () => {
@@ -64,6 +66,36 @@ describe("filterUsers", () => {
   it("combines search and role", () => {
     expect(filterUsers(users, { search: "jan", role: "Viewer" })).toEqual([
       users[0],
+    ]);
+  });
+
+  it("ignores spaces in the query and the name", () => {
+    expect(filterUsers(users, { search: "janedoe", role: null })).toEqual([
+      users[0],
+    ]);
+    expect(filterUsers(users, { search: "  Jane   Doe ", role: null })).toEqual(
+      [users[0]],
+    );
+  });
+
+  it("matches email case-insensitively", () => {
+    expect(filterUsers(users, { search: "JSMITH@", role: null })).toEqual([
+      users[1],
+    ]);
+  });
+
+  it("matches phone numbers regardless of formatting", () => {
+    expect(filterUsers(users, { search: "5551234567", role: null })).toEqual([
+      users[0],
+    ]);
+    expect(filterUsers(users, { search: "555-987", role: null })).toEqual([
+      users[1],
+    ]);
+  });
+
+  it("does not match phones for non-numeric queries", () => {
+    expect(filterUsers(users, { search: "ng", role: null })).toEqual([
+      users[2],
     ]);
   });
 });

@@ -23,16 +23,30 @@ interface UserFilters {
   role: UserRole | null;
 }
 
-/* Case-insensitive name match, plus an optional exact role match */
-export function filterUsers<T extends Named & Pick<UserProfile, "role">>(
-  users: readonly T[],
-  { search, role }: UserFilters,
-): T[] {
-  const query = search.trim().toLowerCase();
+function normalize(text: string): string {
+  return text.toLowerCase().replace(/\s+/g, "");
+}
+
+function digits(text: string): string {
+  return text.replace(/\D/g, "");
+}
+
+const phoneLike = /^[\d\s()+.-]+$/;
+/* Matches name, email or phone ignoring case and spaces, plus an optional exact role match */
+export function filterUsers<
+  T extends Named & Pick<UserProfile, "email" | "phoneNumber" | "role">,
+>(users: readonly T[], { search, role }: UserFilters): T[] {
+  const query = normalize(search);
+  // Only digit-compare when the query looks like a phone number. Otherwise a
+  // query like "jane" has no digits and would match every phone.
+  const phoneQuery = phoneLike.test(search.trim()) ? digits(search) : "";
   return users.filter(
     (user) =>
       (role === null || user.role === role) &&
-      fullName(user).toLowerCase().includes(query),
+      (normalize(fullName(user)).includes(query) ||
+        normalize(user.email).includes(query) ||
+        (phoneQuery !== "" &&
+          digits(user.phoneNumber ?? "").includes(phoneQuery))),
   );
 }
 
