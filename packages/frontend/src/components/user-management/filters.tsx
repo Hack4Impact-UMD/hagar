@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@frontend/components/ui/select.tsx";
-import { userRoles } from "@frontend/components/user-management/user-helpers.ts";
+import { userRoles } from "@common/user-helpers.ts";
 
 // Radix Select can't use an empty string as an item value, so "no filter" needs a sentinel.
 const ALL = "all";

@@ -6,7 +6,7 @@ import {
   fullName,
   initials,
   paginate,
-} from "@frontend/components/user-management/user-helpers.ts";
+} from "@common/user-helpers.ts";
 
 function user(
   firstName: string | null,
