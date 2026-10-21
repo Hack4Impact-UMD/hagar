@@ -49,7 +49,7 @@ import {
   fullName,
   paginate,
   userRoles,
-} from "@frontend/components/user-management/user-helpers.ts";
+} from "@common/user-helpers.ts";
 import { trpc } from "@frontend/lib/trpc.ts";
 
 const PAGE_SIZE = 12;
