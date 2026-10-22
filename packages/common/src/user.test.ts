@@ -33,7 +33,7 @@ const settingUp = {
   lastName: null,
   region: null,
   role: "Viewer",
-  createdAt: 1,
+  createdAt: "2024-01-01T00:00:00.000Z",
 };
 
 describe("user schemas", () => {
@@ -165,7 +165,7 @@ describe("profile page schema", () => {
       ["role", "Global Admin"],
       ["stage", "ACTIVE"],
       ["email", "other@example.com"],
-      ["createdAt", 0],
+      ["createdAt", "2024-01-01T00:00:00.000Z"],
     ] as const) {
       expect(updateProfileInput({ [field]: value })).toBeInstanceOf(
         type.errors,
