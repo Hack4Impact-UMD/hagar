@@ -1,4 +1,5 @@
 import { type } from "arktype";
+import { utcDateString } from "@common/dates.ts";
 
 export const EmailPlatform = type(
   "'MailChimp' | 'Campaign_Monitor' | 'Klaviyo'",
@@ -7,17 +8,17 @@ const count = type("number.integer >= 0");
 
 export const EmailListCountSnapshot = type({
   count: count,
-  fetchedAt: type("Date"),
+  fetchedAt: utcDateString,
 });
 export const EmailList = type({
   platform: EmailPlatform,
   platformListID: "string >= 1",
   name: "string",
-  lastFetchedAt: type("Date"),
+  lastFetchedAt: utcDateString,
   snapshots: EmailListCountSnapshot.array().atLeastLength(1),
 });
 export const EmailCampaignSnapshot = type({
-  fetchedAt: type("Date"),
+  fetchedAt: utcDateString,
   bounced: count,
   uniqOpens: count,
   uniqClicks: count,
@@ -30,9 +31,9 @@ export const EmailCampaignRecord = type({
   listIDs: "string[]",
   name: "string",
   content: type("URL"),
-  sentAt: type("Date"),
+  sentAt: utcDateString,
   sent: count,
-  lastFetchedAt: type("Date"),
+  lastFetchedAt: utcDateString,
   notes: "string",
   snapshots: EmailCampaignSnapshot.array().atLeastLength(1),
 });

@@ -1,4 +1,4 @@
-import { storedUserProfile } from "@repo/common";
+import { nowUtc, storedUserProfile } from "@repo/common";
 import type {
   ActiveUserProfile,
   CompleteProfileInput,
@@ -60,7 +60,7 @@ export async function getOrCreateUserProfile(
       region: null,
       // Least privilege by default. Admins are promoted explicitly.
       role: "Viewer",
-      createdAt: Date.now(),
+      createdAt: nowUtc(),
     };
     tx.create(ref, profile);
     return profile;

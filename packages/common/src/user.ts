@@ -1,4 +1,5 @@
 import { type } from "arktype";
+import { utcDateString } from "@common/dates.ts";
 import { profilePhotoPath } from "@common/profilePhoto.ts";
 
 export const userRegions = [
@@ -23,7 +24,7 @@ const storedBase = type({
   // Firebase Auth stays the source of truth (see `getOrCreateUserProfile`).
   email: "string",
   role: userRole,
-  createdAt: "number",
+  createdAt: utcDateString,
 });
 
 // Length caps exist only to bound abuse. They sit far above any real value,

@@ -61,7 +61,7 @@ const settingUp = {
   lastName: null,
   region: null,
   role: "Viewer",
-  createdAt: 1,
+  createdAt: "2024-01-01T00:00:00.000Z",
 };
 
 describe("getOrCreateUserProfile", () => {
@@ -86,7 +86,7 @@ describe("getOrCreateUserProfile", () => {
         stage: "ACTIVE",
         region: "New Zealand",
         role: "Local Admin",
-        createdAt: 1,
+        createdAt: "2024-01-01T00:00:00.000Z",
         legacy: "stray",
       },
     });
@@ -160,7 +160,7 @@ describe("findUserProfile", () => {
       ...details,
       stage: "ACTIVE",
       role: "Viewer",
-      createdAt: 1,
+      createdAt: "2024-01-01T00:00:00.000Z",
     };
     const { db, docs } = fakeDb({ "user-1": stored });
 
@@ -194,7 +194,7 @@ describe("completeProfile", () => {
       email: "demo@example.com",
       stage: "EMAIL VERIFICATION",
       role: "Viewer",
-      createdAt: 1,
+      createdAt: "2024-01-01T00:00:00.000Z",
     });
   });
 
@@ -274,7 +274,7 @@ describe("updateProfile", () => {
     email: "demo@example.com",
     stage: "ACTIVE",
     role: "Local Admin",
-    createdAt: 1,
+    createdAt: "2024-01-01T00:00:00.000Z",
   } as const;
   const profile: ActiveUserProfile = { uid: "user-1", ...active };
 
