@@ -37,12 +37,14 @@ interface EditUserDialogProps {
   moveResetsApproval: boolean;
   pending: boolean;
   onSave: (changes: UserChanges) => void;
+  onRemove: () => void;
 }
 
 export function EditUserDialog({
   open,
   onOpenChange,
   pending,
+  onRemove,
   ...formProps
 }: EditUserDialogProps) {
   return (
@@ -54,12 +56,23 @@ export function EditUserDialog({
     >
       <DialogContent
         data-testid="edit-user-dialog"
-        className="sm:max-w-2xl px-10"
+        className="sm:max-w-xl px-10"
+        showCloseButton={false}
       >
-        <DialogHeader>
+        <DialogHeader className="flex-row items-center justify-between">
           <DialogTitle className="text-[1.5rem] leading-normal font-bold text-black">
             Edit User
           </DialogTitle>
+          <Button
+            type="button"
+            size="sm"
+            className="rounded-sm bg-[#DC3E42] text-white hover:bg-[#DC3E42]/90"
+            data-testid="edit-user-remove"
+            disabled={pending}
+            onClick={onRemove}
+          >
+            Delete User
+          </Button>
         </DialogHeader>
         {/* Content unmounts on close, so the form starts fresh on every open. */}
         <EditUserForm
@@ -87,7 +100,7 @@ function EditUserForm({
   pending,
   onSave,
   onClose,
-}: Omit<EditUserDialogProps, "open" | "onOpenChange"> & {
+}: Omit<EditUserDialogProps, "open" | "onOpenChange" | "onRemove"> & {
   onClose: () => void;
 }) {
   const [role, setRole] = useState<UserRole>(user.role);
@@ -110,7 +123,7 @@ function EditUserForm({
       }}
     >
       <fieldset disabled={pending} className="flex flex-col gap-6">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-6 px-6 py-4">
           <UserAvatar user={user} className="size-28" />
           <div>
             <p className="text-lg">{fullName(user)}</p>
