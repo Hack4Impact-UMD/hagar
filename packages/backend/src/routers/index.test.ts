@@ -48,6 +48,21 @@ vi.mock("@backend/services/userManagement.ts", () => {
   };
 });
 
+// Same idea: each returns the caller it was handed.
+vi.mock("@backend/services/campaigns.ts", () => {
+  const echoActor = (_db: unknown, actor: { uid: string }) =>
+    Promise.resolve({ actor: actor.uid });
+  return {
+    listCampaigns: echoActor,
+    getCampaign: echoActor,
+    setCampaignNotes: echoActor,
+    addLinkedItem: echoActor,
+    removeLinkedItem: echoActor,
+    addUtmCode: echoActor,
+    removeUtmCode: echoActor,
+  };
+});
+
 /**
  * Procedures are called directly, so these tests need no emulator and no
  * HTTP. Copy this pattern when you add a procedure.
@@ -70,8 +85,29 @@ const admin = signedInAs("admin-1");
 
 type Caller = ReturnType<typeof caller>;
 
+const campaignId = "campaign-1";
+const NOW_ISO = "2024-06-01T00:00:00.000Z";
+const item = { type: "EMAIL", id: "email-1" } as const;
+
+// Any approved user, Viewers included.
+const readCalls = [
+  (as: Caller) => as.campaigns.list(),
+  (as: Caller) => as.campaigns.get({ campaignId }),
+];
+
+// Approved users who are not Viewers.
+const editCalls = [
+  (as: Caller) => as.campaigns.setNotes({ campaignId, notes: "New notes" }),
+  (as: Caller) => as.campaigns.addLinkedItem({ campaignId, item }),
+  (as: Caller) => as.campaigns.removeLinkedItem({ campaignId, item }),
+  (as: Caller) => as.campaigns.addUtmCode({ campaignId, utmCode: "spring" }),
+  (as: Caller) => as.campaigns.removeUtmCode({ campaignId, utmCode: "spring" }),
+];
+
 const activeCalls = [
   (as: Caller) => as.users.updateProfile({ firstName: "Grace" }),
+  ...readCalls,
+  ...editCalls,
 ];
 
 const adminCalls = [
@@ -130,6 +166,55 @@ describe("appRouter", () => {
     for (const call of adminCalls) {
       await expect(call(admin)).resolves.toEqual({ actor: "admin-1" });
     }
+  });
+
+  it("lets a Viewer read campaigns, passing their profile on", async () => {
+    for (const call of readCalls) {
+      await expect(call(viewer)).resolves.toEqual({ actor: "viewer-1" });
+    }
+  });
+
+  it("rejects campaign edits from a Viewer", async () => {
+    for (const call of editCalls) {
+      await expect(call(viewer)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    }
+  });
+
+  it("lets an admin edit campaigns, passing their profile on", async () => {
+    for (const call of editCalls) {
+      await expect(call(admin)).resolves.toEqual({ actor: "admin-1" });
+    }
+  });
+
+  it("validates campaign inputs with the shared arktype schemas", async () => {
+    await expect(admin.campaigns.get({ campaignId: "" })).rejects.toMatchObject(
+      { code: "BAD_REQUEST" },
+    );
+    await expect(
+      admin.campaigns.addUtmCode({ campaignId, utmCode: "" }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      admin.campaigns.addLinkedItem({
+        campaignId,
+        item: { type: "SMS", id: "sms-1" } as unknown as typeof item,
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("rejects undeclared keys on campaign inputs", async () => {
+    await expect(
+      admin.campaigns.setNotes({
+        campaignId,
+        notes: "x",
+        updatedAt: NOW_ISO,
+      } as { campaignId: string; notes: string }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      admin.campaigns.addLinkedItem({
+        campaignId,
+        item: { ...item, extra: true } as typeof item,
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
   it("rejects undeclared keys so callers cannot set fields like role", async () => {

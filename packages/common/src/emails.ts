@@ -27,7 +27,7 @@ export const EmailCampaignSnapshot = type({
 });
 /**
  * What a platform gives us about a campaign, and what is stored at
- * `emailCampaigns/{emailCampaignId}`. Platforms do not know our id, so
+ * `email-campaigns/{emailCampaignId}`. Platforms do not know our id, so
  * fetching returns this shape.
  */
 export const StoredEmailCampaignRecord = type({
