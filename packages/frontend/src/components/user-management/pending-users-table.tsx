@@ -29,7 +29,6 @@ import {
   userRoles,
 } from "@common/user-helpers.ts";
 import { trpc } from "@frontend/lib/trpc.ts";
-// import { sampleUsers } from "./sample-data";
 
 const PAGE_SIZE = 9;
 const COLUMNS = ["Full Name", "Email", "Region", "Actions"];
@@ -44,15 +43,6 @@ export function PendingUsersTable({ me, reportError }: PendingUsersTableProps) {
   const users = useQuery(
     trpc.users.list.queryOptions({ stage: "AWAITING APPROVAL" }),
   );
-  /*
-  const users = useQuery({
-    ...trpc.users.list.queryOptions({ stage: "AWAITING APPROVAL" }),
-    queryFn: () =>
-      Promise.resolve(
-        sampleUsers.filter((user) => user.stage === "AWAITING APPROVAL"),
-      ),
-  });
-  */
 
   if (users.isError) {
     return <ErrorState message={describeUserError(users.error).message} />;
@@ -65,7 +55,10 @@ export function PendingUsersTable({ me, reportError }: PendingUsersTableProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <Table data-testid="pending-users-table" className="[&_tr]:border-[#808080]">
+      <Table
+        data-testid="pending-users-table"
+        className="[&_tr]:border-[#808080]"
+      >
         <TableHeader className="bg-[#F1DED2]">
           <TableRow className="hover:bg-transparent">
             {COLUMNS.map((column) => (
@@ -127,8 +120,12 @@ function PendingUserRow({ me, user, reportError }: PendingUserRowProps) {
 
   return (
     <TableRow data-testid={`user-row-${user.uid}`}>
-      <TableCell className="px-6 py-5 text-center text-[1rem]">{name}</TableCell>
-      <TableCell className="px-6 py-5 text-center text-[1rem]">{user.email}</TableCell>
+      <TableCell className="px-6 py-5 text-center text-[1rem]">
+        {name}
+      </TableCell>
+      <TableCell className="px-6 py-5 text-center text-[1rem]">
+        {user.email}
+      </TableCell>
       <TableCell className="px-6 py-5 text-center text-[1rem]">
         {user.region ?? ""}
       </TableCell>
