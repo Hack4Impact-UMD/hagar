@@ -16,11 +16,11 @@ function Login() {
   });
 
   return (
-    <main className="flex flex-row w-full">
-      <div className="w-[50%] flex flex-col mx-8 my-7.25 gap-20">
-        <img src="logo.png" alt="Hagar Logo" className="w-38.25" />
-        <div className="flex flex-col mx-32">
-          <h1 className="font-bold text-[40px] font-700">Login</h1>
+    <main className="flex flex-row w-full min-h-screen">
+      <div className="flex-1 min-w-0 flex flex-col mx-4 sm:mx-8 my-6 sm:my-7.25 gap-10 md:gap-20 items-center">
+        <img src="logo.png" alt="Hagar Logo" className="w-28 sm:w-38.25 self-start" />
+        <div className="flex flex-col w-full max-w-lg lg:mx-12 xl:mx-24">
+          <h1 className="font-bold text-3xl sm:text-[2.5em] font-700">Login</h1>
           <form
             className="flex flex-col gap-2"
             onSubmit={(event) => {
@@ -34,7 +34,7 @@ function Login() {
                 Sign up
               </Link>
             </p>
-            <label className="flex flex-col text-[16px] font-semibold gap-2">
+            <label className="flex flex-col text-1em font-semibold gap-2">
               Email{" "}
               <input
                 type="email"
@@ -43,10 +43,10 @@ function Login() {
                 value={email}
                 data-testid="email"
                 onChange={(event) => setEmail(event.target.value)}
-                className="border h-15 px-4 rounded-[10px]"
+                className="border w-full h-12 sm:h-15 px-4 text-base rounded-[0.625em]"
               />
             </label>
-            <label className="flex flex-col text-[16px] font-semibold gap-2">
+            <label className="flex flex-col text-1em font-semibold gap-2">
               Password{" "}
               <input
                 type="password"
@@ -54,18 +54,18 @@ function Login() {
                 value={password}
                 data-testid="password"
                 onChange={(event) => setPassword(event.target.value)}
-                className="border h-15 px-4 rounded-[10px]"
+                className="border w-full h-12 sm:h-15 px-4 text-base rounded-[0.625em]"
               />
             </label>
             {/* oxlint-disable-next-line jsx-a11y/anchor-is-valid */}
-            <a href="" className="underline flex justify-end pb-10">
+            <a href="" className="underline flex justify-end pb-7.5">
               Forgot Password?
             </a>
             <button
               type="submit"
               data-testid="log-in"
               disabled={logIn.isPending}
-              className="self-start border px-3 py-1 bg-primary text-white font-bold w-full h-17.5 rounded-[10px] hover:bg-primary/90 cursor-pointer"
+              className="self-start border px-3 py-1 bg-primary text-white font-bold w-full h-14 sm:h-17.5 rounded-[0.625em] hover:bg-primary/90 cursor-pointer"
             >
               Log in
             </button>
@@ -73,7 +73,7 @@ function Login() {
           </form>
         </div>
       </div>
-      <img src="girl.png" alt="Happy Girl" className="w-181.25" />
+      <img src="girl.png" alt="Happy Girl" className="hidden lg:block h-screen w-[50.35vw] object-cover sticky top-0" />
     </main>
   );
 }
