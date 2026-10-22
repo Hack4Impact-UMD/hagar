@@ -76,6 +76,16 @@ vi.mock("@backend/services/views.ts", () => {
   };
 });
 
+vi.mock("@backend/services/reports.ts", () => {
+  const echoActor = (_db: unknown, actor: { uid: string }) =>
+    Promise.resolve({ actor: actor.uid });
+  return {
+    listReports: echoActor,
+    getReport: echoActor,
+    createReport: echoActor,
+  };
+});
+
 /**
  * Procedures are called directly, so these tests need no emulator and no
  * HTTP. Copy this pattern when you add a procedure.
@@ -122,6 +132,18 @@ const viewWriteCalls = [
     as.views.setShareOption({ viewId, shareOption: "ANYONE_VIEW" }),
 ];
 
+const reportId = "123e4567-e89b-42d3-a456-426614174000";
+
+// Any approved user, Viewers included. Which reports they can see is decided
+// per report in the service, from its view.
+const reportCalls = [
+  (as: Caller) => as.reports.list(),
+  (as: Caller) => as.reports.list({ viewId }),
+  (as: Caller) => as.reports.get({ reportId }),
+  (as: Caller) =>
+    as.reports.create({ viewId, reportId, notes: "For the board" }),
+];
+
 // Approved users who are not Viewers.
 const editCalls = [
   (as: Caller) => as.campaigns.setNotes({ campaignId, notes: "New notes" }),
@@ -135,6 +157,7 @@ const activeCalls = [
   (as: Caller) => as.users.updateProfile({ firstName: "Grace" }),
   ...readCalls,
   ...viewWriteCalls,
+  ...reportCalls,
   ...editCalls,
 ];
 
@@ -206,6 +229,39 @@ describe("appRouter", () => {
     for (const call of viewWriteCalls) {
       await expect(call(viewer)).resolves.toEqual({ actor: "viewer-1" });
     }
+  });
+
+  it("lets a Viewer list, get and create reports, passing their profile on", async () => {
+    for (const call of reportCalls) {
+      await expect(call(viewer)).resolves.toEqual({ actor: "viewer-1" });
+    }
+  });
+
+  it("validates report inputs with the shared arktype schemas", async () => {
+    await expect(admin.reports.get({ reportId: "" })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+    await expect(admin.reports.list({ viewId: "" })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+    // The report id is the name of the uploaded file, so it must be a UUID.
+    await expect(
+      admin.reports.create({ viewId, reportId: "report-1" }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("rejects undeclared keys on report inputs so a report can't be forged", async () => {
+    await expect(
+      admin.reports.create({
+        viewId,
+        reportId,
+        charts: [],
+        takenAt: NOW_ISO,
+      } as { viewId: string; reportId: string }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      admin.reports.list({ viewId, extra: 1 } as { viewId: string }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
   it("rejects campaign edits from a Viewer", async () => {
