@@ -13,6 +13,7 @@ interface ApproveDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   name: string;
+  pending: boolean;
   /* Only the roles the admin may hand out (see `canAssignRole`) */
   roles: readonly UserRole[];
   onApprove: (role: UserRole) => void;
@@ -22,6 +23,7 @@ export function ApproveDialog({
   open,
   onOpenChange,
   name,
+  pending,
   roles,
   onApprove,
 }: ApproveDialogProps) {
@@ -36,6 +38,7 @@ export function ApproveDialog({
         onOpenChange(next);
       }}
       title={`Approve ${name}?`}
+      pending={pending}
       description="They'll be able to sign in with the role you choose."
       confirmLabel="Approve"
       onConfirm={() => onApprove(role)}

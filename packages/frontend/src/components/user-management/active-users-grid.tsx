@@ -51,6 +51,7 @@ import {
   userRoles,
 } from "@common/user-helpers.ts";
 import { trpc } from "@frontend/lib/trpc.ts";
+// import { sampleUsers } from "./sample-data";
 
 const PAGE_SIZE = 12;
 
@@ -83,7 +84,18 @@ export function ActiveUsersGrid({
   const users = useQuery(
     trpc.users.list.queryOptions({ stage: "ACTIVE", region }),
   );
-
+  /*
+  const users = useQuery({
+    ...trpc.users.list.queryOptions({ stage: "ACTIVE", region }),
+    queryFn: () =>
+      Promise.resolve(
+        sampleUsers.filter(
+          (user) =>
+            user.stage === "ACTIVE" && (!region || user.region === region),
+        ),
+      ),
+  });
+  */
   const filtered = users.data
     ? filterUsers(users.data, { search, role })
     : null;
@@ -331,7 +343,10 @@ function ActiveUserCard({ me, user, mode, reportError }: ActiveUserCardProps) {
         description="This permanently deletes their profile and login. It can't be undone."
         confirmLabel="Delete"
         destructive
-        onConfirm={() => remove.mutate({ uid: user.uid })}
+        pending={remove.isPending}
+        onConfirm={() =>
+          remove.mutate({ uid: user.uid }, { onSettled: () => setDialog(null) })
+        }
       />
       <ConfirmDialog
         open={dialog === "move"}
@@ -339,9 +354,13 @@ function ActiveUserCard({ me, user, mode, reportError }: ActiveUserCardProps) {
         title={`Move ${name} to ${moveRegion}?`}
         description={`${user.firstName ?? name} will lose their role and need to be approved again by an admin in ${moveRegion}.`}
         confirmLabel="Move"
+        pending={setRegion.isPending}
         onConfirm={() => {
           if (moveRegion)
-            setRegion.mutate({ uid: user.uid, region: moveRegion });
+            setRegion.mutate(
+              { uid: user.uid, region: moveRegion },
+              { onSettled: () => setDialog(null) },
+            );
         }}
       />
     </li>
