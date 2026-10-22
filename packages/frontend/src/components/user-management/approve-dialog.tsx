@@ -47,6 +47,7 @@ export function ApproveDialog({
         <span id={labelId}>Role</span>
         <Select
           value={role}
+          disabled={pending}
           onValueChange={(next) => setRole(next as UserRole)}
         >
           <SelectTrigger

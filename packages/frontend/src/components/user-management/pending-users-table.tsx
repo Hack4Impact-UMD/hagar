@@ -65,7 +65,7 @@ export function PendingUsersTable({ me, reportError }: PendingUsersTableProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <Table data-testid="pending-users-table">
+      <Table data-testid="pending-users-table" className="[&_tr]:border-[#808080]">
         <TableHeader className="bg-[#F1DED2]">
           <TableRow className="hover:bg-transparent">
             {COLUMNS.map((column) => (
@@ -127,9 +127,9 @@ function PendingUserRow({ me, user, reportError }: PendingUserRowProps) {
 
   return (
     <TableRow data-testid={`user-row-${user.uid}`}>
-      <TableCell className="px-6 py-5 text-center">{name}</TableCell>
-      <TableCell className="px-6 py-5 text-center">{user.email}</TableCell>
-      <TableCell className="px-6 py-5 text-center">
+      <TableCell className="px-6 py-5 text-center text-[1rem]">{name}</TableCell>
+      <TableCell className="px-6 py-5 text-center text-[1rem]">{user.email}</TableCell>
+      <TableCell className="px-6 py-5 text-center text-[1rem]">
         {user.region ?? ""}
       </TableCell>
       <TableCell className="px-6 py-5 text-center">
@@ -137,7 +137,7 @@ function PendingUserRow({ me, user, reportError }: PendingUserRowProps) {
           <div className="flex justify-center gap-3">
             <Button
               size="icon-sm"
-              className="rounded-full bg-[#A0BD6E] text-white hover:bg-[#8aab58]"
+              className="rounded-full bg-[#A0BD6E] text-white hover:bg-[#adc97c]"
               aria-label={`Approve ${name}`}
               data-testid={`approve-${user.uid}`}
               disabled={isPending}
@@ -147,7 +147,7 @@ function PendingUserRow({ me, user, reportError }: PendingUserRowProps) {
             </Button>
             <Button
               size="icon-sm"
-              className="rounded-full bg-[#EC6753] text-white hover:bg-[#cf5640]"
+              className="rounded-full bg-[#DC3E42] text-white hover:bg-[#EC6753]"
               aria-label={`Reject ${name}`}
               data-testid={`reject-${user.uid}`}
               disabled={isPending}
