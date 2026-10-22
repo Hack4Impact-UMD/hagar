@@ -1,5 +1,6 @@
 import { type } from "arktype";
 import { utcDateString } from "@common/dates.ts";
+import { userRegion } from "@common/user.ts";
 
 /**
  * Something a campaign is tied to. Add a variant per kind of linked item, each
@@ -21,6 +22,9 @@ const utmCode = type("1 <= string <= 500");
 /** The shape stored at `campaigns/{campaignId}`. `campaignId` is the document id. */
 export const storedCampaign = type({
   name: "1 <= string <= 500",
+  // Which region the campaign runs in. It describes the campaign and does not
+  // limit who can see or change it.
+  region: userRegion,
   notes: campaignNotes,
   updatedAt: utcDateString,
   utmCodes: utmCode.array(),

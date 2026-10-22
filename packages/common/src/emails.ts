@@ -1,5 +1,6 @@
 import { type } from "arktype";
 import { utcDateString } from "@common/dates.ts";
+import { userRegion } from "@common/user.ts";
 
 export const EmailPlatform = type(
   "'MailChimp' | 'Campaign_Monitor' | 'Klaviyo'",
@@ -26,12 +27,15 @@ export const EmailCampaignSnapshot = type({
   complaints: count,
 });
 /**
- * What a platform gives us about a campaign, and what is stored at
+ * What we know about a campaign from its platform, and what is stored at
  * `email-campaigns/{emailCampaignId}`. Platforms do not know our id, so
  * fetching returns this shape.
  */
 export const StoredEmailCampaignRecord = type({
   platform: EmailPlatform,
+  // Platforms do not report this, so whatever syncs the campaign sets it. It
+  // describes the campaign and does not limit who can see or change it.
+  region: userRegion,
   platformCampaignID: "string >= 1",
   listIDs: "string[]",
   name: "string",

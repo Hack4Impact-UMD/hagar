@@ -16,6 +16,7 @@ import {
 
 const stored = {
   name: "Spring launch",
+  region: "US",
   notes: "Targets returning donors",
   updatedAt: "2024-05-01T12:30:00.000Z",
   utmCodes: ["spring_launch", "spring_launch_email"],
@@ -53,6 +54,17 @@ describe("storedCampaign", () => {
         type.errors,
       );
     }
+  });
+
+  it("requires one of the known regions", () => {
+    const { region: _region, ...withoutRegion } = stored;
+    expect(storedCampaign(withoutRegion)).toBeInstanceOf(type.errors);
+    for (const region of ["UK", "", null]) {
+      expect(storedCampaign({ ...stored, region })).toBeInstanceOf(type.errors);
+    }
+    expect(storedCampaign({ ...stored, region: "New Zealand" })).toMatchObject({
+      region: "New Zealand",
+    });
   });
 
   it("rejects an empty name, an empty UTM code, or a bad link", () => {

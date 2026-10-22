@@ -20,6 +20,7 @@ function campaign(
 ): StoredCampaign {
   return {
     name: "Spring launch",
+    region: "US",
     notes: "Targets returning donors",
     utmCodes: ["spring_launch"],
     linkedItems: [{ type: "EMAIL", id: "email-1" }],

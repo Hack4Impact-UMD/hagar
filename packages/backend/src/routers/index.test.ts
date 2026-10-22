@@ -63,6 +63,19 @@ vi.mock("@backend/services/campaigns.ts", () => {
   };
 });
 
+vi.mock("@backend/services/views.ts", () => {
+  const echoActor = (_db: unknown, actor: { uid: string }) =>
+    Promise.resolve({ actor: actor.uid });
+  return {
+    listViews: echoActor,
+    getView: echoActor,
+    createView: echoActor,
+    copyView: echoActor,
+    updateView: echoActor,
+    setViewShareOption: echoActor,
+  };
+});
+
 /**
  * Procedures are called directly, so these tests need no emulator and no
  * HTTP. Copy this pattern when you add a procedure.
@@ -89,10 +102,24 @@ const campaignId = "campaign-1";
 const NOW_ISO = "2024-06-01T00:00:00.000Z";
 const item = { type: "EMAIL", id: "email-1" } as const;
 
+const viewId = "view-1";
+
 // Any approved user, Viewers included.
 const readCalls = [
   (as: Caller) => as.campaigns.list(),
   (as: Caller) => as.campaigns.get({ campaignId }),
+  (as: Caller) => as.views.list(),
+  (as: Caller) => as.views.get({ viewId }),
+];
+
+// Any approved user, Viewers included. Which views they may change is decided
+// per view in the service, so a Viewer still can't edit anyone else's.
+const viewWriteCalls = [
+  (as: Caller) => as.views.create({ name: "Q3 overview" }),
+  (as: Caller) => as.views.copy({ viewId }),
+  (as: Caller) => as.views.update({ viewId, name: "Renamed" }),
+  (as: Caller) =>
+    as.views.setShareOption({ viewId, shareOption: "ANYONE_VIEW" }),
 ];
 
 // Approved users who are not Viewers.
@@ -107,6 +134,7 @@ const editCalls = [
 const activeCalls = [
   (as: Caller) => as.users.updateProfile({ firstName: "Grace" }),
   ...readCalls,
+  ...viewWriteCalls,
   ...editCalls,
 ];
 
@@ -174,6 +202,12 @@ describe("appRouter", () => {
     }
   });
 
+  it("lets a Viewer create and manage views, passing their profile on", async () => {
+    for (const call of viewWriteCalls) {
+      await expect(call(viewer)).resolves.toEqual({ actor: "viewer-1" });
+    }
+  });
+
   it("rejects campaign edits from a Viewer", async () => {
     for (const call of editCalls) {
       await expect(call(viewer)).rejects.toMatchObject({ code: "FORBIDDEN" });
@@ -197,6 +231,50 @@ describe("appRouter", () => {
       admin.campaigns.addLinkedItem({
         campaignId,
         item: { type: "SMS", id: "sms-1" } as unknown as typeof item,
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("validates view inputs with the shared arktype schemas", async () => {
+    await expect(admin.views.get({ viewId: "" })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+    await expect(admin.views.copy({ viewId: "" })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+    await expect(admin.views.create({ name: "" })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+    // An update must change something.
+    await expect(admin.views.update({ viewId })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+    await expect(
+      admin.views.setShareOption({
+        viewId,
+        shareOption: "PUBLIC" as "PRIVATE",
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("rejects undeclared keys on view inputs so callers cannot set the author", async () => {
+    await expect(
+      admin.views.create({
+        name: "Q3 overview",
+        authorUid: "someone-else",
+      } as { name: string }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      admin.views.update({
+        viewId,
+        name: "x",
+        updatedAt: NOW_ISO,
+      } as { viewId: string; name: string }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      admin.views.create({
+        name: "Q3 overview",
+        charts: [{ name: "Open rate", extra: true } as { name: string }],
       }),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
