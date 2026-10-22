@@ -79,8 +79,8 @@ function Signup() {
         </div>
       </div>
       <img
-        src="girl.png"
-        alt="Happy Girl"
+        src="sidebar.jpg"
+        alt="Happy Girls"
         className="hidden lg:block h-screen w-[50.35vw] object-cover sticky top-0"
       />
     </main>
