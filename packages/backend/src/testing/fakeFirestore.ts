@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { Firestore } from "firebase-admin/firestore";
 
 type Data = Record<string, unknown>;
@@ -140,7 +141,8 @@ export function fakeFirestore(seed: Record<string, Record<string, Data>> = {}) {
   const db = {
     collection: (name: string) => ({
       ...queryRef({ kind: "query", collection: name, filters: [], order: [] }),
-      doc: (id: string) => docRef(name, id),
+      // Like Firestore, `doc()` with no id picks a fresh one.
+      doc: (id: string = randomUUID()) => docRef(name, id),
     }),
     getAll: (...refs: DocRef[]) => Promise.resolve(refs.map(snapshotOf)),
     async runTransaction<T>(fn: (tx: unknown) => Promise<T>): Promise<T> {

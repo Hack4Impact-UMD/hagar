@@ -13,6 +13,7 @@ const URL = (globalThis as unknown as { URL: new (href: string) => unknown })
 const fetchedAt = "2024-05-01T12:30:00.000Z";
 const stored = {
   platform: "Klaviyo",
+  region: "US",
   platformCampaignID: "k-1",
   listIDs: ["list-1"],
   name: "Spring launch",
@@ -41,6 +42,19 @@ describe("StoredEmailCampaignRecord", () => {
   it("accepts a campaign whose platform reports no send time or count", () => {
     const { sentAt: _sentAt, sent: _sent, ...withoutSendInfo } = stored;
     expect(StoredEmailCampaignRecord(withoutSendInfo)).toEqual(withoutSendInfo);
+  });
+
+  it("requires one of the known regions", () => {
+    const { region: _region, ...withoutRegion } = stored;
+    expect(StoredEmailCampaignRecord(withoutRegion)).toBeInstanceOf(
+      type.errors,
+    );
+    expect(
+      StoredEmailCampaignRecord({ ...stored, region: "UK" }),
+    ).toBeInstanceOf(type.errors);
+    expect(
+      StoredEmailCampaignRecord({ ...stored, region: null }),
+    ).toBeInstanceOf(type.errors);
   });
 
   it("still validates the send time and count when they are present", () => {

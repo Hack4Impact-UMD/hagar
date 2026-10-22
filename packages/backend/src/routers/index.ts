@@ -5,6 +5,7 @@ import {
 } from "@backend/trpc/init.ts";
 import { campaignsRouter } from "@backend/routers/campaigns.ts";
 import { usersRouter } from "@backend/routers/users.ts";
+import { viewsRouter } from "@backend/routers/views.ts";
 import { getOrCreateUserProfile } from "@backend/services/users.ts";
 
 export const appRouter = router({
@@ -15,6 +16,7 @@ export const appRouter = router({
 
   users: usersRouter,
   campaigns: campaignsRouter,
+  views: viewsRouter,
 });
 
 export type AppRouter = typeof appRouter;
