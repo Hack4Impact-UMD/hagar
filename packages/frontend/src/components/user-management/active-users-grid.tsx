@@ -176,7 +176,7 @@ export function ActiveUsersGrid({
       ) : (
         <ul
           data-testid="active-users-grid"
-          className="grid grid-cols-1 gap-x-5 gap-y-[5.3125rem] @xl:grid-cols-2 @3xl:grid-cols-3 @5xl:grid-cols-4"
+          className="grid grid-cols-1 gap-x-5 gap-y-21.25 @xl:grid-cols-2 @3xl:grid-cols-3 @5xl:grid-cols-4"
         >
           {current
             ? current.items.map((user) => (
@@ -256,10 +256,10 @@ function ActiveUserCard({ me, user, mode, reportError }: ActiveUserCardProps) {
   return (
     <li
       data-testid={`user-card-${user.uid}`}
-      className="flex items-center gap-4 rounded-xl bg-[#F9F6F1] px-5 py-8"
+      className="flex items-center gap-6 rounded-xl bg-[#F9F6F1] px-5 py-8"
     >
-      <UserAvatar user={user} className="size-16" />
-      <div className="flex min-w-0 flex-col items-start gap-1">
+      <UserAvatar user={user} className="size-20" />
+      <div className="flex min-w-0 flex-col items-start gap-0.5 text-[1.125rem]">
         <p className="truncate font-medium">
           {name}
           {isSelf ? (
@@ -294,7 +294,7 @@ function ActiveUserCard({ me, user, mode, reportError }: ActiveUserCardProps) {
             </SelectContent>
           </Select>
         ) : (
-          <p className="text-sm text-muted-foreground">{user.role}</p>
+          <p className="text-base text-[#808080]">{user.role}</p>
         )}
 
         {mode === "region" && editable ? (
@@ -320,7 +320,7 @@ function ActiveUserCard({ me, user, mode, reportError }: ActiveUserCardProps) {
             </SelectContent>
           </Select>
         ) : (
-          <p className="text-sm text-muted-foreground">{user.region ?? ""}</p>
+          <p className="text-base text-[#808080]">{user.region ?? ""}</p>
         )}
 
         {mode === "remove" && editable ? (

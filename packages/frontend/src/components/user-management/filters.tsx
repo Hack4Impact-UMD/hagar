@@ -39,7 +39,7 @@ export function RegionFilter({ value, onChange }: RegionFilterProps) {
         <SelectValue />
       </SelectTrigger>
       <SelectContent position="popper">
-        <SelectItem value={ALL}>All regions</SelectItem>
+        <SelectItem value={ALL}>Filter by region</SelectItem>
         {userRegions.map((region) => (
           <SelectItem key={region} value={region}>
             {region}
@@ -72,7 +72,7 @@ export function RoleFilter({ value, onChange }: RoleFilterProps) {
         <SelectValue />
       </SelectTrigger>
       <SelectContent position="popper">
-        <SelectItem value={ALL}>All roles</SelectItem>
+        <SelectItem value={ALL}>Filter by role</SelectItem>
         {userRoles.map((role) => (
           <SelectItem key={role} value={role}>
             {role}
