@@ -33,6 +33,8 @@ vi.mock("@backend/services/users.ts", () => ({
     Promise.resolve({ uid: session.uid }),
   updateProfile: (_db: unknown, profile: { uid: string }) =>
     Promise.resolve({ uid: profile.uid }),
+  getUserInfo: (_db: unknown, actor: { uid: string }) =>
+    Promise.resolve({ actor: actor.uid }),
 }));
 
 // Each returns the caller it was handed, to show the middleware passed it on.
@@ -116,6 +118,7 @@ const viewId = "view-1";
 
 // Any approved user, Viewers included.
 const readCalls = [
+  (as: Caller) => as.users.info({ uids: ["user-1"] }),
   (as: Caller) => as.campaigns.list(),
   (as: Caller) => as.campaigns.get({ campaignId }),
   (as: Caller) => as.views.list(),
@@ -288,6 +291,20 @@ describe("appRouter", () => {
         campaignId,
         item: { type: "SMS", id: "sms-1" } as unknown as typeof item,
       }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("validates user info inputs with the shared arktype schemas", async () => {
+    await expect(admin.users.info({ uids: [""] })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+    await expect(
+      admin.users.info({
+        uids: Array.from({ length: 101 }, (_, i) => `u${i}`),
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      admin.users.info({ uids: ["user-1"], extra: 1 } as { uids: string[] }),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 

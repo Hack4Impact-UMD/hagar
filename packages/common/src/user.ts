@@ -135,3 +135,26 @@ export type SetUserRegionInput = typeof setUserRegionInput.infer;
 
 export const deleteUserInput = type({ uid }).onUndeclaredKey("reject");
 export type DeleteUserInput = typeof deleteUserInput.infer;
+
+/** The most users one lookup covers. Lists of authors are far smaller. */
+export const MAX_USER_INFO = 100;
+
+/** Any approved user may ask for these, to show who made something. */
+export const userInfoInput = type({
+  uids: uid.array().atMostLength(MAX_USER_INFO),
+}).onUndeclaredKey("reject");
+export type UserInfoInput = typeof userInfoInput.infer;
+
+/**
+ * The only things other users learn about someone: their first and last name,
+ * their email and the path of their profile photo. Show the photo the way
+ * profile photos are shown elsewhere, by looking up its download URL.
+ */
+export const userInfo = type({
+  uid: "string",
+  firstName: "string",
+  lastName: "string",
+  email: "string",
+  photoPath: profilePhotoPath,
+});
+export type UserInfo = typeof userInfo.infer;
