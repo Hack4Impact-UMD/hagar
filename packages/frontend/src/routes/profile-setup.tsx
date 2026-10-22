@@ -148,7 +148,7 @@ function ProfileSetup() {
                       }));
                     }
                   }}
-                  className="h-14 rounded-xl border-gray-300 px-4 text-base shadow-none focus-visible:ring-[#C75C3B]"
+                  className="h-14 rounded-xl border-gray-300 px-4 text-base shadow-none"
                 />
                 {fieldErrors.firstName && (
                   <p role="alert" className="text-sm text-red-600">
@@ -181,7 +181,7 @@ function ProfileSetup() {
                       }));
                     }
                   }}
-                  className="h-14 rounded-xl border-gray-300 px-4 text-base shadow-none focus-visible:ring-[#C75C3B]"
+                  className="h-14 rounded-xl border-gray-300 px-4 text-base shadow-none"
                 />
                 {fieldErrors.lastName && (
                   <p role="alert" className="text-sm text-red-600">
@@ -225,7 +225,7 @@ function ProfileSetup() {
                       }));
                     }
                   }}
-                  className="h-14 rounded-xl border-gray-300 px-4 text-base shadow-none focus-visible:ring-[#C75C3B]"
+                  className="h-14 rounded-xl border-gray-300 px-4 text-base shadow-none"
                 />
                 {fieldErrors.phoneNumber && (
                   <p role="alert" className="text-sm text-red-600">
