@@ -18,7 +18,11 @@ function Login() {
   return (
     <main className="flex flex-row w-full min-h-screen">
       <div className="flex-1 min-w-0 flex flex-col mx-4 sm:mx-8 my-6 sm:my-7.25 gap-10 md:gap-20 items-center">
-        <img src="logo.png" alt="Hagar Logo" className="w-28 sm:w-38.25 self-start" />
+        <img
+          src="logo.png"
+          alt="Hagar Logo"
+          className="w-28 sm:w-38.25 self-start"
+        />
         <div className="flex flex-col w-full max-w-lg lg:mx-12 xl:mx-24">
           <h1 className="font-bold text-3xl sm:text-[2.5em] font-700">Login</h1>
           <form
@@ -73,7 +77,11 @@ function Login() {
           </form>
         </div>
       </div>
-      <img src="girl.png" alt="Happy Girl" className="hidden lg:block h-screen w-[50.35vw] object-cover sticky top-0" />
+      <img
+        src="girl.png"
+        alt="Happy Girl"
+        className="hidden lg:block h-screen w-[50.35vw] object-cover sticky top-0"
+      />
     </main>
   );
 }
