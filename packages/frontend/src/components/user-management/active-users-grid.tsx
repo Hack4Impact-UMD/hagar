@@ -4,12 +4,13 @@ import type {
   UserRegion,
   UserRole,
 } from "@repo/common";
-import { canAssignRole, canManage, userRegions } from "@repo/common";
+import { canAssignRole, canManage } from "@repo/common";
 import {
   DotsThreeVerticalIcon,
   MagnifyingGlassIcon,
   MinusIcon,
   NotePencilIcon,
+  PencilSimpleIcon,
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -21,17 +22,9 @@ import {
   DropdownMenuTrigger,
 } from "@frontend/components/ui/dropdown-menu.tsx";
 import { Input } from "@frontend/components/ui/input.tsx";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@frontend/components/ui/select.tsx";
 import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
 import { ConfirmDialog } from "@frontend/components/user-management/confirm-dialog.tsx";
 import {
-  pillTriggerClass,
   RegionFilter,
   RoleFilter,
 } from "@frontend/components/user-management/filters.tsx";
@@ -51,16 +44,16 @@ import {
   userRoles,
 } from "@common/user-helpers.ts";
 import { trpc } from "@frontend/lib/trpc.ts";
-// import { sampleUsers } from "./sample-data";
+import { EditUserDialog } from "@frontend/components/user-management/edit-user-dialog.tsx";
+import type { UserChanges } from "@frontend/components/user-management/edit-user-dialog.tsx";
 
 const PAGE_SIZE = 12;
 
 /* Which control each card shows. The menu in the toolbar switches it. */
-type EditMode = "view" | "role" | "region" | "remove";
+type EditMode = "view" | "edit" | "remove";
 
 const EDIT_MODES = [
-  { mode: "role", label: "Edit role", icon: <NotePencilIcon /> },
-  { mode: "region", label: "Edit region", icon: <NotePencilIcon /> },
+  { mode: "edit", label: "Edit user", icon: <NotePencilIcon /> },
   { mode: "remove", label: "Remove user", icon: <MinusIcon /> },
 ] as const;
 
@@ -84,18 +77,7 @@ export function ActiveUsersGrid({
   const users = useQuery(
     trpc.users.list.queryOptions({ stage: "ACTIVE", region }),
   );
-  /*
-  const users = useQuery({
-    ...trpc.users.list.queryOptions({ stage: "ACTIVE", region }),
-    queryFn: () =>
-      Promise.resolve(
-        sampleUsers.filter(
-          (user) =>
-            user.stage === "ACTIVE" && (!region || user.region === region),
-        ),
-      ),
-  });
-  */
+
   const filtered = users.data
     ? filterUsers(users.data, { search, role })
     : null;
@@ -236,27 +218,25 @@ interface ActiveUserCardProps {
 function ActiveUserCard({ me, user, mode, reportError }: ActiveUserCardProps) {
   const { setRole, setRegion, remove, isPending } =
     useUserMutations(reportError);
-  const [dialog, setDialog] = useState<"remove" | "move" | null>(null);
-  // Kept after the dialog closes so its text doesn't blank out while it animates away.
-  const [moveRegion, setMoveRegion] = useState<UserRegion | null>(null);
+  const [dialog, setDialog] = useState<"edit" | "remove" | null>(null);
   const name = fullName(user);
   const editable = canManage(me, user);
   const isSelf = user.uid === me.uid;
-
-  const moveTo = (region: UserRegion) => {
-    // A Local Admin moving someone out of their region hands them to another
-    // region's admins: the backend resets them to an unapproved Viewer, so
-    // make sure that is what the admin means to do.
-    if (me.role === "Local Admin") {
-      setMoveRegion(region);
-      setDialog("move");
-    } else setRegion.mutate({ uid: user.uid, region });
+  const save = async ({ role, region }: UserChanges) => {
+    try {
+      if (role) await setRole.mutateAsync({ uid: user.uid, role });
+      if (region) await setRegion.mutateAsync({ uid: user.uid, region });
+    } catch {
+      // useUserMutations already showed the error.
+    } finally {
+      setDialog(null);
+    }
   };
 
   return (
     <li
       data-testid={`user-card-${user.uid}`}
-      className="flex items-center gap-6 rounded-xl bg-[#F9F6F1] px-5 py-8"
+      className="flex relative items-center gap-6 rounded-xl bg-[#F9F6F1] px-5 py-8"
     >
       <UserAvatar user={user} className="size-20" />
       <div className="flex min-w-0 flex-col items-start gap-0.5 text-[1.125rem]">
@@ -266,62 +246,22 @@ function ActiveUserCard({ me, user, mode, reportError }: ActiveUserCardProps) {
             <span className="font-normal text-muted-foreground"> (you)</span>
           ) : null}
         </p>
+        <p className="text-base text-[#808080]">{user.role}</p>
+        <p className="text-base text-[#808080]">{user.region ?? ""}</p>
 
-        {mode === "role" && editable ? (
-          <Select
-            value={user.role}
+        {mode === "edit" && editable ? (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="absolute top-3 right-3"
+            aria-label={`Edit ${name}`}
+            data-testid={`edit-${user.uid}`}
             disabled={isPending}
-            onValueChange={(next) =>
-              setRole.mutate({ uid: user.uid, role: next as UserRole })
-            }
+            onClick={() => setDialog("edit")}
           >
-            <SelectTrigger
-              size="sm"
-              aria-label={`Role for ${name}`}
-              data-testid={`role-select-${user.uid}`}
-              className={`h-6! text-xs ${pillTriggerClass}`}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent position="popper">
-              {userRoles
-                .filter((role) => canAssignRole(me, role))
-                .map((role) => (
-                  <SelectItem key={role} value={role}>
-                    {role}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
-        ) : (
-          <p className="text-base text-[#808080]">{user.role}</p>
-        )}
-
-        {mode === "region" && editable ? (
-          <Select
-            value={user.region ?? undefined}
-            disabled={isPending}
-            onValueChange={(next) => moveTo(next as UserRegion)}
-          >
-            <SelectTrigger
-              size="sm"
-              aria-label={`Region for ${name}`}
-              data-testid={`region-select-${user.uid}`}
-              className={`h-6! text-xs ${pillTriggerClass}`}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent position="popper">
-              {userRegions.map((region) => (
-                <SelectItem key={region} value={region}>
-                  {region}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : (
-          <p className="text-base text-[#808080]">{user.region ?? ""}</p>
-        )}
+            <PencilSimpleIcon />
+          </Button>
+        ) : null}
 
         {mode === "remove" && editable ? (
           <Button
@@ -335,7 +275,15 @@ function ActiveUserCard({ me, user, mode, reportError }: ActiveUserCardProps) {
           </Button>
         ) : null}
       </div>
-
+      <EditUserDialog
+        open={dialog === "edit"}
+        onOpenChange={(open) => !open && setDialog(null)}
+        user={user}
+        roles={userRoles.filter((role) => canAssignRole(me, role))}
+        moveResetsApproval={me.role === "Local Admin"}
+        pending={isPending}
+        onSave={(changes) => void save(changes)}
+      />
       <ConfirmDialog
         open={dialog === "remove"}
         onOpenChange={(open) => !open && setDialog(null)}
@@ -347,21 +295,6 @@ function ActiveUserCard({ me, user, mode, reportError }: ActiveUserCardProps) {
         onConfirm={() =>
           remove.mutate({ uid: user.uid }, { onSettled: () => setDialog(null) })
         }
-      />
-      <ConfirmDialog
-        open={dialog === "move"}
-        onOpenChange={(open) => !open && setDialog(null)}
-        title={`Move ${name} to ${moveRegion}?`}
-        description={`${user.firstName ?? name} will lose their role and need to be approved again by an admin in ${moveRegion}.`}
-        confirmLabel="Move"
-        pending={setRegion.isPending}
-        onConfirm={() => {
-          if (moveRegion)
-            setRegion.mutate(
-              { uid: user.uid, region: moveRegion },
-              { onSettled: () => setDialog(null) },
-            );
-        }}
       />
     </li>
   );
