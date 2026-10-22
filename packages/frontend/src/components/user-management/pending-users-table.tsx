@@ -29,6 +29,7 @@ import {
   userRoles,
 } from "@common/user-helpers.ts";
 import { trpc } from "@frontend/lib/trpc.ts";
+// import { sampleUsers } from "./sample-data";
 
 const PAGE_SIZE = 9;
 const COLUMNS = ["Full Name", "Email", "Region", "Actions"];
@@ -43,6 +44,15 @@ export function PendingUsersTable({ me, reportError }: PendingUsersTableProps) {
   const users = useQuery(
     trpc.users.list.queryOptions({ stage: "AWAITING APPROVAL" }),
   );
+  /*
+  const users = useQuery({
+    ...trpc.users.list.queryOptions({ stage: "AWAITING APPROVAL" }),
+    queryFn: () =>
+      Promise.resolve(
+        sampleUsers.filter((user) => user.stage === "AWAITING APPROVAL"),
+      ),
+  });
+  */
 
   if (users.isError) {
     return <ErrorState message={describeUserError(users.error).message} />;
@@ -152,7 +162,13 @@ function PendingUserRow({ me, user, reportError }: PendingUserRowProps) {
           roles={userRoles.filter((role) => canAssignRole(me, role))}
           open={dialog === "approve"}
           onOpenChange={closeDialog}
-          onApprove={(role) => approve.mutate({ uid: user.uid, role })}
+          pending={approve.isPending}
+          onApprove={(role) =>
+            approve.mutate(
+              { uid: user.uid, role },
+              { onSettled: () => setDialog(null) },
+            )
+          }
         />
         <ConfirmDialog
           open={dialog === "reject"}
@@ -161,7 +177,13 @@ function PendingUserRow({ me, user, reportError }: PendingUserRowProps) {
           description="This permanently deletes their account and login. It can't be undone."
           confirmLabel="Reject"
           destructive
-          onConfirm={() => remove.mutate({ uid: user.uid })}
+          pending={remove.isPending}
+          onConfirm={() =>
+            remove.mutate(
+              { uid: user.uid },
+              { onSettled: () => setDialog(null) },
+            )
+          }
         />
       </TableCell>
     </TableRow>
