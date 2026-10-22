@@ -83,7 +83,7 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
 
   await page.getByTestId("sign-out").click();
   await expect(page).toHaveURL(/\/login$/);
-  await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Login" })).toBeVisible();
 
   // An approved user goes straight to the homepage after logging in.
   await page.getByTestId("email").fill(TEST_USER.email);
