@@ -55,7 +55,7 @@ export async function assertUploadedReport(path: string): Promise<void> {
   ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "A report must be a PDF no larger than 20 MB.",
+      message: `A report must be a PDF no larger than ${MAX_REPORT_BYTES / (1024 * 1024)} MB.`,
     });
   }
 }

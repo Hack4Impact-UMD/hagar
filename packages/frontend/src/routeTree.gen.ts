@@ -18,6 +18,8 @@ import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppUserManagementRouteImport } from './routes/_app/user-management'
+import { Route as AppReportsHistoryRouteImport } from './routes/_app/reports/history'
+import { Route as AppReportsPreviewViewIdRouteImport } from './routes/_app/reports/preview.$viewId'
 
 const AppRouteRoute = AppRouteRouteImport.update({
   id: '/_app',
@@ -63,6 +65,16 @@ const AppUserManagementRoute = AppUserManagementRouteImport.update({
   path: '/user-management',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppReportsHistoryRoute = AppReportsHistoryRouteImport.update({
+  id: '/reports/history',
+  path: '/reports/history',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppReportsPreviewViewIdRoute = AppReportsPreviewViewIdRouteImport.update({
+  id: '/reports/preview/$viewId',
+  path: '/reports/preview/$viewId',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -73,6 +85,8 @@ export interface FileRoutesByFullPath {
   '/verify-email': typeof VerifyEmailRoute
   '/profile': typeof AppProfileRoute
   '/user-management': typeof AppUserManagementRoute
+  '/reports/history': typeof AppReportsHistoryRoute
+  '/reports/preview/$viewId': typeof AppReportsPreviewViewIdRoute
 }
 export interface FileRoutesByTo {
   '/awaiting-approval': typeof AwaitingApprovalRoute
@@ -83,6 +97,8 @@ export interface FileRoutesByTo {
   '/profile': typeof AppProfileRoute
   '/user-management': typeof AppUserManagementRoute
   '/': typeof AppIndexRoute
+  '/reports/history': typeof AppReportsHistoryRoute
+  '/reports/preview/$viewId': typeof AppReportsPreviewViewIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -95,6 +111,8 @@ export interface FileRoutesById {
   '/_app/profile': typeof AppProfileRoute
   '/_app/user-management': typeof AppUserManagementRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/reports/history': typeof AppReportsHistoryRoute
+  '/_app/reports/preview/$viewId': typeof AppReportsPreviewViewIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -107,6 +125,8 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/profile'
     | '/user-management'
+    | '/reports/history'
+    | '/reports/preview/$viewId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/awaiting-approval'
@@ -117,6 +137,8 @@ export interface FileRouteTypes {
     | '/profile'
     | '/user-management'
     | '/'
+    | '/reports/history'
+    | '/reports/preview/$viewId'
   id:
     | '__root__'
     | '/_app'
@@ -128,6 +150,8 @@ export interface FileRouteTypes {
     | '/_app/profile'
     | '/_app/user-management'
     | '/_app/'
+    | '/_app/reports/history'
+    | '/_app/reports/preview/$viewId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -204,6 +228,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppUserManagementRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/reports/history': {
+      id: '/_app/reports/history'
+      path: '/reports/history'
+      fullPath: '/reports/history'
+      preLoaderRoute: typeof AppReportsHistoryRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/reports/preview/$viewId': {
+      id: '/_app/reports/preview/$viewId'
+      path: '/reports/preview/$viewId'
+      fullPath: '/reports/preview/$viewId'
+      preLoaderRoute: typeof AppReportsPreviewViewIdRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
   }
 }
 
@@ -211,12 +249,16 @@ interface AppRouteRouteChildren {
   AppProfileRoute: typeof AppProfileRoute
   AppUserManagementRoute: typeof AppUserManagementRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppReportsHistoryRoute: typeof AppReportsHistoryRoute
+  AppReportsPreviewViewIdRoute: typeof AppReportsPreviewViewIdRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppProfileRoute: AppProfileRoute,
   AppUserManagementRoute: AppUserManagementRoute,
   AppIndexRoute: AppIndexRoute,
+  AppReportsHistoryRoute: AppReportsHistoryRoute,
+  AppReportsPreviewViewIdRoute: AppReportsPreviewViewIdRoute,
 }
 
 const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(

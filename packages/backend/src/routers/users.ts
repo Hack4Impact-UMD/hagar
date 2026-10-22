@@ -6,6 +6,7 @@ import {
   setUserRegionInput,
   setUserRoleInput,
   updateProfileInput,
+  userInfoInput,
 } from "@repo/common";
 import {
   activeProcedure,
@@ -13,7 +14,11 @@ import {
   protectedProcedure,
   router,
 } from "@backend/trpc/init.ts";
-import { completeProfile, updateProfile } from "@backend/services/users.ts";
+import {
+  completeProfile,
+  getUserInfo,
+  updateProfile,
+} from "@backend/services/users.ts";
 import {
   approveUser,
   deleteUser,
@@ -30,6 +35,12 @@ export const usersRouter = router({
   updateProfile: activeProcedure
     .input(updateProfileInput)
     .mutation(({ ctx, input }) => updateProfile(ctx.db, ctx.profile, input)),
+
+  // Open to every approved user, unlike the user management procedures below:
+  // it only returns names and photos, to show who made something.
+  info: activeProcedure
+    .input(userInfoInput)
+    .query(({ ctx, input }) => getUserInfo(ctx.db, ctx.profile, input)),
 
   list: adminProcedure
     .input(listUsersInput)
