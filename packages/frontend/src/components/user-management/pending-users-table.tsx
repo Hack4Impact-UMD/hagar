@@ -18,19 +18,16 @@ import { ConfirmDialog } from "@frontend/components/user-management/confirm-dial
 import {
   EmptyState,
   ErrorState,
-  Pagination,
 } from "@frontend/components/user-management/table-states.tsx";
 import type { ReportError } from "@frontend/components/user-management/use-user-mutations.ts";
 import { useUserMutations } from "@frontend/components/user-management/use-user-mutations.ts";
 import {
   describeUserError,
   fullName,
-  paginate,
   userRoles,
 } from "@common/user-helpers.ts";
 import { trpc } from "@frontend/lib/trpc.ts";
 
-const PAGE_SIZE = 9;
 const COLUMNS = ["Full Name", "Email", "Region", "Actions"];
 
 interface PendingUsersTableProps {
@@ -39,7 +36,6 @@ interface PendingUsersTableProps {
 }
 
 export function PendingUsersTable({ me, reportError }: PendingUsersTableProps) {
-  const [page, setPage] = useState(0);
   const users = useQuery(
     trpc.users.list.queryOptions({ stage: "AWAITING APPROVAL" }),
   );
@@ -50,8 +46,6 @@ export function PendingUsersTable({ me, reportError }: PendingUsersTableProps) {
   if (users.data?.length === 0) {
     return <EmptyState message="No one is waiting for approval." />;
   }
-
-  const current = users.data ? paginate(users.data, page, PAGE_SIZE) : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -72,8 +66,8 @@ export function PendingUsersTable({ me, reportError }: PendingUsersTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {current
-            ? current.items.map((user) => (
+          {users.data
+            ? users.data.map((user) => (
                 <PendingUserRow
                   key={user.uid}
                   me={me}
@@ -92,14 +86,6 @@ export function PendingUsersTable({ me, reportError }: PendingUsersTableProps) {
               ))}
         </TableBody>
       </Table>
-      {current ? (
-        <Pagination
-          className="mr-6 mb-6 md:mr-20"
-          page={current.page}
-          pageCount={current.pageCount}
-          onPageChange={setPage}
-        />
-      ) : null}
     </div>
   );
 }
