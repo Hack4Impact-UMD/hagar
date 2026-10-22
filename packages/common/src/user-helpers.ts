@@ -50,22 +50,6 @@ export function filterUsers<
   );
 }
 
-/* Returns one page of items, page is clamped */
-export function paginate<T>(
-  items: readonly T[],
-  page: number,
-  pageSize: number,
-): { items: T[]; page: number; pageCount: number } {
-  const count = Math.max(1, Math.ceil(items.length / pageSize));
-  const current = Math.min(Math.max(page, 0), count - 1);
-  const start = current * pageSize;
-  return {
-    items: items.slice(start, start + pageSize),
-    page: current,
-    pageCount: count,
-  };
-}
-
 interface ErrorWithCode {
   data?: { code?: string } | null;
 }
