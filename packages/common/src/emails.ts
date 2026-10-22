@@ -25,21 +25,32 @@ export const EmailCampaignSnapshot = type({
   unsubscribers: count,
   complaints: count,
 });
-export const EmailCampaignRecord = type({
+/**
+ * What a platform gives us about a campaign, and what is stored at
+ * `emailCampaigns/{emailCampaignId}`. Platforms do not know our id, so
+ * fetching returns this shape.
+ */
+export const StoredEmailCampaignRecord = type({
   platform: EmailPlatform,
   platformCampaignID: "string >= 1",
   listIDs: "string[]",
   name: "string",
   content: type("URL"),
-  sentAt: utcDateString,
-  sent: count,
+  // Some platforms report neither of these.
+  "sentAt?": utcDateString,
+  "sent?": count,
   lastFetchedAt: utcDateString,
   notes: "string",
   snapshots: EmailCampaignSnapshot.array().atLeastLength(1),
 });
+/** Our own id for the campaign, which other records such as campaigns link to. */
+export const EmailCampaignRecord = type({ emailCampaignId: "string >= 1" }).and(
+  StoredEmailCampaignRecord,
+);
 
 export type EmailPlatform = typeof EmailPlatform.infer;
 export type EmailListCountSnapshot = typeof EmailListCountSnapshot.infer;
 export type EmailList = typeof EmailList.infer;
 export type EmailCampaignSnapshot = typeof EmailCampaignSnapshot.infer;
+export type StoredEmailCampaignRecord = typeof StoredEmailCampaignRecord.infer;
 export type EmailCampaignRecord = typeof EmailCampaignRecord.infer;
