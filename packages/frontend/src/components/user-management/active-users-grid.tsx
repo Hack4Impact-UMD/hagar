@@ -5,22 +5,9 @@ import type {
   UserRole,
 } from "@repo/common";
 import { canAssignRole, canManage } from "@repo/common";
-import {
-  DotsThreeVerticalIcon,
-  MagnifyingGlassIcon,
-  MinusIcon,
-  NotePencilIcon,
-  PencilSimpleIcon,
-} from "@phosphor-icons/react";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Button } from "@frontend/components/ui/button.tsx";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@frontend/components/ui/dropdown-menu.tsx";
 import { Input } from "@frontend/components/ui/input.tsx";
 import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
 import { ConfirmDialog } from "@frontend/components/user-management/confirm-dialog.tsx";
@@ -45,14 +32,6 @@ import { trpc } from "@frontend/lib/trpc.ts";
 import { EditUserDialog } from "@frontend/components/user-management/edit-user-dialog.tsx";
 import type { UserChanges } from "@frontend/components/user-management/edit-user-dialog.tsx";
 
-/* Which control each card shows. The menu in the toolbar switches it. */
-type EditMode = "view" | "edit" | "remove";
-
-const EDIT_MODES = [
-  { mode: "edit", label: "Edit user", icon: <NotePencilIcon /> },
-  { mode: "remove", label: "Remove user", icon: <MinusIcon /> },
-] as const;
-
 interface ActiveUsersGridProps {
   me: ActiveUserProfile;
   region: UserRegion | undefined;
@@ -68,7 +47,6 @@ export function ActiveUsersGrid({
 }: ActiveUsersGridProps) {
   const [search, setSearch] = useState("");
   const [role, setRole] = useState<UserRole | null>(null);
-  const [mode, setMode] = useState<EditMode>("view");
   const users = useQuery(
     trpc.users.list.queryOptions({ stage: "ACTIVE", region }),
   );
@@ -96,32 +74,6 @@ export function ActiveUsersGrid({
         {me.role === "Global Admin" ? (
           <RegionFilter value={region} onChange={onRegionChange} />
         ) : null}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="ml-auto"
-              aria-label="Manage users"
-              data-testid="manage-users-menu"
-            >
-              <DotsThreeVerticalIcon weight="bold" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {EDIT_MODES.map((item) => (
-              <DropdownMenuItem
-                key={item.mode}
-                data-testid={`mode-${item.mode}`}
-                onSelect={() => setMode(item.mode)}
-                className="justify-between"
-              >
-                {item.label}
-                {item.icon}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
 
       {users.isError ? (
@@ -145,7 +97,6 @@ export function ActiveUsersGrid({
                   key={user.uid}
                   me={me}
                   user={user}
-                  mode={mode}
                   reportError={reportError}
                 />
               ))
@@ -164,18 +115,6 @@ export function ActiveUsersGrid({
               ))}
         </ul>
       )}
-
-      {mode === "view" ? null : (
-        <div className="flex items-center justify-end">
-          <Button
-            size="sm"
-            data-testid="done-editing"
-            onClick={() => setMode("view")}
-          >
-            Done
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
@@ -183,11 +122,10 @@ export function ActiveUsersGrid({
 interface ActiveUserCardProps {
   me: ActiveUserProfile;
   user: UserProfile;
-  mode: EditMode;
   reportError: ReportError;
 }
 
-function ActiveUserCard({ me, user, mode, reportError }: ActiveUserCardProps) {
+function ActiveUserCard({ me, user, reportError }: ActiveUserCardProps) {
   const { setRole, setRegion, remove, isPending } =
     useUserMutations(reportError);
   const [dialog, setDialog] = useState<"edit" | "remove" | null>(null);
@@ -205,11 +143,8 @@ function ActiveUserCard({ me, user, mode, reportError }: ActiveUserCardProps) {
     }
   };
 
-  return (
-    <li
-      data-testid={`user-card-${user.uid}`}
-      className="flex relative items-center gap-6 rounded-xl bg-[#F9F6F1] px-5 py-8"
-    >
+  const details = (
+    <>
       <UserAvatar user={user} className="size-20" />
       <div className="flex min-w-0 flex-col items-start gap-0.5 text-[1.125rem]">
         <p className="truncate font-medium">
@@ -220,33 +155,30 @@ function ActiveUserCard({ me, user, mode, reportError }: ActiveUserCardProps) {
         </p>
         <p className="text-base text-[#808080]">{user.role}</p>
         <p className="text-base text-[#808080]">{user.region ?? ""}</p>
-
-        {mode === "edit" && editable ? (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="absolute top-3 right-3"
-            aria-label={`Edit ${name}`}
-            data-testid={`edit-${user.uid}`}
-            disabled={isPending}
-            onClick={() => setDialog("edit")}
-          >
-            <PencilSimpleIcon />
-          </Button>
-        ) : null}
-
-        {mode === "remove" && editable ? (
-          <Button
-            size="xs"
-            variant="destructive"
-            data-testid={`delete-${user.uid}`}
-            disabled={isPending}
-            onClick={() => setDialog("remove")}
-          >
-            Remove
-          </Button>
-        ) : null}
       </div>
+    </>
+  );
+  const cardClass = "flex w-full items-center gap-6 rounded-xl px-5 py-8";
+
+  return (
+    <li
+      data-testid={`user-card-${user.uid}`}
+      className="rounded-xl bg-[#F9F6F1]"
+    >
+      {editable ? (
+        <button
+          type="button"
+          aria-label={`Edit ${name}`}
+          data-testid={`edit-${user.uid}`}
+          className={`${cardClass} cursor-pointer text-left hover:bg-[#F1DED2]/20 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none`}
+          disabled={isPending}
+          onClick={() => setDialog("edit")}
+        >
+          {details}
+        </button>
+      ) : (
+        <div className={cardClass}>{details}</div>
+      )}
       <EditUserDialog
         open={dialog === "edit"}
         onOpenChange={(open) => !open && setDialog(null)}
@@ -255,10 +187,12 @@ function ActiveUserCard({ me, user, mode, reportError }: ActiveUserCardProps) {
         moveResetsApproval={me.role === "Local Admin"}
         pending={isPending}
         onSave={(changes) => void save(changes)}
+        onRemove={() => setDialog("remove")}
       />
       <ConfirmDialog
         open={dialog === "remove"}
-        onOpenChange={(open) => !open && setDialog(null)}
+        // Cancelling goes back to the edit dialog the delete was started from.
+        onOpenChange={(open) => !open && setDialog("edit")}
         title={`Delete ${name}?`}
         description="This permanently deletes their profile and login. It can't be undone."
         confirmLabel="Delete"
