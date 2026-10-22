@@ -31,7 +31,6 @@ import {
 import {
   EmptyState,
   ErrorState,
-  Pagination,
 } from "@frontend/components/user-management/table-states.tsx";
 import type { ReportError } from "@frontend/components/user-management/use-user-mutations.ts";
 import { useUserMutations } from "@frontend/components/user-management/use-user-mutations.ts";
@@ -40,14 +39,11 @@ import {
   describeUserError,
   filterUsers,
   fullName,
-  paginate,
   userRoles,
 } from "@common/user-helpers.ts";
 import { trpc } from "@frontend/lib/trpc.ts";
 import { EditUserDialog } from "@frontend/components/user-management/edit-user-dialog.tsx";
 import type { UserChanges } from "@frontend/components/user-management/edit-user-dialog.tsx";
-
-const PAGE_SIZE = 12;
 
 /* Which control each card shows. The menu in the toolbar switches it. */
 type EditMode = "view" | "edit" | "remove";
@@ -73,7 +69,6 @@ export function ActiveUsersGrid({
   const [search, setSearch] = useState("");
   const [role, setRole] = useState<UserRole | null>(null);
   const [mode, setMode] = useState<EditMode>("view");
-  const [page, setPage] = useState(0);
   const users = useQuery(
     trpc.users.list.queryOptions({ stage: "ACTIVE", region }),
   );
@@ -81,7 +76,6 @@ export function ActiveUsersGrid({
   const filtered = users.data
     ? filterUsers(users.data, { search, role })
     : null;
-  const current = filtered ? paginate(filtered, page, PAGE_SIZE) : null;
 
   return (
     <div className="@container flex flex-col gap-6">
@@ -95,27 +89,12 @@ export function ActiveUsersGrid({
             data-testid="search-users"
             className="h-8 w-48 bg-background pl-8"
             value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setPage(0);
-            }}
+            onChange={(event) => setSearch(event.target.value)}
           />
         </div>
-        <RoleFilter
-          value={role}
-          onChange={(next) => {
-            setRole(next);
-            setPage(0);
-          }}
-        />
+        <RoleFilter value={role} onChange={setRole} />
         {me.role === "Global Admin" ? (
-          <RegionFilter
-            value={region}
-            onChange={(next) => {
-              onRegionChange(next);
-              setPage(0);
-            }}
-          />
+          <RegionFilter value={region} onChange={onRegionChange} />
         ) : null}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -147,7 +126,7 @@ export function ActiveUsersGrid({
 
       {users.isError ? (
         <ErrorState message={describeUserError(users.error).message} />
-      ) : current?.items.length === 0 ? (
+      ) : filtered?.length === 0 ? (
         <EmptyState
           message={
             users.data?.length === 0
@@ -160,8 +139,8 @@ export function ActiveUsersGrid({
           data-testid="active-users-grid"
           className="grid grid-cols-1 gap-x-5 gap-y-21.25 @xl:grid-cols-2 @3xl:grid-cols-3 @5xl:grid-cols-4"
         >
-          {current
-            ? current.items.map((user) => (
+          {filtered
+            ? filtered.map((user) => (
                 <ActiveUserCard
                   key={user.uid}
                   me={me}
@@ -170,7 +149,7 @@ export function ActiveUsersGrid({
                   reportError={reportError}
                 />
               ))
-            : Array.from({ length: PAGE_SIZE }, (_, index) => (
+            : Array.from({ length: 12 }, (_, index) => (
                 <li
                   key={index}
                   className="flex items-center gap-4 rounded-xl bg-[#F9F6F1] px-5 py-8"
@@ -186,15 +165,8 @@ export function ActiveUsersGrid({
         </ul>
       )}
 
-      <div className="flex items-center justify-end gap-4">
-        {current ? (
-          <Pagination
-            page={current.page}
-            pageCount={current.pageCount}
-            onPageChange={setPage}
-          />
-        ) : null}
-        {mode === "view" ? null : (
+      {mode === "view" ? null : (
+        <div className="flex items-center justify-end">
           <Button
             size="sm"
             data-testid="done-editing"
@@ -202,8 +174,8 @@ export function ActiveUsersGrid({
           >
             Done
           </Button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

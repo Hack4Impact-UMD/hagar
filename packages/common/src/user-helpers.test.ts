@@ -5,7 +5,6 @@ import {
   filterUsers,
   fullName,
   initials,
-  paginate,
 } from "@common/user-helpers.ts";
 
 function user(
@@ -97,30 +96,6 @@ describe("filterUsers", () => {
     expect(filterUsers(users, { search: "ng", role: null })).toEqual([
       users[2],
     ]);
-  });
-});
-
-describe("paginate", () => {
-  const items = [1, 2, 3, 4, 5];
-
-  it("returns the requested page", () => {
-    expect(paginate(items, 1, 2)).toEqual({
-      items: [3, 4],
-      page: 1,
-      pageCount: 3,
-    });
-  });
-
-  it("clamps a page past the end to the last page", () => {
-    expect(paginate(items, 9, 2)).toEqual({
-      items: [5],
-      page: 2,
-      pageCount: 3,
-    });
-  });
-
-  it("has one empty page when there are no items", () => {
-    expect(paginate([], 0, 2)).toEqual({ items: [], page: 0, pageCount: 1 });
   });
 });
 
