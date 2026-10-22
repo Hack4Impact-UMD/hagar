@@ -10,21 +10,21 @@ This repository contains the source code for Hagar's Analytics Management Platfo
 
 ## 👥 Meet the team
 
-Meet our wonderful team of Product Managers, Tech Leads, Designers, Engineers, and Mentors!
+Meet our wonderful team of Product Managers, Tech Leads, Designers, and Engineers!
 
 <table align="center">
   <tr>
     <td align="center" width="150">
-      <a href="https://umd.hack4impact.org/">
-        <img src="docs/team-photos/FILENAME" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Name"/><br/>
-        <b>Name</b><br/><br/>
+      <a href="https://www.linkedin.com/in/laila-shakoor/">
+        <img src="docs/team-photos/laila_shakoor.jpeg" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Laila Shakoor"/><br/>
+        <b>Laila Shakoor</b><br/><br/>
         <img src="https://img.shields.io/badge/👩‍💼_product_manager-007ACC?style=flat-square" alt="Product Manager"/>
       </a>
     </td>
     <td align="center" width="150">
-      <a href="https://umd.hack4impact.org/">
-        <img src="docs/team-photos/FILENAME" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Name"/><br/>
-        <b>Name</b><br/><br/>
+      <a href="https://www.linkedin.com/in/bhavya-tanugula/">
+        <img src="docs/team-photos/bhavya_tanugula.png" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Bhavya Tanugula"/><br/>
+        <b>Bhavya Tanugula</b><br/><br/>
         <img src="https://img.shields.io/badge/👩‍💼_product_manager-007ACC?style=flat-square" alt="Product Manager"/>
       </a>
     </td>
@@ -53,23 +53,23 @@ Meet our wonderful team of Product Managers, Tech Leads, Designers, Engineers, a
 <table align="center">
   <tr>
     <td align="center" width="150">
-      <a href="https://umd.hack4impact.org/">
-        <img src="docs/team-photos/FILENAME" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Name"/><br/>
-        <b>Name</b><br/><br/>
+      <a href="https://www.linkedin.com/in/anita-daniel/">
+        <img src="docs/team-photos/anita_daniel.jpeg" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Anita Daniel"/><br/>
+        <b>Anita Daniel</b><br/><br/>
         <img src="https://img.shields.io/badge/🎨_designer-9B59B6?style=flat-square" alt="Designer"/>
       </a>
     </td>
     <td align="center" width="150">
-      <a href="https://umd.hack4impact.org/">
-        <img src="docs/team-photos/FILENAME" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Name"/><br/>
-        <b>Name</b><br/><br/>
+      <a href="https://www.linkedin.com/in/lucydavies29/">
+        <img src="docs/team-photos/lucy_davies.png" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Lucy Davies"/><br/>
+        <b>Lucy Davies</b><br/><br/>
         <img src="https://img.shields.io/badge/🎨_designer-9B59B6?style=flat-square" alt="Designer"/>
       </a>
     </td>
     <td align="center" width="150">
-      <a href="https://umd.hack4impact.org/">
-        <img src="docs/team-photos/FILENAME" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Name"/><br/>
-        <b>Name</b><br/><br/>
+      <a href="https://www.linkedin.com/in/sophia-narido-192695320/">
+        <img src="docs/team-photos/sophia_narido.png" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Sophia Narido"/><br/>
+        <b>Sophia Narido</b><br/><br/>
         <img src="https://img.shields.io/badge/🎨_designer-9B59B6?style=flat-square" alt="Designer"/>
       </a>
     </td>
@@ -93,9 +93,9 @@ Meet our wonderful team of Product Managers, Tech Leads, Designers, Engineers, a
       </a>
     </td>
     <td align="center" width="150">
-      <a href="https://umd.hack4impact.org/">
-        <img src="docs/team-photos/FILENAME" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Name"/><br/>
-        <b>Indira</b><br/><br/>
+      <a href="https://www.linkedin.com/in/indira-shafii/">
+        <img src="docs/team-photos/indira_shafii.jpeg" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Indira Shafii"/><br/>
+        <b>Indira Shafii</b><br/><br/>
         <img src="https://img.shields.io/badge/💻_engineer-27AE60?style=flat-square" alt="Engineer"/>
       </a>
     </td>
@@ -130,9 +130,9 @@ Meet our wonderful team of Product Managers, Tech Leads, Designers, Engineers, a
       </a>
     </td>
     <td align="center" width="150">
-      <a href="https://umd.hack4impact.org/">
-        <img src="docs/team-photos/FILENAME" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Name"/><br/>
-        <b>Yuvan</b><br/><br/>
+      <a href="https://www.linkedin.com/in/yuvanadarsh/">
+        <img src="docs/team-photos/yuvan_jagannathan.jpeg" height="100" width="100" style="border-radius:50%;object-fit:cover;" alt="Yuvan Adarsh Jagannathan"/><br/>
+        <b>Yuvan Adarsh Jagannathan</b><br/><br/>
         <img src="https://img.shields.io/badge/💻_engineer-27AE60?style=flat-square" alt="Engineer"/>
       </a>
     </td>

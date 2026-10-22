@@ -6,6 +6,8 @@ export const router = createRouter({
   routeTree,
   defaultPreload: "intent",
   scrollRestoration: true,
+  // Renders unknown URLs with the root's 404 page, outside the sidebar layout.
+  notFoundMode: "root",
   context: {
     auth: DefaultAuthState,
   },

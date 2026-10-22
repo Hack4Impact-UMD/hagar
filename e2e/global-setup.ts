@@ -1,6 +1,7 @@
 import {
   AUTH_HOST,
   FIRESTORE_HOST,
+  STORAGE_HOST,
   resetEmulators,
   waitForEmulator,
   warmFunction,
@@ -13,6 +14,7 @@ import {
 export default async function globalSetup() {
   await waitForEmulator(AUTH_HOST);
   await waitForEmulator(FIRESTORE_HOST);
+  await waitForEmulator(STORAGE_HOST);
   await resetEmulators();
   await warmFunction();
 }

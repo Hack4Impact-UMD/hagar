@@ -1,5 +1,13 @@
 import { expect, test } from "@playwright/test";
-import { approveUser, TEST_USER, verifyEmail } from "@e2e/emulator.ts";
+import {
+  approveUser,
+  fetchOwnProfilePhoto,
+  TEST_USER,
+  verifyEmail,
+} from "@e2e/emulator.ts";
+
+const ONE_PIXEL_PNG =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 
 test("takes a new user from sign up to the homepage", async ({ page }) => {
   // Signed out, every page leads to login.
@@ -21,7 +29,11 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   await page.getByTestId("firstName").fill("Ada");
   await page.getByTestId("lastName").fill("Lovelace");
   await page.getByTestId("phoneNumber").fill("+15555550100");
-  await page.getByTestId("photoUrl").fill("https://example.com/ada.png");
+  await page.getByTestId("photo").setInputFiles({
+    name: "ada.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(ONE_PIXEL_PNG, "base64"),
+  });
   await page.getByTestId("region").selectOption("New Zealand");
   await page.getByTestId("next").click();
 
@@ -37,6 +49,11 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   await expect(page.getByTestId("awaiting-approval")).toHaveText(
     "Waiting for admin approval. Come back later once the admin approves you!",
   );
+
+  // Storage rules let an unapproved user read only their own photo.
+  const photo = await fetchOwnProfilePhoto(TEST_USER.email, TEST_USER.password);
+  expect(photo.status).toBe(200);
+  expect(photo.headers.get("content-type")).toBe("image/png");
 
   // Onboarding pages are off limits once the user has moved past them, and
   // active-only pages are off limits until approval.
@@ -58,6 +75,11 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
     "User management",
   );
   await page.getByRole("link", { name: "Back to homepage" }).click();
+
+  await page.goto("/no-such-page");
+  await expect(page.getByTestId("not-found")).toBeVisible();
+  await page.getByRole("link", { name: "Back to homepage" }).click();
+  await expect(page.getByTestId("homepage")).toBeVisible();
 
   await page.getByTestId("sign-out").click();
   await expect(page).toHaveURL(/\/login$/);

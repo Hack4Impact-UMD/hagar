@@ -3,6 +3,7 @@ import {
   Outlet,
   redirect,
 } from "@tanstack/react-router";
+import { NotFound } from "@frontend/components/NotFound.tsx";
 import { queryClient, trpc } from "@frontend/lib/trpc.ts";
 import { redirectFor } from "@frontend/lib/userFlow.ts";
 import type { AuthState } from "@frontend/lib/useAuth.ts";
@@ -30,4 +31,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     if (to) throw redirect({ to });
   },
   component: Outlet,
+  // Every unknown URL renders here, full page (see `notFoundMode` in
+  // `router.tsx`).
+  notFoundComponent: NotFound,
 });

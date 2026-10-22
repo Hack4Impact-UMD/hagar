@@ -20,7 +20,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "checks": "pnpm run \"/^(lint|format:check|typecheck|test)$/\"",
-    "emulators": "firebase emulators:start --only auth,functions,firestore",
+    "emulators": "firebase emulators:start --only auth,functions,firestore,storage",
     "deploy": "turbo run build && firebase deploy"
   },
   "devDependencies": {
