@@ -3,6 +3,7 @@ import {
   protectedProcedure,
   router,
 } from "@backend/trpc/init.ts";
+import { campaignsRouter } from "@backend/routers/campaigns.ts";
 import { usersRouter } from "@backend/routers/users.ts";
 import { getOrCreateUserProfile } from "@backend/services/users.ts";
 
@@ -13,6 +14,7 @@ export const appRouter = router({
   ),
 
   users: usersRouter,
+  campaigns: campaignsRouter,
 });
 
 export type AppRouter = typeof appRouter;
