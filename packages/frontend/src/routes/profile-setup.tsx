@@ -246,7 +246,7 @@ function ProfileSetup() {
                 type="submit"
                 data-testid="next"
                 disabled={isPending}
-                className="h-[70px] w-[235px] cursor-pointer rounded-xl bg-[#C75C3B] text-base font-semibold text-white hover:bg-[#de9877]"
+                className="h-17.5 w-58.75 cursor-pointer rounded-xl bg-[#C75C3B] text-base font-semibold text-white hover:bg-[#de9877]"
               >
                 Finish profile
               </Button>

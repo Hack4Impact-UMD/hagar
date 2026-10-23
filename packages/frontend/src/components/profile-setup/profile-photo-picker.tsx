@@ -93,7 +93,7 @@ export function ProfilePhotoPicker({
         type="button"
         variant="outline"
         onClick={() => inputRef.current?.click()}
-        className="h-[50px] w-[162px] rounded-xl border-[2px] border-[#C75C3B] bg-white text-base font-medium text-[#C75C3B] hover:bg-[#F5DFD5]/40 hover:text-[#C75C3B] cursor-default hover:cursor-pointer"
+        className="h-12.5 w-[162px] rounded-xl border-[2px] border-[#C75C3B] bg-white text-base font-medium text-[#C75C3B] hover:bg-[#F5DFD5]/40 hover:text-[#C75C3B] cursor-default hover:cursor-pointer"
         // matches exact figma dimension
       >
         Upload photo
