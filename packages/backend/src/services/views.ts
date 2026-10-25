@@ -179,12 +179,23 @@ export function updateView(
 
 /** Changes who a view is shared with. Only its author may. */
 export function setViewShareOption(
-  _db: Firestore,
-  _actor: ActiveUserProfile,
-  _input: SetViewShareOptionInput,
+  db: Firestore,
+  actor: ActiveUserProfile,
+  input: SetViewShareOptionInput,
 ): Promise<View> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "views.setShareOption is not implemented yet.",
+  // A transaction makes the author check use the view as it is when written.
+  return db.runTransaction(async (tx) => {
+    const ref = db.collection(COLLECTION).doc(input.viewId);
+    const snapshot = await tx.get(ref);
+    if (!snapshot.exists) throw viewNotFound();
+    const stored = parseStoredView.assert(snapshot.data());
+    // Seeing comes first so a private view reads as missing, not forbidden.
+    assertCanSeeView(actor, stored);
+    assertCanShareView(actor, stored);
+
+    // Saving the same option again still counts as an update.
+    const changes = { shareOption: input.shareOption, updatedAt: nowUtc() };
+    tx.update(ref, changes);
+    return toView(ref.id, { ...stored, ...changes });
   });
 }
