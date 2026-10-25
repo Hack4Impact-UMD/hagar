@@ -146,10 +146,15 @@ export function copyView(
     const original = parseStoredView.assert(snapshot.data());
     assertCanSeeView(actor, original);
 
+    // The limit counts UTF-16 units, so the cut can land between the two halves
+    // of an emoji. A lone leading half is not valid Unicode and is lost when
+    // stored as UTF-8, so it is dropped too.
+    let name = `Copy of ${original.name}`.slice(0, MAX_NAME_LENGTH);
+    if (/[\uD800-\uDBFF]$/.test(name)) name = name.slice(0, -1);
+
     const ref = db.collection(COLLECTION).doc();
     const copy: StoredView = {
-      // Keeps the copy's name within the name length limit.
-      name: `Copy of ${original.name}`.slice(0, MAX_NAME_LENGTH),
+      name,
       authorUid: actor.uid,
       // A copy never inherits the original's sharing.
       shareOption: "PRIVATE",
