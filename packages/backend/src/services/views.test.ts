@@ -279,7 +279,7 @@ describe("getView", () => {
 });
 
 describe("createView", () => {
-  it.fails("creates a private, empty view owned by the actor", async () => {
+  it("creates a private, empty view owned by the actor", async () => {
     freezeTime();
     const { db, doc } = seeded();
 
@@ -297,7 +297,7 @@ describe("createView", () => {
     expect(doc("views", created.viewId)).toEqual(expected);
   });
 
-  it.fails("uses the charts and share option it is given", async () => {
+  it("uses the charts and share option it is given", async () => {
     const { db, doc } = seeded();
 
     const created = await createView(db, owner, {
@@ -315,7 +315,7 @@ describe("createView", () => {
     });
   });
 
-  it.fails("gives each view its own id and leaves existing views alone", async () => {
+  it("gives each view its own id and leaves existing views alone", async () => {
     const { db, doc } = seeded();
 
     const first = await createView(db, owner, { name: "One" });
@@ -325,7 +325,7 @@ describe("createView", () => {
     expect(doc("views", "minePrivate")).toEqual(VIEWS.minePrivate);
   });
 
-  it.fails("lets a Global Admin create a view", async () => {
+  it("lets a Global Admin create a view", async () => {
     const { db } = seeded();
 
     const created = await createView(db, globalAdmin, { name: "Mine" });
@@ -333,7 +333,7 @@ describe("createView", () => {
     expect(created.authorUid).toBe("global");
   });
 
-  it.fails("lets a Viewer create a view of their own", async () => {
+  it("lets a Viewer create a view of their own", async () => {
     const { db, doc } = seeded();
 
     const created = await createView(db, viewer, { name: "Mine" });
@@ -347,7 +347,7 @@ describe("createView", () => {
 });
 
 describe("copyView", () => {
-  it.fails("copies a view the actor owns, as a new private view", async () => {
+  it("copies a view the actor owns, as a new private view", async () => {
     freezeTime();
     const { db, doc } = seeded();
 
@@ -365,7 +365,7 @@ describe("copyView", () => {
     expect(doc("views", copy.viewId)).toEqual(expected);
   });
 
-  it.fails("makes the actor the author of a copy of someone else's view", async () => {
+  it("makes the actor the author of a copy of someone else's view", async () => {
     const { db } = seeded();
 
     const copy = await copyView(db, owner, { viewId: "theirsEdit" });
@@ -376,7 +376,7 @@ describe("copyView", () => {
     });
   });
 
-  it.fails("starts the copy private, whatever the original's share option", async () => {
+  it("starts the copy private, whatever the original's share option", async () => {
     const { db } = seeded();
 
     for (const viewId of ["theirsView", "theirsEdit"]) {
@@ -385,7 +385,7 @@ describe("copyView", () => {
     }
   });
 
-  it.fails("leaves the original untouched, including its update time", async () => {
+  it("leaves the original untouched, including its update time", async () => {
     const { db, doc } = seeded();
 
     await copyView(db, owner, { viewId: "theirsView" });
@@ -393,7 +393,7 @@ describe("copyView", () => {
     expect(doc("views", "theirsView")).toEqual(VIEWS.theirsView);
   });
 
-  it.fails("copies any view to a Global Admin, private ones included", async () => {
+  it("copies any view to a Global Admin, private ones included", async () => {
     const { db } = seeded();
 
     const copy = await copyView(db, globalAdmin, { viewId: "minePrivate" });
@@ -401,7 +401,7 @@ describe("copyView", () => {
     expect(copy.authorUid).toBe("global");
   });
 
-  it.fails("keeps the copy's name within the length limit", async () => {
+  it("keeps the copy's name within the length limit", async () => {
     const longName = "x".repeat(500);
     const { db } = fakeFirestore({
       views: { long: { ...storedOf("mineShared"), name: longName } },
@@ -413,7 +413,7 @@ describe("copyView", () => {
     expect(copy.name.startsWith("Copy of ")).toBe(true);
   });
 
-  it.fails("throws NOT_FOUND for someone else's private view, copying nothing", async () => {
+  it("throws NOT_FOUND for someone else's private view, copying nothing", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -422,7 +422,7 @@ describe("copyView", () => {
     expect(doc("views", "theirsPrivate")).toEqual(VIEWS.theirsPrivate);
   });
 
-  it.fails("throws NOT_FOUND for an unknown view", async () => {
+  it("throws NOT_FOUND for an unknown view", async () => {
     const { db } = seeded();
 
     await expect(
@@ -430,7 +430,7 @@ describe("copyView", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
-  it.fails("lets a Viewer copy a view they can see, as their own", async () => {
+  it("lets a Viewer copy a view they can see, as their own", async () => {
     const { db } = seeded();
 
     const copy = await copyView(db, viewer, { viewId: "theirsView" });
@@ -598,7 +598,7 @@ describe("updateView", () => {
 });
 
 describe("setViewShareOption", () => {
-  it.fails("changes the share option and stamps the update time", async () => {
+  it("changes the share option and stamps the update time", async () => {
     freezeTime();
     const { db, doc } = seeded();
 
@@ -615,7 +615,7 @@ describe("setViewShareOption", () => {
     });
   });
 
-  it.fails("can make a shared view private again", async () => {
+  it("can make a shared view private again", async () => {
     const { db } = seeded();
 
     const updated = await setViewShareOption(db, owner, {
@@ -626,7 +626,7 @@ describe("setViewShareOption", () => {
     expect(updated.shareOption).toBe("PRIVATE");
   });
 
-  it.fails("forbids anyone but the author, even on a view shared as ANYONE_EDIT", async () => {
+  it("forbids anyone but the author, even on a view shared as ANYONE_EDIT", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -638,7 +638,7 @@ describe("setViewShareOption", () => {
     expect(doc("views", "theirsEdit")).toEqual(VIEWS.theirsEdit);
   });
 
-  it.fails("lets an author who is a Viewer change it too", async () => {
+  it("lets an author who is a Viewer change it too", async () => {
     const { db } = seeded();
 
     const updated = await setViewShareOption(db, ownerAsViewer, {
@@ -649,7 +649,7 @@ describe("setViewShareOption", () => {
     expect(updated.shareOption).toBe("PRIVATE");
   });
 
-  it.fails("does not let a Global Admin change someone else's sharing", async () => {
+  it("does not let a Global Admin change someone else's sharing", async () => {
     const { db } = seeded();
 
     await expect(
@@ -660,7 +660,7 @@ describe("setViewShareOption", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it.fails("throws NOT_FOUND, not FORBIDDEN, for someone else's private view", async () => {
+  it("throws NOT_FOUND, not FORBIDDEN, for someone else's private view", async () => {
     const { db } = seeded();
 
     await expect(
@@ -671,7 +671,7 @@ describe("setViewShareOption", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
-  it.fails("throws NOT_FOUND for an unknown view", async () => {
+  it("throws NOT_FOUND for an unknown view", async () => {
     const { db } = seeded();
 
     await expect(
