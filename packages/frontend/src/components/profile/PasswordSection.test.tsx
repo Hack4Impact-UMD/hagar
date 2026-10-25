@@ -65,7 +65,7 @@ describe("old password", () => {
     await settle(200);
     expect(isCurrentPassword).toHaveBeenCalledTimes(1);
     expect(isCurrentPassword).toHaveBeenCalledWith("old");
-    expect(field("oldPassword")).toHaveAttribute("data-valid", "true");
+    expect(field("oldPassword")).toHaveAttribute("data-valid", "false");
   });
 
   it("is checked straight away when the user leaves the field", async () => {
@@ -77,7 +77,7 @@ describe("old password", () => {
     await settle(0);
 
     expect(isCurrentPassword).toHaveBeenCalledTimes(1);
-    expect(field("oldPassword")).toHaveAttribute("data-valid", "true");
+    expect(field("oldPassword")).toHaveAttribute("data-valid", "false");
   });
 
   it("is marked invalid when it is wrong", async () => {
@@ -207,6 +207,32 @@ describe("confirm password", () => {
 
     type("confirmPassword", "long enough");
     expect(field("confirmPassword")).toHaveAttribute("aria-invalid", "false");
+  });
+});
+
+describe("confirm password match", () => {
+  it("turns green when it matches a valid new password", () => {
+    renderSection();
+    type("newPassword", "long enough");
+    type("confirmPassword", "long enough");
+
+    expect(field("confirmPassword")).toHaveAttribute("data-valid", "true");
+  });
+
+  it("is not green while it differs", () => {
+    renderSection();
+    type("newPassword", "long enough");
+    type("confirmPassword", "long enougX");
+
+    expect(field("confirmPassword")).toHaveAttribute("data-valid", "false");
+  });
+
+  it("is not green when the new password is too short", () => {
+    renderSection();
+    type("newPassword", "short");
+    type("confirmPassword", "short");
+
+    expect(field("confirmPassword")).toHaveAttribute("data-valid", "false");
   });
 });
 

@@ -137,6 +137,11 @@ export function usePasswordChange() {
       confirmTouched &&
       confirmPassword !== "" &&
       confirmPassword !== newPassword,
+    // Matching an invalid new password isn't worth celebrating.
+    confirmMatches:
+      confirmPassword !== "" &&
+      confirmPassword === newPassword &&
+      isValidNewPassword(newPassword),
     canSave,
     isSaving: save.isPending,
     saveFailed: save.isError && !isWrongPassword(save.error),

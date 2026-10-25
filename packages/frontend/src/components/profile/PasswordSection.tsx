@@ -58,7 +58,6 @@ export function PasswordSection({ password, onCancel }: PasswordSectionProps) {
                 value={password.oldPassword}
                 onChange={password.changeOldPassword}
                 onBlur={password.blurOldPassword}
-                valid={password.oldStatus === "valid"}
                 invalid={
                   password.oldStatus === "invalid" ||
                   password.oldStatus === "error"
@@ -103,6 +102,7 @@ export function PasswordSection({ password, onCancel }: PasswordSectionProps) {
                 value={password.confirmPassword}
                 onChange={password.changeConfirmPassword}
                 onBlur={password.blurConfirmPassword}
+                valid={password.confirmMatches}
                 invalid={password.confirmMismatch}
               />
             </div>
