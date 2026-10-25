@@ -2,6 +2,7 @@ import {
   canEditView,
   canSeeView,
   canShareView,
+  nowUtc,
   storedView,
 } from "@repo/common";
 import type {
@@ -106,15 +107,22 @@ export function getView(
  * Creates a view owned by `actor`. It starts private with no charts unless the
  * input says otherwise. Anyone may, Viewers included.
  */
-export function createView(
-  _db: Firestore,
-  _actor: ActiveUserProfile,
-  _input: CreateViewInput,
+export async function createView(
+  db: Firestore,
+  actor: ActiveUserProfile,
+  input: CreateViewInput,
 ): Promise<View> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "views.create is not implemented yet.",
-  });
+  const ref = db.collection(COLLECTION).doc();
+  const stored: StoredView = {
+    name: input.name,
+    authorUid: actor.uid,
+    shareOption: input.shareOption ?? "PRIVATE",
+    charts: input.charts ?? [],
+    updatedAt: nowUtc(),
+  };
+  // `create` fails on an id clash instead of overwriting an existing view.
+  await ref.create(stored);
+  return toView(ref.id, stored);
 }
 
 /**
