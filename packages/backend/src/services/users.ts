@@ -1,10 +1,12 @@
-import { storedUserProfile } from "@repo/common";
+import { nowUtc, storedUserProfile } from "@repo/common";
 import type {
   ActiveUserProfile,
   CompleteProfileInput,
   Session,
   StoredUserProfile,
   UpdateProfileInput,
+  UserInfo,
+  UserInfoInput,
   UserProfile,
 } from "@repo/common";
 import { TRPCError } from "@trpc/server";
@@ -14,7 +16,7 @@ import {
   deleteProfilePhoto,
 } from "@backend/services/profilePhotos.ts";
 
-const COLLECTION = "users";
+export const COLLECTION = "users";
 
 // Drops any stray fields in the document so they never reach the client.
 export const parseStored = storedUserProfile.onUndeclaredKey("delete");
@@ -60,7 +62,7 @@ export async function getOrCreateUserProfile(
       region: null,
       // Least privilege by default. Admins are promoted explicitly.
       role: "Viewer",
-      createdAt: Date.now(),
+      createdAt: nowUtc(),
     };
     tx.create(ref, profile);
     return profile;
@@ -81,6 +83,49 @@ export async function findUserProfile(
   const snapshot = await db.collection(COLLECTION).doc(session.uid).get();
   if (!snapshot.exists) return null;
   return { uid: session.uid, ...parseOwn(snapshot.data(), session) };
+}
+
+/**
+ * Looks up the first name, last name, email and profile photo path of each
+ * requested user, so a page can show who made something such as a view. Any
+ * approved user may call it.
+ *
+ * It returns those and nothing else: no phone, role or region. The email is the
+ * copy stored on the profile, which can lag behind Firebase Auth. A user who
+ * doesn't exist, or who hasn't finished profile setup so has no name or photo
+ * yet, is left out rather than reported as an error. Repeated uids are looked
+ * up once. The order of the result is not defined.
+ */
+export async function getUserInfo(
+  db: Firestore,
+  _actor: ActiveUserProfile,
+  input: UserInfoInput,
+): Promise<UserInfo[]> {
+  const uids = [...new Set(input.uids)];
+  // `getAll` needs at least one document to read.
+  if (uids.length === 0) return [];
+
+  const snapshots = await db.getAll(
+    ...uids.map((uid) => db.collection(COLLECTION).doc(uid)),
+  );
+
+  return snapshots.flatMap((snapshot) => {
+    if (!snapshot.exists) return [];
+
+    const profile = parseStored.assert(snapshot.data());
+    if (profile.stage === "PROFILE SETUP") return [];
+
+    // Built by hand so no other field of the profile can leak through.
+    return [
+      {
+        uid: snapshot.id,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        email: profile.email,
+        photoPath: profile.photoPath,
+      },
+    ];
+  });
 }
 
 /**

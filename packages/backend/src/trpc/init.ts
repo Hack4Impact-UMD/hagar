@@ -54,6 +54,21 @@ export const activeProcedure = protectedProcedure.use(async ({ ctx, next }) => {
 });
 
 /**
+ * Callable by any approved user except a Viewer. Use it for changes to shared
+ * data that has no per-user ownership or region to check, such as campaigns.
+ */
+export const editorProcedure = activeProcedure.use(({ ctx, next }) => {
+  if (ctx.profile.role === "Viewer") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Viewers cannot make changes.",
+    });
+  }
+
+  return next();
+});
+
+/**
  * Callable only by an approved Global Admin or Local Admin.
  *
  * This only proves the caller is some kind of admin. A Local Admin may act
