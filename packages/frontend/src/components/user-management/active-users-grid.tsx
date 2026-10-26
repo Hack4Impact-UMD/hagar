@@ -59,13 +59,13 @@ export function ActiveUsersGrid({
     <div className="@container flex flex-col gap-6">
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative">
-          <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-black" />
           <Input
             type="search"
             placeholder="Search name, email or phone"
             aria-label="Search name, email or phone"
             data-testid="search-users"
-            className="h-8 w-48 bg-background pl-8"
+            className="h-8 w-[12.125rem] truncate rounded-lg border-[#E5E5E5] bg-[#F9F6F1] pl-8 text-sm leading-5 font-medium text-[#0A0A0A] shadow-none md:text-sm"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
