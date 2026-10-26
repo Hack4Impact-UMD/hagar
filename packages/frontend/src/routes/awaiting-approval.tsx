@@ -12,7 +12,7 @@ function AwaitingApproval() {
     <main className="flex min-h-svh items-center justify-center bg-onboarding-canvas p-6">
       <div className="flex w-full max-w-5xl flex-col items-center justify-center gap-4 bg-card px-6 py-16 text-center sm:min-h-180">
         <div className="flex h-37.5 w-50 items-center justify-center bg-onboarding-icon-tile">
-          <HourglassIcon aria-hidden size={160} className="text-white" />
+          <HourglassIcon aria-hidden size={160} className="text-primary" />
         </div>
         <h1 className="mt-8 text-[40px]/12 font-bold text-foreground">
           Your account is pending approval
