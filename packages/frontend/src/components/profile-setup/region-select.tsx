@@ -46,7 +46,7 @@ export function RegionSelect({ value, onChange, error }: RegionSelectProps) {
         <SelectTrigger
           id="region-trigger"
           data-testid="region"
-          className="h-14! w-full justify-center gap-2 rounded-[14px] border-gray-300 bg-white px-4 text-base text-black! shadow-none data-placeholder:text-black! **:data-[slot=select-value]:text-black! [&_span]:text-black! [&_svg]:text-black! [&_svg]:opacity-100! focus:ring-[#C75C3B]"
+          className="h-17.5! w-full justify-center gap-2 rounded-[0.625em]! border-2 border-[#D9D9D9] bg-white px-4 text-base text-black! shadow-none data-placeholder:text-black! **:data-[slot=select-value]:text-black! [&_span]:text-black! [&_svg]:text-black! [&_svg]:opacity-100! focus:ring-[#C75C3B]"
         >
           <SelectValue placeholder="Choose region" />
         </SelectTrigger>
@@ -54,13 +54,13 @@ export function RegionSelect({ value, onChange, error }: RegionSelectProps) {
         <SelectContent
           position="popper"
           sideOffset={4}
-          className="w-(--radix-select-trigger-width) rounded-[14px] border border-gray-200 bg-[#FFFFFF] p-1 text-black shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)]" // matches figma exactly!
+          className="w-(--radix-select-trigger-width) overflow-hidden rounded-[0.875em] border border-[#D9D9D9] bg-white p-0 text-black shadow-[0_0.25rem_0.25rem_0_rgba(0,0,0,0.25)]"
         >
           {SORTED_REGIONS.map((region) => (
             <SelectItem
               key={region}
               value={region}
-              className="cursor-pointer rounded-md py-1 pl-2 pr-8 text-sm text-black focus:bg-gray-100 focus:text-black"
+              className="h-7 cursor-pointer rounded-none px-4 text-sm text-black hover:bg-gray-100 focus:bg-gray-100 focus:text-black"
             >
               {getRegionLabel(region)}
             </SelectItem>
