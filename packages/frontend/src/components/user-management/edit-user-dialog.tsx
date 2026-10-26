@@ -56,7 +56,7 @@ export function EditUserDialog({
     >
       <DialogContent
         data-testid="edit-user-dialog"
-        className="sm:max-w-xl px-10"
+        className="sm:max-w-xl px-10 max-h-[calc(100dvh-2rem)] overflow-y-auto"
         showCloseButton={false}
       >
         <DialogHeader className="flex-row items-center justify-between">
@@ -66,7 +66,7 @@ export function EditUserDialog({
           <Button
             type="button"
             size="sm"
-            className="rounded-sm bg-[#DC3E42] text-white hover:bg-[#DC3E42]/90"
+            className="rounded-sm text-[0.75rem] bg-[#DC3E42] text-white hover:bg-[#DC3E42]/90"
             data-testid="edit-user-remove"
             disabled={pending}
             onClick={onRemove}
@@ -92,6 +92,10 @@ const READ_ONLY_FIELDS = [
   { key: "email", label: "Email", half: false },
   { key: "phoneNumber", label: "Phone Number", half: false },
 ] as const;
+
+const FIELD_LABEL = "flex flex-col text-sm leading-[1.75rem] text-[#464646]";
+const FIELD_BOX =
+  "rounded-[0.5rem] border-[#8A8A8A] px-3 text-sm font-medium text-black shadow-none md:text-sm";
 
 function EditUserForm({
   user,
@@ -123,34 +127,41 @@ function EditUserForm({
       }}
     >
       <fieldset disabled={pending} className="flex flex-col gap-6">
-        <div className="flex items-center gap-6 px-6 py-4">
+        <div className="flex items-center gap-3 px-6 py-4">
           <UserAvatar user={user} className="size-28" />
           <div>
-            <p className="text-lg">{fullName(user)}</p>
+            <p className="text-xl">{fullName(user)}</p>
             <p className="text-base text-[#808080]">Role: {user.role}</p>
             <p className="text-base text-[#808080]">Region: {user.region}</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-3">
           {READ_ONLY_FIELDS.map((field) => (
             <label
               key={field.key}
-              className={`flex flex-col gap-1.5 text-sm ${field.half ? "" : "col-span-2"}`}
+              className={`${FIELD_LABEL} ${field.half ? "" : "col-span-2"}`}
             >
               {field.label}
-              <Input value={user[field.key] ?? ""} readOnly disabled />
+              {/* Disabled for semantics, but drawn at full strength to match the other fields */}
+              <Input
+                value={user[field.key] ?? ""}
+                readOnly
+                disabled
+                className={`h-8 ${FIELD_BOX} disabled:cursor-default disabled:opacity-100`}
+              />
             </label>
           ))}
 
-          <div className="col-span-2 flex flex-col gap-1.5 text-sm">
+          <div className={`col-span-2 ${FIELD_LABEL}`}>
             <span id={`${id}-role`}>Role</span>
             <Select
-              value={role}
+              value={movingAway ? "Viewer" : role}
               onValueChange={(next) => setRole(next as UserRole)}
               disabled={pending || movingAway}
             >
               <SelectTrigger
+                className={`w-full data-[size=default]:h-8 ${FIELD_BOX}`}
                 aria-labelledby={`${id}-role`}
                 data-testid="edit-role"
               >
@@ -166,7 +177,7 @@ function EditUserForm({
             </Select>
           </div>
 
-          <div className="col-span-2 flex flex-col gap-1.5 text-sm">
+          <div className={`col-span-2 ${FIELD_LABEL}`}>
             <span id={`${id}-region`}>Region</span>
             <Select
               value={region}
@@ -174,6 +185,7 @@ function EditUserForm({
               disabled={pending}
             >
               <SelectTrigger
+                className={`w-full data-[size=default]:h-8 ${FIELD_BOX}`}
                 aria-labelledby={`${id}-region`}
                 data-testid="edit-region"
               >
@@ -188,7 +200,10 @@ function EditUserForm({
               </SelectContent>
             </Select>
             {movingAway ? (
-              <p role="alert" className="text-destructive">
+              <p
+                role="alert"
+                className="mt-1.5 text-sm leading-normal text-destructive"
+              >
                 {user.firstName} will lose their role and need to be approved
                 again by an admin in {region}.
               </p>
@@ -201,7 +216,7 @@ function EditUserForm({
             <Button
               type="button"
               size="sm"
-              className="rounded-sm border-[#C75C3B] bg-white text-[#C75C3B] hover:bg-[#C75C3B]/10 hover:text-[#C75C3B]"
+              className="rounded-sm text-[0.875rem] border-[#C75C3B] bg-white text-[#C75C3B] hover:bg-[#C75C3B]/10 hover:text-[#C75C3B]"
               variant="outline"
             >
               Cancel
@@ -210,7 +225,7 @@ function EditUserForm({
           <Button
             type="submit"
             size="sm"
-            className="rounded-sm bg-[#C75C3B] text-white hover:bg-[#C75C3B]/90"
+            className="rounded-sm text-[0.875rem] bg-[#C75C3B] text-white hover:bg-[#C75C3B]/90"
             data-testid="edit-user-save"
           >
             {pending ? <CircleNotchIcon className="animate-spin" /> : null}
