@@ -82,7 +82,11 @@ function ProfileSetup() {
       {/* figma shows 36px (pt-9), 28px (px-7) */}
       <header className="flex items-center justify-between px-7 pt-9">
         <div className="flex items-center">
-          <img src="/logo.png" alt="Hagar Logo" className="h-17 w-38.25 object-contain" />
+          <img
+            src="/logo.png"
+            alt="Hagar Logo"
+            className="h-17 w-38.25 object-contain"
+          />
         </div>
 
         <Button
