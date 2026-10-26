@@ -1,4 +1,6 @@
+import { HourglassIcon } from "@phosphor-icons/react";
 import { createFileRoute } from "@tanstack/react-router";
+import { Button } from "@frontend/components/ui/button.tsx";
 import { auth } from "@frontend/lib/firebase.ts";
 
 export const Route = createFileRoute("/awaiting-approval")({
@@ -7,19 +9,31 @@ export const Route = createFileRoute("/awaiting-approval")({
 
 function AwaitingApproval() {
   return (
-    <main className="flex flex-col gap-4 p-6">
-      <h1>Awaiting approval</h1>
-      <p data-testid="awaiting-approval">
-        Waiting for admin approval. Come back later once the admin approves you!
-      </p>
-      <button
-        type="button"
-        data-testid="sign-out"
-        onClick={() => void auth.signOut()}
-        className="self-start border px-3 py-1"
-      >
-        Sign out
-      </button>
+    <main className="flex min-h-svh items-center justify-center bg-onboarding-canvas p-6">
+      <div className="flex w-full max-w-5xl flex-col items-center justify-center gap-4 bg-card px-6 py-16 text-center sm:min-h-180">
+        <div className="flex h-37.5 w-50 items-center justify-center bg-onboarding-icon-tile">
+          <HourglassIcon aria-hidden size={160} className="text-white" />
+        </div>
+        <h1 className="mt-8 text-[40px]/12 font-bold text-foreground">
+          Your account is pending approval
+        </h1>
+        <p
+          data-testid="awaiting-approval"
+          className="mt-6 max-w-122.5 text-lg/5.5 text-foreground"
+        >
+          Thanks for signing up! An admin needs to approve your account and
+          assign you a role before you can access Hagar.
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          data-testid="sign-out"
+          onClick={() => void auth.signOut()}
+          className="mt-8 h-17.5 w-full max-w-82.25 rounded-[10px] border-primary bg-background text-base font-bold text-primary hover:bg-background hover:text-primary"
+        >
+          Log out
+        </Button>
+      </div>
     </main>
   );
 }

@@ -47,7 +47,7 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
 
   await expect(page).toHaveURL(/\/awaiting-approval$/);
   await expect(page.getByTestId("awaiting-approval")).toHaveText(
-    "Waiting for admin approval. Come back later once the admin approves you!",
+    "Thanks for signing up! An admin needs to approve your account and assign you a role before you can access Hagar.",
   );
 
   // Storage rules let an unapproved user read only their own photo.
