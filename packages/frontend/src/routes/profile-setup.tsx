@@ -40,7 +40,7 @@ function ProfileSetup() {
   const isPending = uploadPhoto.isPending || completeProfile.isPending;
   const error = uploadPhoto.error ?? completeProfile.error;
 
-  const handleSubmit = (event: React.SubmitEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const form = new FormData(event.currentTarget);
@@ -78,10 +78,11 @@ function ProfileSetup() {
   };
 
   return (
-    <main className="min-h-screen bg-white px-8 py-8 md:px-16 md:py-12">
-      <header className="mb-14 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <img src="/logo.png" alt="Hagar Logo" className="w-[153px]" />
+    <main className="min-h-screen bg-white">
+      {/* figma shows 36px (pt-9), 28px (px-7) */}
+      <header className="flex items-center justify-between px-7 pt-9">
+        <div className="flex items-center">
+          <img src="/logo.png" alt="Hagar Logo" className="h-17 w-38.25 object-contain" />
         </div>
 
         <Button
@@ -95,12 +96,13 @@ function ProfileSetup() {
         </Button>
       </header>
 
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-12">
-          <h1 className="text-4xl font-bold tracking-tight text-[#1C1917]">
+      <div className="px-8 pt-8 pb-12 md:px-16 lg:px-37 lg:pt-15.75">
+        {/* shifts 48px left from 148px -> exact 100px Left position */}
+        <div className="mb-15.75 lg:-ml-12">
+          <h1 className="text-[2.5em] font-bold tracking-tight text-[#1C1917]">
             Finish your profile
           </h1>
-          <p className="mt-2 text-base text-[#1C1917]">
+          <p className="mt-2 text-lg text-[#1C1917]">
             You can change this later.
           </p>
         </div>
@@ -108,7 +110,7 @@ function ProfileSetup() {
         <form
           noValidate
           onSubmit={handleSubmit}
-          className="grid grid-cols-1 items-start gap-12 lg:grid-cols-[260px_1fr]"
+          className="grid grid-cols-1 items-start gap-26.75 lg:grid-cols-[16.875rem_1fr]"
         >
           <ProfilePhotoPicker
             file={photo}
@@ -122,8 +124,8 @@ function ProfileSetup() {
             }}
           />
 
-          <div className="flex flex-col gap-8">
-            <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
+          <div className="flex flex-col">
+            <div className="grid grid-cols-1 gap-x-13 gap-y-6 sm:grid-cols-2">
               <div className="flex flex-col gap-2">
                 <Label
                   htmlFor="firstName"
@@ -148,7 +150,7 @@ function ProfileSetup() {
                       }));
                     }
                   }}
-                  className="h-14 rounded-xl border-gray-300 px-4 text-base shadow-none"
+                  className="h-17.5 rounded-[0.625em] border-2 border-[#D9D9D9] px-4 text-base shadow-none"
                 />
                 {fieldErrors.firstName && (
                   <p role="alert" className="text-sm text-red-600">
@@ -181,7 +183,7 @@ function ProfileSetup() {
                       }));
                     }
                   }}
-                  className="h-14 rounded-xl border-gray-300 px-4 text-base shadow-none"
+                  className="h-17.5 rounded-[0.625em] border-2 border-[#D9D9D9] px-4 text-base shadow-none"
                 />
                 {fieldErrors.lastName && (
                   <p role="alert" className="text-sm text-red-600">
@@ -225,7 +227,7 @@ function ProfileSetup() {
                       }));
                     }
                   }}
-                  className="h-14 rounded-xl border-gray-300 px-4 text-base shadow-none"
+                  className="h-17.5 rounded-[0.625em] border-2 border-[#D9D9D9] px-4 text-base shadow-none"
                 />
                 {fieldErrors.phoneNumber && (
                   <p role="alert" className="text-sm text-red-600">
@@ -236,12 +238,12 @@ function ProfileSetup() {
             </div>
 
             {error ? (
-              <p role="alert" className="text-sm text-red-600">
+              <p role="alert" className="mt-4 text-sm text-red-600">
                 {error.message}
               </p>
             ) : null}
 
-            <div className="mt-4 flex justify-end">
+            <div className="mt-18.5 flex justify-end">
               <Button
                 type="submit"
                 data-testid="next"

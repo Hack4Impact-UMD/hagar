@@ -52,7 +52,9 @@ export function ProfilePhotoPicker({
   return (
     <div className="flex flex-col items-center gap-6">
       {/* circular icon and preview */}
-      <div className="relative flex h-56 w-56 items-center justify-center overflow-hidden rounded-full bg-[#F1DED2]">
+      <div className="flex flex-col items-center gap-9.25">
+      {/* circular icon and preview */}
+      <div className="relative flex h-67.5 w-67.5 items-center justify-center overflow-hidden rounded-full bg-[#F1DED2]">
         {previewUrl ? (
           <img
             src={previewUrl}
@@ -62,21 +64,21 @@ export function ProfilePhotoPicker({
         ) : (
           /* orange outline matching figma */
           <svg
-            viewBox="0 0 100 100"
-            className="h-36 w-36 text-[#C75C3B]"
+            viewBox="0 0 190 190"
+            className="h-47.5 w-47.5 text-[#C75C3B]"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2.5"
+            strokeWidth="3.5"
             strokeLinecap="round"
+            strokeLinejoin="round"
           >
             {/* head */}
-            <circle cx="50" cy="30" r="16" />
+            <circle cx="95" cy="55.42" r="31.67" />
             {/* shoulders + extended vertical sides */}
-            <path d="M 16 86 V 74 C 16 58, 84 58, 84 74 V 86" />
+            <path d="M 31.67 166.25 V 150.42 C 31.67 132.93 45.84 118.75 63.33 118.75 H 126.67 C 144.16 118.75 158.33 132.93 158.33 150.42 V 166.25" />
           </svg>
         )}
       </div>
-
       {/* hiddenfile input for e2e tests and form submission */}
       <input
         ref={inputRef}
@@ -93,7 +95,7 @@ export function ProfilePhotoPicker({
         type="button"
         variant="outline"
         onClick={() => inputRef.current?.click()}
-        className="h-12.5 w-[162px] rounded-xl border-[2px] border-[#C75C3B] bg-white text-base font-medium text-[#C75C3B] hover:bg-[#F5DFD5]/40 hover:text-[#C75C3B] cursor-default hover:cursor-pointer"
+        className="h-12.5 w-40.5 rounded-xl border-2 border-[#C75C3B] bg-white text-base font-medium text-[#C75C3B] hover:bg-[#F5DFD5]/40 hover:text-[#C75C3B] cursor-default hover:cursor-pointer"
         // matches exact figma dimension
       >
         Upload photo
@@ -102,11 +104,13 @@ export function ProfilePhotoPicker({
       {error && (
         <p
           role="alert"
-          className="max-w-[220px] text-center text-sm text-red-600"
+          className="max-w-55 text-center text-sm text-red-600"
         >
           {error}
         </p>
       )}
+      </div>
     </div>
   );
+ 
 }
