@@ -43,7 +43,7 @@ export function ApproveDialog({
       confirmLabel="Approve"
       onConfirm={() => onApprove(role)}
     >
-      <div className="flex items-center justify-between gap-4 text-sm">
+      <div className="flex items-center justify-between text-[0.9375rem] leading-[1.45]">
         <span id={labelId}>Role</span>
         <Select
           value={role}
@@ -51,7 +51,7 @@ export function ApproveDialog({
           onValueChange={(next) => setRole(next as UserRole)}
         >
           <SelectTrigger
-            className="w-44"
+            className="w-40 text-[0.9375rem] data-[size=default]:h-9"
             aria-labelledby={labelId}
             data-testid="approve-role-select"
           >

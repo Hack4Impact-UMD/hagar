@@ -43,21 +43,30 @@ export function ConfirmDialog({
         if (!pending) onOpenChange(next);
       }}
     >
-      <AlertDialogContent data-testid="confirm-dialog">
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
+      <AlertDialogContent
+        data-testid="confirm-dialog"
+        className="gap-3 rounded-[0.75rem] bg-white p-5 shadow-[0_12px_32px_0_rgba(0,0,0,0.16)] sm:max-w-[28rem]"
+      >
+        <AlertDialogHeader className="place-items-start gap-2 text-left">
+          <AlertDialogTitle className="text-[1.0625rem] leading-normal font-semibold text-[#1F1F1F]">
+            {title}
+          </AlertDialogTitle>
+          <AlertDialogDescription className="text-[0.9375rem] leading-[1.45] text-pretty text-[#6B6B6B]">
+            {description}
+          </AlertDialogDescription>
         </AlertDialogHeader>
         {children}
-        <AlertDialogFooter>
+        <AlertDialogFooter className="gap-3">
           <AlertDialogCancel
             data-testid="confirm-dialog-cancel"
+            className="h-auto rounded-[0.5rem] border-[#D9D4CE] bg-white px-4 py-2 text-sm leading-normal"
             disabled={pending}
           >
             Cancel
           </AlertDialogCancel>
           <AlertDialogAction
             data-testid="confirm-dialog-confirm"
+            className="h-auto rounded-[0.5rem] px-4 py-2 text-sm leading-normal"
             variant={destructive ? "destructive" : "default"}
             disabled={pending}
             onClick={(event) => {
