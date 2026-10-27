@@ -44,7 +44,7 @@ function user(
 ): [string, StoredUserProfile] {
   const base = {
     email: `${uid}@example.com`,
-    createdAt: nextCreatedAt++,
+    createdAt: new Date(nextCreatedAt++).toISOString(),
   };
   if (fields.stage === "PROFILE SETUP") {
     return [

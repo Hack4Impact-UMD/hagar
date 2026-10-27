@@ -1,4 +1,4 @@
-import type { ActiveUserProfile } from "@repo/common";
+import type { ActiveUserProfile, StoredUserProfile } from "@repo/common";
 import type { Firestore } from "firebase-admin/firestore";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeFirestore } from "@backend/testing/fakeFirestore.ts";
@@ -6,6 +6,7 @@ import {
   completeProfile,
   findUserProfile,
   getOrCreateUserProfile,
+  getUserInfo,
   updateProfile,
 } from "@backend/services/users.ts";
 
@@ -61,7 +62,7 @@ const settingUp = {
   lastName: null,
   region: null,
   role: "Viewer",
-  createdAt: 1,
+  createdAt: "2024-01-01T00:00:00.000Z",
 };
 
 describe("getOrCreateUserProfile", () => {
@@ -86,7 +87,7 @@ describe("getOrCreateUserProfile", () => {
         stage: "ACTIVE",
         region: "New Zealand",
         role: "Local Admin",
-        createdAt: 1,
+        createdAt: "2024-01-01T00:00:00.000Z",
         legacy: "stray",
       },
     });
@@ -160,7 +161,7 @@ describe("findUserProfile", () => {
       ...details,
       stage: "ACTIVE",
       role: "Viewer",
-      createdAt: 1,
+      createdAt: "2024-01-01T00:00:00.000Z",
     };
     const { db, docs } = fakeDb({ "user-1": stored });
 
@@ -194,7 +195,7 @@ describe("completeProfile", () => {
       email: "demo@example.com",
       stage: "EMAIL VERIFICATION",
       role: "Viewer",
-      createdAt: 1,
+      createdAt: "2024-01-01T00:00:00.000Z",
     });
   });
 
@@ -274,7 +275,7 @@ describe("updateProfile", () => {
     email: "demo@example.com",
     stage: "ACTIVE",
     role: "Local Admin",
-    createdAt: 1,
+    createdAt: "2024-01-01T00:00:00.000Z",
   } as const;
   const profile: ActiveUserProfile = { uid: "user-1", ...active };
 
@@ -360,5 +361,190 @@ describe("updateProfile", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     expect(doc("users", "user-1")).toEqual(awaiting);
     expect(photos.deleteProfilePhoto).not.toHaveBeenCalled();
+  });
+});
+
+function photoOf(uid: string) {
+  return `profile-photos/${uid}/123e4567-e89b-42d3-a456-426614174000.png`;
+}
+
+function completeUser(
+  uid: string,
+  stage: "ACTIVE" | "AWAITING APPROVAL",
+  firstName: string,
+  lastName: string,
+): StoredUserProfile {
+  return {
+    email: `${uid}@example.com`,
+    role: "Viewer",
+    createdAt: "2024-01-01T00:00:00.000Z",
+    stage,
+    photoPath: photoOf(uid),
+    phoneNumber: "+15555550100",
+    firstName,
+    lastName,
+    region: "US",
+  };
+}
+
+const INFO_USERS: Record<string, StoredUserProfile> = {
+  ada: completeUser("ada", "ACTIVE", "Ada", "Lovelace"),
+  grace: completeUser("grace", "AWAITING APPROVAL", "Grace", "Hopper"),
+  // Still setting up, so there is no name or photo to show yet.
+  newcomer: {
+    email: "new@example.com",
+    role: "Viewer",
+    createdAt: "2024-01-01T00:00:00.000Z",
+    stage: "PROFILE SETUP",
+    photoPath: null,
+    phoneNumber: null,
+    firstName: null,
+    lastName: null,
+    region: null,
+  },
+};
+
+const ADA = {
+  uid: "ada",
+  firstName: "Ada",
+  lastName: "Lovelace",
+  email: "ada@example.com",
+  photoPath: photoOf("ada"),
+};
+const GRACE = {
+  uid: "grace",
+  firstName: "Grace",
+  lastName: "Hopper",
+  email: "grace@example.com",
+  photoPath: photoOf("grace"),
+};
+
+/** The profile the middleware would hand the service. */
+function callerAs(role: ActiveUserProfile["role"]): ActiveUserProfile {
+  return {
+    uid: "caller",
+    email: "caller@example.com",
+    role,
+    createdAt: "2024-01-01T00:00:00.000Z",
+    stage: "ACTIVE",
+    photoPath: photoOf("caller"),
+    phoneNumber: "+15555550100",
+    firstName: "Caller",
+    lastName: "Person",
+    region: "US",
+  };
+}
+
+function byUid(infos: { uid: string }[]) {
+  return infos.toSorted((a, b) => a.uid.localeCompare(b.uid));
+}
+
+describe("getUserInfo", () => {
+  it("returns the names, email and photo path of each requested user", async () => {
+    const { db } = fakeFirestore({ users: INFO_USERS });
+
+    const infos = await getUserInfo(db, callerAs("Viewer"), {
+      uids: ["ada", "grace"],
+    });
+
+    expect(byUid(infos)).toEqual([ADA, GRACE]);
+  });
+
+  it("returns the first and last name in separate fields", async () => {
+    const { db } = fakeFirestore({ users: INFO_USERS });
+
+    const infos = await getUserInfo(db, callerAs("Viewer"), { uids: ["ada"] });
+
+    expect(infos[0]?.firstName).toBe("Ada");
+    expect(infos[0]?.lastName).toBe("Lovelace");
+  });
+
+  it("returns the email stored on the profile", async () => {
+    const { db } = fakeFirestore({ users: INFO_USERS });
+
+    const infos = await getUserInfo(db, callerAs("Viewer"), { uids: ["ada"] });
+
+    expect(infos[0]?.email).toBe("ada@example.com");
+  });
+
+  it("returns only the uid, names, email and photo path, nothing else about the user", async () => {
+    const { db } = fakeFirestore({ users: INFO_USERS });
+
+    const infos = await getUserInfo(db, callerAs("Viewer"), { uids: ["ada"] });
+
+    expect(infos).toEqual([ADA]);
+    expect(Object.keys(infos[0] ?? {}).toSorted()).toEqual([
+      "email",
+      "firstName",
+      "lastName",
+      "photoPath",
+      "uid",
+    ]);
+  });
+
+  it("returns only the users that were asked for", async () => {
+    const { db } = fakeFirestore({ users: INFO_USERS });
+
+    const infos = await getUserInfo(db, callerAs("Viewer"), { uids: ["ada"] });
+
+    expect(infos.map((info) => info.uid)).toEqual(["ada"]);
+  });
+
+  it("leaves out users who don't exist", async () => {
+    const { db } = fakeFirestore({ users: INFO_USERS });
+
+    const infos = await getUserInfo(db, callerAs("Viewer"), {
+      uids: ["ada", "nobody"],
+    });
+
+    expect(infos).toEqual([ADA]);
+  });
+
+  it("leaves out users who haven't finished profile setup", async () => {
+    const { db } = fakeFirestore({ users: INFO_USERS });
+
+    const infos = await getUserInfo(db, callerAs("Viewer"), {
+      uids: ["newcomer", "ada"],
+    });
+
+    expect(infos).toEqual([ADA]);
+  });
+
+  it("includes users who are awaiting approval but have a name and photo", async () => {
+    const { db } = fakeFirestore({ users: INFO_USERS });
+
+    const infos = await getUserInfo(db, callerAs("Viewer"), {
+      uids: ["grace"],
+    });
+
+    expect(infos).toEqual([GRACE]);
+  });
+
+  it("returns each user once however often their uid is repeated", async () => {
+    const { db } = fakeFirestore({ users: INFO_USERS });
+
+    const infos = await getUserInfo(db, callerAs("Viewer"), {
+      uids: ["ada", "ada", "ada"],
+    });
+
+    expect(infos).toEqual([ADA]);
+  });
+
+  it("returns an empty list for no uids", async () => {
+    const { db } = fakeFirestore({ users: INFO_USERS });
+
+    await expect(
+      getUserInfo(db, callerAs("Viewer"), { uids: [] }),
+    ).resolves.toEqual([]);
+  });
+
+  it("works for every role", async () => {
+    const { db } = fakeFirestore({ users: INFO_USERS });
+
+    for (const role of ["Viewer", "Local Admin", "Global Admin"] as const) {
+      await expect(
+        getUserInfo(db, callerAs(role), { uids: ["ada"] }),
+      ).resolves.toEqual([ADA]);
+    }
   });
 });

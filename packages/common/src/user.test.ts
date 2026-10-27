@@ -8,8 +8,11 @@ import {
   listUsersInput,
   setUserRegionInput,
   setUserRoleInput,
+  MAX_USER_INFO,
   storedUserProfile,
   updateProfileInput,
+  userInfo,
+  userInfoInput,
   userRegion,
   userRole,
   userStage,
@@ -33,7 +36,7 @@ const settingUp = {
   lastName: null,
   region: null,
   role: "Viewer",
-  createdAt: 1,
+  createdAt: "2024-01-01T00:00:00.000Z",
 };
 
 describe("user schemas", () => {
@@ -165,12 +168,59 @@ describe("profile page schema", () => {
       ["role", "Global Admin"],
       ["stage", "ACTIVE"],
       ["email", "other@example.com"],
-      ["createdAt", 0],
+      ["createdAt", "2024-01-01T00:00:00.000Z"],
     ] as const) {
       expect(updateProfileInput({ [field]: value })).toBeInstanceOf(
         type.errors,
       );
     }
+  });
+});
+
+describe("user info schemas", () => {
+  it("accepts a list of uids, including none", () => {
+    expect(userInfoInput({ uids: ["user-1", "user-2"] })).toEqual({
+      uids: ["user-1", "user-2"],
+    });
+    expect(userInfoInput({ uids: [] })).toEqual({ uids: [] });
+  });
+
+  it("caps how many users one lookup covers", () => {
+    const atCap = Array.from({ length: MAX_USER_INFO }, (_, i) => `u${i}`);
+    expect(userInfoInput({ uids: atCap })).toEqual({ uids: atCap });
+    expect(userInfoInput({ uids: [...atCap, "one-more"] })).toBeInstanceOf(
+      type.errors,
+    );
+  });
+
+  it("rejects an empty uid, a missing list and undeclared keys", () => {
+    for (const input of [
+      { uids: [""] },
+      { uids: ["x".repeat(129)] },
+      {},
+      { uids: ["user-1"], extra: 1 },
+    ]) {
+      expect(userInfoInput(input)).toBeInstanceOf(type.errors);
+    }
+  });
+
+  it("describes a user with only a uid, names, an email and a photo path", () => {
+    const info = {
+      uid: "user-1",
+      firstName: "Ada",
+      lastName: "Lovelace",
+      email: "ada@example.com",
+      photoPath: details.photoPath,
+    };
+    expect(userInfo(info)).toEqual(info);
+    expect(userInfo({ ...info, photoPath: "not a path" })).toBeInstanceOf(
+      type.errors,
+    );
+    expect(userInfo({ uid: "user-1", firstName: "Ada" })).toBeInstanceOf(
+      type.errors,
+    );
+    const { email: _email, ...withoutEmail } = info;
+    expect(userInfo(withoutEmail)).toBeInstanceOf(type.errors);
   });
 });
 
