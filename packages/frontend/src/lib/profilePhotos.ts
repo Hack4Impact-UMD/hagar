@@ -18,7 +18,7 @@ export function profilePhotoProblem(file: File): string | null {
   if (!isProfilePhotoType(file.type)) {
     return "Choose a PNG, JPEG, or WebP image.";
   }
-  if (file.size > MAX_PROFILE_PHOTO_BYTES) {
+  if (file.size >= MAX_PROFILE_PHOTO_BYTES) {
     return "Choose an image under 5 MB.";
   }
   return null;
