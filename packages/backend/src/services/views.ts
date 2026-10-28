@@ -80,6 +80,10 @@ export function assertCanShareView(
   }
 }
 
+export function assertValidViewId(viewId: string): void {
+  if (viewId.includes("/")) throw viewNotFound();
+}
+
 /**
  * Lists every view `actor` can see: their own, and everyone else's that are
  * shared. A Global Admin sees every view. Most recently updated first. No
@@ -124,6 +128,7 @@ export async function getView(
   _actor: ActiveUserProfile,
   _input: GetViewInput,
 ): Promise<View> {
+  assertValidViewId(_input.viewId);
   const entry = await _db.collection(COLLECTION).doc(_input.viewId).get();
   if (!entry.exists) throw viewNotFound();
 
@@ -178,6 +183,7 @@ export function updateView(
   //   message: "views.update is not implemented yet.",
   // });
   return _db.runTransaction(async (tx) => {
+    assertValidViewId(_input.viewId);
     const ref = _db.collection(COLLECTION).doc(_input.viewId);
     const snap = await tx.get(ref);
     if (!snap.exists) throw viewNotFound();
