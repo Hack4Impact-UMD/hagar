@@ -1,4 +1,9 @@
-import { storedCampaign } from "@repo/common";
+import {
+  storedCampaign,
+  nowUtc,
+  withUtmCode,
+  withoutUtmCode,
+} from "@repo/common";
 import type {
   ActiveUserProfile,
   Campaign,
@@ -66,9 +71,16 @@ export function setCampaignNotes(
   _actor: ActiveUserProfile,
   _input: SetCampaignNotesInput,
 ): Promise<Campaign> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "campaigns.setNotes is not implemented yet.",
+  const ref = _db.collection(COLLECTION).doc(_input.campaignId);
+
+  return _db.runTransaction(async (tx) => {
+    const snapshot = await tx.get(ref);
+    if (!snapshot.exists) throw campaignNotFound();
+    const current = parseStoredCampaign.assert(snapshot.data());
+
+    const changes = { notes: _input.notes, updatedAt: nowUtc() };
+    tx.update(ref, changes);
+    return toCampaign(ref.id, { ...current, ...changes });
   });
 }
 
@@ -109,9 +121,19 @@ export function addUtmCode(
   _actor: ActiveUserProfile,
   _input: UtmCodeInput,
 ): Promise<Campaign> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "campaigns.addUtmCode is not implemented yet.",
+  const ref = _db.collection(COLLECTION).doc(_input.campaignId);
+
+  return _db.runTransaction(async (tx) => {
+    const snapshot = await tx.get(ref);
+    if (!snapshot.exists) throw campaignNotFound();
+    const current = parseStoredCampaign.assert(snapshot.data());
+
+    const next = withUtmCode(current, _input.utmCode);
+    if (next === current) return toCampaign(ref.id, current);
+
+    const changes = { utmCodes: next.utmCodes, updatedAt: nowUtc() };
+    tx.update(ref, changes);
+    return toCampaign(ref.id, { ...current, ...changes });
   });
 }
 
@@ -121,8 +143,18 @@ export function removeUtmCode(
   _actor: ActiveUserProfile,
   _input: UtmCodeInput,
 ): Promise<Campaign> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "campaigns.removeUtmCode is not implemented yet.",
+  const ref = _db.collection(COLLECTION).doc(_input.campaignId);
+
+  return _db.runTransaction(async (tx) => {
+    const snapshot = await tx.get(ref);
+    if (!snapshot.exists) throw campaignNotFound();
+    const current = parseStoredCampaign.assert(snapshot.data());
+
+    const next = withoutUtmCode(current, _input.utmCode);
+    if (next === current) return toCampaign(ref.id, current);
+
+    const changes = { utmCodes: next.utmCodes, updatedAt: nowUtc() };
+    tx.update(ref, changes);
+    return toCampaign(ref.id, { ...current, ...changes });
   });
 }

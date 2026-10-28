@@ -168,7 +168,7 @@ describe("getCampaign", () => {
 });
 
 describe("setCampaignNotes", () => {
-  it.fails("replaces the notes and stamps the update time", async () => {
+  it("replaces the notes and stamps the update time", async () => {
     freezeTime();
     const { db, doc } = seeded();
 
@@ -189,7 +189,7 @@ describe("setCampaignNotes", () => {
     });
   });
 
-  it.fails("leaves every other campaign untouched", async () => {
+  it("leaves every other campaign untouched", async () => {
     const { db, doc } = seeded();
 
     await setCampaignNotes(db, admin, { campaignId: "middle", notes: "New" });
@@ -198,7 +198,7 @@ describe("setCampaignNotes", () => {
     expect(doc("campaigns", "oldest")).toEqual(CAMPAIGNS.oldest);
   });
 
-  it.fails("clears the notes when given an empty string", async () => {
+  it("clears the notes when given an empty string", async () => {
     const { db } = seeded();
 
     const updated = await setCampaignNotes(db, admin, {
@@ -209,7 +209,7 @@ describe("setCampaignNotes", () => {
     expect(updated.notes).toBe("");
   });
 
-  it.fails("lets a Global Admin edit too", async () => {
+  it("lets a Global Admin edit too", async () => {
     const { db } = seeded();
 
     const updated = await setCampaignNotes(db, actor("Global Admin"), {
@@ -220,7 +220,7 @@ describe("setCampaignNotes", () => {
     expect(updated.notes).toBe("Hello");
   });
 
-  it.fails("throws NOT_FOUND for an unknown campaign, creating nothing", async () => {
+  it("throws NOT_FOUND for an unknown campaign, creating nothing", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -354,7 +354,7 @@ describe("removeLinkedItem", () => {
 });
 
 describe("addUtmCode", () => {
-  it.fails("appends the code and stamps the update time", async () => {
+  it("appends the code and stamps the update time", async () => {
     freezeTime();
     const { db, doc } = seeded();
 
@@ -368,7 +368,7 @@ describe("addUtmCode", () => {
     expect(doc("campaigns", "middle")).toMatchObject({ utmCodes });
   });
 
-  it.fails("adds a code to a campaign that had none", async () => {
+  it("adds a code to a campaign that had none", async () => {
     const { db } = seeded();
 
     const updated = await addUtmCode(db, admin, {
@@ -379,7 +379,7 @@ describe("addUtmCode", () => {
     expect(updated.utmCodes).toEqual(["winter"]);
   });
 
-  it.fails("changes nothing when the code already exists", async () => {
+  it("changes nothing when the code already exists", async () => {
     freezeTime();
     const { db, doc } = seeded();
 
@@ -392,7 +392,7 @@ describe("addUtmCode", () => {
     expect(doc("campaigns", "middle")).toEqual(CAMPAIGNS.middle);
   });
 
-  it.fails("treats a code that differs only in case as a different code", async () => {
+  it("treats a code that differs only in case as a different code", async () => {
     const { db } = seeded();
 
     const updated = await addUtmCode(db, admin, {
@@ -403,7 +403,7 @@ describe("addUtmCode", () => {
     expect(updated.utmCodes).toEqual(["spring_launch", "Spring_Launch"]);
   });
 
-  it.fails("throws NOT_FOUND for an unknown campaign", async () => {
+  it("throws NOT_FOUND for an unknown campaign", async () => {
     const { db } = seeded();
 
     await expect(
@@ -413,7 +413,7 @@ describe("addUtmCode", () => {
 });
 
 describe("removeUtmCode", () => {
-  it.fails("removes only the matching code and stamps the update time", async () => {
+  it("removes only the matching code and stamps the update time", async () => {
     freezeTime();
     const { db, doc } = seeded();
 
@@ -427,7 +427,7 @@ describe("removeUtmCode", () => {
     expect(doc("campaigns", "newest")).toMatchObject({ utmCodes });
   });
 
-  it.fails("changes nothing when the campaign does not have the code", async () => {
+  it("changes nothing when the campaign does not have the code", async () => {
     freezeTime();
     const { db, doc } = seeded();
 
@@ -440,7 +440,7 @@ describe("removeUtmCode", () => {
     expect(doc("campaigns", "middle")).toEqual(CAMPAIGNS.middle);
   });
 
-  it.fails("matches the code exactly, including case", async () => {
+  it("matches the code exactly, including case", async () => {
     const { db } = seeded();
 
     const updated = await removeUtmCode(db, admin, {
@@ -451,7 +451,7 @@ describe("removeUtmCode", () => {
     expect(updated.utmCodes).toEqual(["spring_launch"]);
   });
 
-  it.fails("throws NOT_FOUND for an unknown campaign", async () => {
+  it("throws NOT_FOUND for an unknown campaign", async () => {
     const { db } = seeded();
 
     await expect(
