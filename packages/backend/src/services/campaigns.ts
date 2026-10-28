@@ -38,26 +38,26 @@ export function campaignNotFound(): TRPCError {
 }
 
 /** Lists every campaign, most recently updated first. */
-export function listCampaigns(
+export async function listCampaigns(
   _db: Firestore,
   _actor: ActiveUserProfile,
 ): Promise<Campaign[]> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "campaigns.list is not implemented yet.",
-  });
+  const snapshot = await _db
+    .collection(COLLECTION)
+    .orderBy("updatedAt", "desc")
+    .get();
+  return snapshot.docs.map((doc) => toCampaign(doc.id, doc.data()));
 }
 
 /** Returns one campaign, or throws `NOT_FOUND`. */
-export function getCampaign(
+export async function getCampaign(
   _db: Firestore,
   _actor: ActiveUserProfile,
   _input: GetCampaignInput,
 ): Promise<Campaign> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "campaigns.get is not implemented yet.",
-  });
+  const doc = await _db.collection(COLLECTION).doc(_input.campaignId).get();
+  if (!doc.exists) throw campaignNotFound();
+  return toCampaign(doc.id, doc.data());
 }
 
 /** Replaces a campaign's notes and bumps `updatedAt`. */

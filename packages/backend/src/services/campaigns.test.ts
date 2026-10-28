@@ -110,7 +110,7 @@ describe("campaignNotFound", () => {
 });
 
 describe("listCampaigns", () => {
-  it.fails("lists every campaign, most recently updated first", async () => {
+  it("lists every campaign, most recently updated first", async () => {
     const { db } = seeded();
 
     const campaigns = await listCampaigns(db, admin);
@@ -122,7 +122,7 @@ describe("listCampaigns", () => {
     ]);
   });
 
-  it.fails("lists campaigns for a Viewer too", async () => {
+  it("lists campaigns for a Viewer too", async () => {
     const { db } = seeded();
 
     const campaigns = await listCampaigns(db, actor("Viewer"));
@@ -134,7 +134,7 @@ describe("listCampaigns", () => {
     ]);
   });
 
-  it.fails("returns an empty list when there are no campaigns", async () => {
+  it("returns an empty list when there are no campaigns", async () => {
     const { db } = fakeFirestore();
 
     await expect(listCampaigns(db, admin)).resolves.toEqual([]);
@@ -142,7 +142,7 @@ describe("listCampaigns", () => {
 });
 
 describe("getCampaign", () => {
-  it.fails("returns the campaign with its id", async () => {
+  it("returns the campaign with its id", async () => {
     const { db } = seeded();
 
     await expect(
@@ -150,7 +150,7 @@ describe("getCampaign", () => {
     ).resolves.toEqual(campaignOf("middle"));
   });
 
-  it.fails("returns a campaign to a Viewer", async () => {
+  it("returns a campaign to a Viewer", async () => {
     const { db } = seeded();
 
     await expect(
@@ -158,7 +158,7 @@ describe("getCampaign", () => {
     ).resolves.toEqual(campaignOf("middle"));
   });
 
-  it.fails("throws NOT_FOUND for an unknown campaign", async () => {
+  it("throws NOT_FOUND for an unknown campaign", async () => {
     const { db } = seeded();
 
     await expect(
