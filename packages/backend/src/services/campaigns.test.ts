@@ -231,7 +231,7 @@ describe("setCampaignNotes", () => {
 });
 
 describe("addLinkedItem", () => {
-  it.fails("appends the link and stamps the update time", async () => {
+  it("appends the link and stamps the update time", async () => {
     freezeTime();
     const { db, doc } = seeded();
 
@@ -250,7 +250,7 @@ describe("addLinkedItem", () => {
     expect(doc("campaigns", "middle")).toMatchObject({ linkedItems });
   });
 
-  it.fails("links a campaign that had no links", async () => {
+  it("links a campaign that had no links", async () => {
     const { db } = seeded();
 
     const updated = await addLinkedItem(db, admin, {
@@ -261,7 +261,7 @@ describe("addLinkedItem", () => {
     expect(updated.linkedItems).toEqual([{ type: "EMAIL", id: "email-3" }]);
   });
 
-  it.fails("changes nothing when the link already exists", async () => {
+  it("changes nothing when the link already exists", async () => {
     freezeTime();
     const { db, doc } = seeded();
 
@@ -274,7 +274,7 @@ describe("addLinkedItem", () => {
     expect(doc("campaigns", "middle")).toEqual(CAMPAIGNS.middle);
   });
 
-  it.fails("throws NOT_FOUND when the linked item does not exist", async () => {
+  it("throws NOT_FOUND when the linked item does not exist", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -286,7 +286,7 @@ describe("addLinkedItem", () => {
     expect(doc("campaigns", "middle")).toEqual(CAMPAIGNS.middle);
   });
 
-  it.fails("throws NOT_FOUND for an unknown campaign", async () => {
+  it("throws NOT_FOUND for an unknown campaign", async () => {
     const { db } = seeded();
 
     await expect(
@@ -299,7 +299,7 @@ describe("addLinkedItem", () => {
 });
 
 describe("removeLinkedItem", () => {
-  it.fails("removes only the matching link and stamps the update time", async () => {
+  it("removes only the matching link and stamps the update time", async () => {
     freezeTime();
     const { db, doc } = seeded();
 
@@ -317,7 +317,7 @@ describe("removeLinkedItem", () => {
     expect(doc("campaigns", "newest")).toMatchObject({ linkedItems });
   });
 
-  it.fails("changes nothing when the campaign does not have the link", async () => {
+  it("changes nothing when the campaign does not have the link", async () => {
     freezeTime();
     const { db, doc } = seeded();
 
@@ -330,7 +330,7 @@ describe("removeLinkedItem", () => {
     expect(doc("campaigns", "middle")).toEqual(CAMPAIGNS.middle);
   });
 
-  it.fails("removes a link whose item no longer exists", async () => {
+  it("removes a link whose item no longer exists", async () => {
     const { db } = fakeFirestore({ campaigns: CAMPAIGNS });
 
     const updated = await removeLinkedItem(db, admin, {
@@ -341,7 +341,7 @@ describe("removeLinkedItem", () => {
     expect(updated.linkedItems).toEqual([]);
   });
 
-  it.fails("throws NOT_FOUND for an unknown campaign", async () => {
+  it("throws NOT_FOUND for an unknown campaign", async () => {
     const { db } = seeded();
 
     await expect(
