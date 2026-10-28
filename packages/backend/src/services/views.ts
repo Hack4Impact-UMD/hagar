@@ -3,6 +3,7 @@ import {
   canSeeView,
   canShareView,
   storedView,
+  view,
 } from "@repo/common";
 import type {
   ActiveUserProfile,
@@ -15,7 +16,7 @@ import type {
   View,
 } from "@repo/common";
 import { TRPCError } from "@trpc/server";
-import type { Firestore } from "firebase-admin/firestore";
+import { QueryDocumentSnapshot, type Firestore } from "firebase-admin/firestore";
 
 export const COLLECTION = "views";
 
@@ -80,14 +81,32 @@ export function assertCanShareView(
  * shared. A Global Admin sees every view. Most recently updated first. No
  * pagination.
  */
-export function listViews(
+export async function listViews(
   _db: Firestore,
   _actor: ActiveUserProfile,
 ): Promise<View[]> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "views.list is not implemented yet.",
-  });
+
+  const views= _db.collection(COLLECTION);
+
+  let docs: QueryDocumentSnapshot[];
+  if (_actor.role == "Global Admin"){
+    docs = (await views.orderBy("updatedAt", "desc").get()).docs;
+  } else{
+    const [mine, shared] = await Promise.all([
+      views.where("authorUid", "==", _actor.uid).orderBy("updatedAt", "desc").get(), 
+      views.where("shareOption", "in", ["ANYONE_VIEW", "ANYONE_EDIT"]).orderBy("updatedAt", "desc").get()
+    ]);
+    const idMapping = new Map<string, QueryDocumentSnapshot>(); 
+    for (const doc of [...mine.docs, ...shared.docs]){
+      idMapping.set(doc.id, doc);
+    }
+    docs = [...idMapping.values()];
+  }
+
+  const results = docs.map((doc) => toView(doc.id, doc.data()))
+  results.sort((a,b) => b.updatedAt.localeCompare(a.updatedAt));
+  return results;
+
 }
 
 /** Returns one view, or throws `NOT_FOUND` if it is missing or not visible. */
@@ -96,10 +115,10 @@ export function getView(
   _actor: ActiveUserProfile,
   _input: GetViewInput,
 ): Promise<View> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "views.get is not implemented yet.",
-  });
+  // throw new TRPCError({
+  //   code: "NOT_IMPLEMENTED",
+  //   message: "views.get is not implemented yet..",
+  // });
 }
 
 /**
