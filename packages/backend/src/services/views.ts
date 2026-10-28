@@ -2,8 +2,9 @@ import {
   canEditView,
   canSeeView,
   canShareView,
+  nowUtc,
   storedView,
-  view,
+  // view,
 } from "@repo/common";
 import type {
   ActiveUserProfile,
@@ -16,9 +17,9 @@ import type {
   View,
 } from "@repo/common";
 import { TRPCError } from "@trpc/server";
-import {
+import type {
   QueryDocumentSnapshot,
-  type Firestore,
+  Firestore,
 } from "firebase-admin/firestore";
 
 export const COLLECTION = "views";
@@ -91,8 +92,9 @@ export async function listViews(
   const views = _db.collection(COLLECTION);
 
   let docs: QueryDocumentSnapshot[];
-  if (_actor.role == "Global Admin") {
-    docs = (await views.orderBy("updatedAt", "desc").get()).docs;
+  if (_actor.role === "Global Admin") {
+    const snapshots = await views.orderBy("updatedAt", "desc").get();
+    docs = snapshots.docs;
   } else {
     const [mine, shared] = await Promise.all([
       views
@@ -117,15 +119,17 @@ export async function listViews(
 }
 
 /** Returns one view, or throws `NOT_FOUND` if it is missing or not visible. */
-export function getView(
+export async function getView(
   _db: Firestore,
   _actor: ActiveUserProfile,
   _input: GetViewInput,
 ): Promise<View> {
-  // throw new TRPCError({
-  //   code: "NOT_IMPLEMENTED",
-  //   message: "views.get is not implemented yet..",
-  // });
+  const entry = await _db.collection(COLLECTION).doc(_input.viewId).get();
+  if (!entry.exists) throw viewNotFound();
+
+  const view = toView(entry.id, entry.data());
+  assertCanSeeView(_actor, view);
+  return view;
 }
 
 /**
@@ -169,9 +173,27 @@ export function updateView(
   _actor: ActiveUserProfile,
   _input: UpdateViewInput,
 ): Promise<View> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "views.update is not implemented yet.",
+  // throw new TRPCError({
+  //   code: "NOT_IMPLEMENTED",
+  //   message: "views.update is not implemented yet.",
+  // });
+  return _db.runTransaction(async (tx) => {
+    const ref = _db.collection(COLLECTION).doc(_input.viewId);
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw viewNotFound();
+    const stored = parseStoredView.assert(snap.data());
+
+    assertCanSeeView(_actor, stored);
+    assertCanEditView(_actor, stored);
+
+    const changes: { name?: string; charts?: StoredView["charts"] } = {};
+    if (_input.name !== undefined) changes.name = _input.name;
+    if (_input.charts !== undefined) changes.charts = _input.charts;
+
+    const updatedAt = nowUtc();
+    tx.update(ref, { ...changes, updatedAt });
+
+    return { viewId: _input.viewId, ...stored, ...changes, updatedAt };
   });
 }
 
