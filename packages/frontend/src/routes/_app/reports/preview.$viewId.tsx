@@ -132,7 +132,11 @@ function ReportPreview() {
       view={view}
       status={status}
       errorMessage={status === "error" ? failureMessage(viewQuery.error) : null}
-      listError={listQuery.isError ? failureMessage(listQuery.error) : null}
+      listError={
+        listQuery.isError && trpcCode(listQuery.error) !== "NOT_IMPLEMENTED"
+          ? failureMessage(listQuery.error)
+          : null
+      }
       canEdit={Boolean(profile && view && canEditView(profile, view))}
       generatePending={
         exportForThisView && (generate.isPending || link.isPending)
@@ -179,7 +183,10 @@ function viewListStatus(pending: boolean, error: boolean): ViewListStatus {
 function previewStatus(pending: boolean, error: unknown): ReportPreviewStatus {
   if (pending) return "loading";
   if (!error) return "ready";
-  return trpcCode(error) === "NOT_FOUND" ? "not-found" : "error";
+  if (trpcCode(error) === "NOT_FOUND") return "not-found";
+  // Nothing to draw until this endpoint returns a view. Retrying cannot produce one.
+  if (trpcCode(error) === "NOT_IMPLEMENTED") return "empty";
+  return "error";
 }
 
 function failureMessage(error: unknown): string {

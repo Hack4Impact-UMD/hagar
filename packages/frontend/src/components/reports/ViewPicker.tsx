@@ -103,10 +103,10 @@ export function ViewPicker({
   const activeViewId = filteredViews[activeIndex]?.viewId;
 
   return (
-    <div className="relative w-full max-w-sm" onBlur={handleBlur}>
+    <div className="relative w-56" onBlur={handleBlur}>
       <MagnifyingGlassIcon
         aria-hidden
-        className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+        className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
       />
       <Input
         type="search"
@@ -123,7 +123,7 @@ export function ViewPicker({
         placeholder="Search"
         disabled={disabled}
         value={query}
-        className="pl-8"
+        className="h-8 bg-background pl-8 text-sm shadow-none focus-visible:border-border focus-visible:ring-0 [&::-webkit-search-cancel-button]:appearance-none"
         onFocus={() => {
           setOpen(true);
           syncActiveToCurrent();
@@ -136,16 +136,12 @@ export function ViewPicker({
         onKeyDown={handleKeyDown}
       />
       {open && (
-        <div className="absolute top-full z-10 mt-1 w-full overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md">
+        <div className="absolute top-full z-10 mt-1 w-full overflow-hidden rounded-md border bg-popover text-sm text-popover-foreground shadow-sm">
           {filteredViews.length === 0 && listStatus === "loading" && (
-            <p className="px-3 py-2 text-sm text-muted-foreground">
-              Loading views
-            </p>
+            <p className="px-3 py-1.5 text-muted-foreground">Loading views</p>
           )}
           {filteredViews.length === 0 && listStatus === "ready" && (
-            <p className="px-3 py-2 text-sm text-muted-foreground">
-              No views found
-            </p>
+            <p className="px-3 py-1.5 text-muted-foreground">No views found</p>
           )}
           <ul id={listboxId} role="listbox">
             {filteredViews.map((view, index) => {
@@ -158,10 +154,11 @@ export function ViewPicker({
                   role="option"
                   aria-selected={selected}
                   className={cn(
-                    "flex cursor-default items-center justify-between gap-2 px-3 py-2 text-sm",
-                    active && "bg-accent text-accent-foreground",
+                    "flex cursor-default items-center justify-between gap-2 px-3 py-1.5",
+                    (selected || active) && "bg-onboarding-icon-tile",
                   )}
                   onMouseDown={(event) => event.preventDefault()}
+                  onMouseEnter={() => setActiveIndex(index)}
                   onClick={() => selectView(view.viewId)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
@@ -172,7 +169,10 @@ export function ViewPicker({
                 >
                   <span className="truncate">{view.name}</span>
                   {selected && (
-                    <CheckIcon aria-hidden className="size-4 shrink-0" />
+                    <CheckIcon
+                      aria-hidden
+                      className="size-3.5 shrink-0 text-muted-foreground"
+                    />
                   )}
                 </li>
               );
@@ -181,7 +181,7 @@ export function ViewPicker({
           <div className="border-t">
             <span
               aria-disabled="true"
-              className="flex items-center gap-2 px-3 py-2 text-sm text-primary opacity-50"
+              className="flex items-center gap-2 px-3 py-1.5 text-primary"
             >
               <PlusCircleIcon aria-hidden className="size-4 shrink-0" />
               New view

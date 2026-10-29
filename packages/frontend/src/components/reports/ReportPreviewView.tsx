@@ -6,7 +6,12 @@ import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
 import { ViewPicker } from "@frontend/components/reports/ViewPicker.tsx";
 import type { ViewListStatus } from "@frontend/components/reports/ViewPicker.tsx";
 
-export type ReportPreviewStatus = "loading" | "not-found" | "error" | "ready";
+export type ReportPreviewStatus =
+  | "loading"
+  | "empty"
+  | "not-found"
+  | "error"
+  | "ready";
 
 export type ReportPreviewViewProps = {
   views: View[];
@@ -69,7 +74,9 @@ export function ReportPreviewView({
         </p>
       ) : null}
 
-      <section className="rounded-lg border p-6">
+      <section
+        className={`rounded-lg border p-6${status === "empty" ? " min-h-80" : ""}`}
+      >
         {status === "loading" && (
           <div className="flex flex-col gap-4">
             <Skeleton className="h-8 w-48" />
