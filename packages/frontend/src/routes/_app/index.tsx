@@ -3,6 +3,7 @@ import type { UserInfo, View } from "@repo/common";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { NewViewDialog } from "@frontend/components/home/NewViewDialog.tsx";
 import { ViewPicker } from "@frontend/components/home/ViewPicker.tsx";
 import { Button } from "@frontend/components/ui/button.tsx";
 import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
@@ -41,6 +42,7 @@ function Home() {
 function HomeContent({ onNotice }: { onNotice: (message: string) => void }) {
   const { view } = Route.useSearch();
   const navigate = Route.useNavigate();
+  const queryClient = useQueryClient();
   const views = useQuery(trpc.views.list.queryOptions());
   const { authors, authorsLoading } = useAuthors(views.data ?? []);
 
@@ -54,6 +56,15 @@ function HomeContent({ onNotice }: { onNotice: (message: string) => void }) {
       void navigate({ search: { view: firstViewId }, replace: true });
     }
   }, [firstViewId, selected, navigate]);
+
+  // The list must include the new view before it's selected. Otherwise the
+  // effect above treats it as missing and jumps back to the first view.
+  async function showNewView(viewId: string) {
+    await queryClient.invalidateQueries({
+      queryKey: trpc.views.list.queryKey(),
+    });
+    await navigate({ search: { view: viewId } });
+  }
 
   if (views.isPending) return <HomeSkeleton />;
 
@@ -72,7 +83,7 @@ function HomeContent({ onNotice }: { onNotice: (message: string) => void }) {
     return (
       <div className="flex flex-col items-start gap-3">
         <p>You don't have any views yet.</p>
-        <Button>New view</Button>
+        <NewViewDialog onCreated={showNewView} />
       </div>
     );
   }
@@ -81,7 +92,8 @@ function HomeContent({ onNotice }: { onNotice: (message: string) => void }) {
 
   return (
     <>
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-3">
+        <NewViewDialog onCreated={showNewView} />
         <ViewPicker views={views.data} authors={authors} authorsLoading={authorsLoading} selectedId={selected.viewId} onSelect={(viewId) => void navigate({ search: { view: viewId } })} />
       </div>
       <ViewDetails viewId={selected.viewId} onNotice={onNotice} />
