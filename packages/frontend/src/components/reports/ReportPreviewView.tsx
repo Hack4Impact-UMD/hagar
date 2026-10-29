@@ -74,20 +74,9 @@ export function ReportPreviewView({
         </p>
       ) : null}
 
-      <section
-        className={`rounded-lg border p-6${status === "empty" ? " min-h-80" : ""}`}
-      >
-        {status === "loading" && (
-          <div className="flex flex-col gap-4">
-            <Skeleton className="h-8 w-48" />
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Skeleton className="aspect-square w-full" />
-              <Skeleton className="aspect-square w-full" />
-              <Skeleton className="aspect-square w-full" />
-              <Skeleton className="aspect-square w-full" />
-              <Skeleton className="aspect-square w-full" />
-            </div>
-          </div>
+      <section className="rounded-lg border p-6">
+        {(status === "loading" || status === "empty") && (
+          <ReportPreviewSkeleton />
         )}
 
         {status === "not-found" && <p>That view does not exist.</p>}
@@ -155,5 +144,20 @@ export function ReportPreviewView({
         )}
       </footer>
     </main>
+  );
+}
+
+function ReportPreviewSkeleton() {
+  return (
+    <div className="flex flex-col gap-4">
+      <h1 className="text-2xl font-bold">Report Title</h1>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Skeleton className="aspect-square w-full" />
+        <Skeleton className="aspect-square w-full" />
+        <Skeleton className="aspect-square w-full" />
+        <Skeleton className="aspect-square w-full" />
+        <Skeleton className="aspect-square w-full" />
+      </div>
+    </div>
   );
 }
