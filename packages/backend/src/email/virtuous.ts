@@ -47,7 +47,8 @@ async function virtuousSearch(
     });
     if (response.ok) return response.json();
 
-    if (response.status !== 429 || attempt === MAX_ATTEMPTS) {
+    const retryable = response.status === 429 || response.status >= 500;
+    if (!retryable || attempt === MAX_ATTEMPTS) {
       let reason = "";
       if (response.status === 401) reason = " (bad API key)";
       if (response.status === 403) {
@@ -58,7 +59,10 @@ async function virtuousSearch(
       );
     }
 
-    const reset = Number(response.headers.get("X-RateLimit-Reset")) || 0;
+    const reset =
+      response.status === 429
+        ? Number(response.headers.get("X-RateLimit-Reset")) || 0
+        : 0;
     await sleep(Math.max(reset * 1000 - Date.now(), 1000));
   }
 }
