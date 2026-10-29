@@ -47,7 +47,7 @@ service firebase.storage {
       // Keep the size cap in step with MAX_REPORT_BYTES in
       // packages/common/src/reports.ts.
       allow create: if canSeeView(viewId)
-        && file.matches('[0-9a-f-]{36}[.]pdf')
+        && file.matches('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[.]pdf')
         && request.resource.contentType == 'application/pdf'
         && request.resource.size <= 200 * 1024 * 1024;
     }
