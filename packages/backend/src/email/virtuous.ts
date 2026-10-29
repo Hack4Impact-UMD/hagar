@@ -1,4 +1,4 @@
-import { nowUtc } from "@repo/common";
+import { EmailList, nowUtc } from "@repo/common";
 import type { StoredEmailCampaignRecord } from "@repo/common";
 import { type } from "arktype";
 import { getFirestore } from "firebase-admin/firestore";
@@ -13,6 +13,11 @@ const searchPage = type({ list: "unknown[]", total: "string | number" });
 const emailIds = type({ id: "number" }).array();
 const listIds = type({ emailListId: "number" }).array();
 const emails = type({ id: "number", name: "string", html: "string" }).array();
+const emailLists = type({
+  emailListId: "number",
+  name: "string",
+  total: "number.integer >= 0",
+}).array();
 
 /**
  * Runs one page of a Virtuous search and returns the parsed JSON. Every call to
@@ -80,8 +85,43 @@ export async function getAllLists(): Promise<string[]> {
   return lists.map((list) => String(list.emailListId));
 }
 
-export function updateList(_platformListID: string): Promise<void> {
-  return Promise.reject(new Error("not implemented"));
+export async function updateList(platformListID: string): Promise<void> {
+  const list = emailLists
+    .assert(await searchAll("/api/EmailList/Search"))
+    .find((candidate) => String(candidate.emailListId) === platformListID);
+  if (!list) {
+    throw new Error(`Virtuous has no email list with id ${platformListID}.`);
+  }
+
+  const lastFetchedAt = nowUtc();
+  const snapshot = { count: list.total, fetchedAt: lastFetchedAt };
+
+  const collection = getFirestore().collection("email-lists");
+  const existing = await collection
+    .where("platform", "==", "Virtuous")
+    .where("platformListID", "==", platformListID)
+    .limit(1)
+    .get();
+  const [doc] = existing.docs;
+
+  if (!doc) {
+    const record: EmailList = {
+      platform: "Virtuous",
+      platformListID,
+      name: list.name,
+      lastFetchedAt,
+      snapshots: [snapshot],
+    };
+    await collection.doc().set(record);
+    return;
+  }
+  const { snapshots } = EmailList.assert(doc.data());
+  const unchanged = snapshots.at(-1)?.count === snapshot.count;
+  await doc.ref.update({
+    name: list.name,
+    lastFetchedAt,
+    ...(unchanged ? {} : { snapshots: [...snapshots, snapshot] }),
+  });
 }
 
 export async function getAllCampaigns(): Promise<string[]> {
@@ -115,7 +155,6 @@ export async function updateCampaign(
     .get();
   const [doc] = existing.docs;
 
-  // Firestore cannot store a `URL` object, so documents hold its text.
   if (doc) {
     await doc.ref.update({
       name: email.name,
