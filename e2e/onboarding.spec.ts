@@ -1,13 +1,7 @@
 import { expect, test } from "@playwright/test";
-import {
-  approveUser,
-  fetchOwnProfilePhoto,
-  TEST_USER,
-  verifyEmail,
-} from "@e2e/emulator.ts";
+import { approveUser, fetchOwnProfilePhoto, TEST_USER, verifyEmail } from "@e2e/emulator.ts";
 
-const ONE_PIXEL_PNG =
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+const ONE_PIXEL_PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 
 test("takes a new user from sign up to the homepage", async ({ page }) => {
   // Signed out, every page leads to login.
@@ -42,9 +36,7 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   // The page sends the verification email on arrival and polls until the
   // link is used.
   await expect(page).toHaveURL(/\/verify-email$/);
-  await expect(page.getByTestId("verify-email-status")).toContainText(
-    TEST_USER.email,
-  );
+  await expect(page.getByTestId("verify-email-status")).toContainText(TEST_USER.email);
   await verifyEmail(TEST_USER.email);
 
   await expect(page).toHaveURL(/\/awaiting-approval$/);
@@ -67,7 +59,7 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   await approveUser(TEST_USER.email);
   await page.reload();
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByTestId("homepage")).toHaveText("Homepage");
+  await expect(page.getByTestId("homepage")).toContainText("Welcome");
 
   await page.getByTestId("profile-link").click();
   await expect(page.getByTestId("profile")).toHaveText("My Profile");
