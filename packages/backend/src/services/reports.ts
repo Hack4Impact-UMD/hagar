@@ -69,15 +69,59 @@ export async function assertUploadedReport(path: string): Promise<void> {
  * `viewId` it lists only that view's reports, and throws `NOT_FOUND` if the view
  * is missing or not visible. No pagination.
  */
-export function listReports(
-  _db: Firestore,
-  _actor: ActiveUserProfile,
-  _input?: ListReportsInput,
+export async function listReports(
+  db: Firestore,
+  actor: ActiveUserProfile,
+  input?: ListReportsInput,
 ): Promise<Report[]> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "reports.list is not implemented yet.",
-  });
+  if (input?.viewId !== undefined) {
+    const viewSnap = await db
+      .collection(VIEWS_COLLECTION)
+      .doc(input.viewId)
+      .get();
+    if (!viewSnap.exists) {
+      throw reportNotFound();
+    }
+
+    const view = toView(viewSnap.id, viewSnap.data());
+    if (!canSeeView(actor, view)) {
+      throw reportNotFound();
+    }
+
+    const snap = await db
+      .collection(COLLECTION)
+      .where("viewId", "==", input.viewId)
+      .orderBy("takenAt", "desc")
+      .get();
+
+    return snap.docs.map((doc) => toReport(doc.id, doc.data()));
+  }
+
+  const snap = await db.collection(COLLECTION).orderBy("takenAt", "desc").get();
+
+  if (snap.empty) {
+    return [];
+  }
+
+  const reports = snap.docs.map((doc) => toReport(doc.id, doc.data()));
+  const distinctViewIds = [...new Set(reports.map((r) => r.viewId))];
+  const viewRefs = distinctViewIds.map((id) =>
+    db.collection(VIEWS_COLLECTION).doc(id),
+  );
+
+  const viewSnaps = await db.getAll(...viewRefs);
+  const visibleViewIds = new Set<string>();
+
+  for (const viewSnap of viewSnaps) {
+    if (viewSnap.exists) {
+      const view = toView(viewSnap.id, viewSnap.data());
+      if (canSeeView(actor, view)) {
+        visibleViewIds.add(view.viewId);
+      }
+    }
+  }
+
+  return reports.filter((r) => visibleViewIds.has(r.viewId));
 }
 
 /**
