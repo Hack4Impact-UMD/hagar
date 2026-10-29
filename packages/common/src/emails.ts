@@ -3,7 +3,7 @@ import { utcDateString } from "@common/dates.ts";
 import { userRegion } from "@common/user.ts";
 
 export const EmailPlatform = type(
-  "'MailChimp' | 'Campaign_Monitor' | 'Klaviyo'",
+  "'MailChimp' | 'Campaign_Monitor' | 'Klaviyo' | 'Virtuous'",
 );
 const count = type("number.integer >= 0");
 
@@ -45,7 +45,8 @@ export const StoredEmailCampaignRecord = type({
   "sent?": count,
   lastFetchedAt: utcDateString,
   notes: "string",
-  snapshots: EmailCampaignSnapshot.array().atLeastLength(1),
+  // Empty for platforms that report no stats, such as Virtuous.
+  snapshots: EmailCampaignSnapshot.array(),
 });
 /** Our own id for the campaign, which other records such as campaigns link to. */
 export const EmailCampaignRecord = type({ emailCampaignId: "string >= 1" }).and(
