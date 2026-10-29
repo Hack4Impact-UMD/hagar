@@ -1,4 +1,4 @@
-import { MAX_REPORT_BYTES, storedReport } from "@repo/common";
+import { canSeeView, MAX_REPORT_BYTES, storedReport } from "@repo/common";
 import type {
   ActiveUserProfile,
   CreateReportInput,
@@ -9,6 +9,10 @@ import type {
 import { TRPCError } from "@trpc/server";
 import type { Firestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
+import {
+  COLLECTION as VIEWS_COLLECTION,
+  toView,
+} from "@backend/services/views.ts";
 
 export const COLLECTION = "reports";
 
@@ -80,15 +84,32 @@ export function listReports(
  * Returns one report, or throws `NOT_FOUND` if it is missing or its view is not
  * visible to the caller.
  */
-export function getReport(
-  _db: Firestore,
-  _actor: ActiveUserProfile,
-  _input: GetReportInput,
+export async function getReport(
+  db: Firestore,
+  actor: ActiveUserProfile,
+  input: GetReportInput,
 ): Promise<Report> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "reports.get is not implemented yet.",
-  });
+  const reportSnap = await db.collection(COLLECTION).doc(input.reportId).get();
+  if (!reportSnap.exists) {
+    throw reportNotFound();
+  }
+
+  const report = toReport(reportSnap.id, reportSnap.data());
+
+  const viewSnap = await db
+    .collection(VIEWS_COLLECTION)
+    .doc(report.viewId)
+    .get();
+  if (!viewSnap.exists) {
+    throw reportNotFound();
+  }
+
+  const view = toView(viewSnap.id, viewSnap.data());
+  if (!canSeeView(actor, view)) {
+    throw reportNotFound();
+  }
+
+  return report;
 }
 
 /**
