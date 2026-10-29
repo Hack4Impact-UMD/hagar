@@ -1,5 +1,9 @@
 import type * as React from "react";
-import { UserCircleIcon, UsersThreeIcon } from "@phosphor-icons/react";
+import {
+  FileTextIcon,
+  UserCircleIcon,
+  UsersThreeIcon,
+} from "@phosphor-icons/react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Sidebar,
@@ -13,6 +17,7 @@ import {
 
 const NAV_ITEMS = [
   { title: "Profile", to: "/profile", icon: <UserCircleIcon /> },
+  { title: "Reports", to: "/reports/history", icon: <FileTextIcon /> },
   {
     title: "User management",
     to: "/user-management",
