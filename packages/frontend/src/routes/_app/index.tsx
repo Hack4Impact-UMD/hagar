@@ -29,7 +29,12 @@ function Home() {
         <h1 data-testid="homepage" className="text-3xl font-bold">
           {firstName ? `Welcome, ${firstName}` : "Welcome"}
         </h1>
-        <button type="button" data-testid="sign-out" onClick={() => void auth.signOut()} className="border px-3 py-1">
+        <button
+          type="button"
+          data-testid="sign-out"
+          onClick={() => void auth.signOut()}
+          className="border px-3 py-1"
+        >
           Sign out
         </button>
       </header>
@@ -94,14 +99,26 @@ function HomeContent({ onNotice }: { onNotice: (message: string) => void }) {
     <>
       <div className="flex justify-end gap-3">
         <NewViewDialog onCreated={showNewView} />
-        <ViewPicker views={views.data} authors={authors} authorsLoading={authorsLoading} selectedId={selected.viewId} onSelect={(viewId) => void navigate({ search: { view: viewId } })} />
+        <ViewPicker
+          views={views.data}
+          authors={authors}
+          authorsLoading={authorsLoading}
+          selectedId={selected.viewId}
+          onSelect={(viewId) => void navigate({ search: { view: viewId } })}
+        />
       </div>
       <ViewDetails viewId={selected.viewId} onNotice={onNotice} />
     </>
   );
 }
 
-function ViewDetails({ viewId, onNotice }: { viewId: string; onNotice: (message: string) => void }) {
+function ViewDetails({
+  viewId,
+  onNotice,
+}: {
+  viewId: string;
+  onNotice: (message: string) => void;
+}) {
   const queryClient = useQueryClient();
   const view = useQuery(trpc.views.get.queryOptions({ viewId }));
   const notFound = view.error?.data?.code === "NOT_FOUND";
@@ -135,7 +152,8 @@ function ViewDetails({ viewId, onNotice }: { viewId: string; onNotice: (message:
   return (
     <section className="flex flex-col gap-6">
       <p>
-        Showing <strong>{charts.length}</strong> analytics in the <strong>{name}</strong> view
+        Showing <strong>{charts.length}</strong> analytics in the{" "}
+        <strong>{name}</strong> view
       </p>
 
       {charts.length === 0 ? (
@@ -143,7 +161,10 @@ function ViewDetails({ viewId, onNotice }: { viewId: string; onNotice: (message:
       ) : (
         <ul className="grid gap-6 md:grid-cols-3">
           {charts.map((chart, i) => (
-            <li key={i} className="flex flex-col gap-4 rounded-lg border p-4 md:first:col-span-3">
+            <li
+              key={i}
+              className="flex flex-col gap-4 rounded-lg border p-4 md:first:col-span-3"
+            >
               <h2 className="text-lg">{chart.name}</h2>
               <div aria-hidden="true" className="h-48 rounded-md bg-muted" />
             </li>
@@ -180,7 +201,9 @@ function useAuthors(views: View[]) {
   }
 
   const results = useQueries({
-    queries: chunks.map((chunk) => trpc.users.info.queryOptions({ uids: chunk })),
+    queries: chunks.map((chunk) =>
+      trpc.users.info.queryOptions({ uids: chunk }),
+    ),
   });
 
   const authors = new Map<string, UserInfo>();

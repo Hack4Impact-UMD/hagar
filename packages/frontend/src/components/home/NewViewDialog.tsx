@@ -48,16 +48,29 @@ export function NewViewDialog({ onCreated, disabled }: NewViewDialogProps) {
 
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/40" />
-        <Dialog.Content aria-describedby={undefined} className="fixed top-1/2 left-1/2 w-[min(90vw,24rem)] -translate-x-1/2 -translate-y-1/2 rounded-lg bg-background p-6 shadow-lg">
-          <Dialog.Title className="text-lg font-semibold">New view</Dialog.Title>
+        <Dialog.Content
+          aria-describedby={undefined}
+          className="fixed top-1/2 left-1/2 w-[min(90vw,24rem)] -translate-x-1/2 -translate-y-1/2 rounded-lg bg-background p-6 shadow-lg"
+        >
+          <Dialog.Title className="text-lg font-semibold">
+            New view
+          </Dialog.Title>
 
           <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
             <label className="flex flex-col gap-1 text-sm">
               Name
-              <input value={name} onChange={(e) => setName(e.target.value)} className="rounded-md border px-3 py-1.5" />
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="rounded-md border px-3 py-1.5"
+              />
             </label>
 
-            {tooLong && <p className="text-sm text-destructive">Name must be 500 characters or fewer.</p>}
+            {tooLong && (
+              <p className="text-sm text-destructive">
+                Name must be 500 characters or fewer.
+              </p>
+            )}
             {create.isError && (
               <p role="alert" className="text-sm text-destructive">
                 Couldn't create the view. Try again.

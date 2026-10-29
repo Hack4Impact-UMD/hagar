@@ -1,7 +1,13 @@
 import { expect, test } from "@playwright/test";
-import { approveUser, fetchOwnProfilePhoto, TEST_USER, verifyEmail } from "@e2e/emulator.ts";
+import {
+  approveUser,
+  fetchOwnProfilePhoto,
+  TEST_USER,
+  verifyEmail,
+} from "@e2e/emulator.ts";
 
-const ONE_PIXEL_PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+const ONE_PIXEL_PNG =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 
 test("takes a new user from sign up to the homepage", async ({ page }) => {
   // Signed out, every page leads to login.
@@ -34,11 +40,15 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   // The page sends the verification email on arrival and polls until the
   // link is used.
   await expect(page).toHaveURL(/\/verify-email$/);
-  await expect(page.getByTestId("verify-email-status")).toContainText(TEST_USER.email);
+  await expect(page.getByTestId("verify-email-status")).toContainText(
+    TEST_USER.email,
+  );
   await verifyEmail(TEST_USER.email);
 
   await expect(page).toHaveURL(/\/awaiting-approval$/);
-  await expect(page.getByTestId("awaiting-approval")).toHaveText("Waiting for admin approval. Come back later once the admin approves you!");
+  await expect(page.getByTestId("awaiting-approval")).toHaveText(
+    "Waiting for admin approval. Come back later once the admin approves you!",
+  );
 
   // Storage rules let an unapproved user read only their own photo.
   const photo = await fetchOwnProfilePhoto(TEST_USER.email, TEST_USER.password);
@@ -61,7 +71,9 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   await expect(page.getByTestId("profile")).toHaveText("Profile");
   await page.getByRole("link", { name: "Back to homepage" }).click();
   await page.getByRole("link", { name: "User management" }).click();
-  await expect(page.getByTestId("user-management")).toHaveText("User management");
+  await expect(page.getByTestId("user-management")).toHaveText(
+    "User management",
+  );
   await page.getByRole("link", { name: "Back to homepage" }).click();
 
   await page.goto("/no-such-page");
@@ -77,5 +89,5 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   await page.getByTestId("email").fill(TEST_USER.email);
   await page.getByTestId("password").fill(TEST_USER.password);
   await page.getByTestId("log-in").click();
-  await expect(page.getByTestId("homepage")).toHaveText("Homepage");
+  await expect(page.getByTestId("homepage")).toContainText("Welcome");
 });

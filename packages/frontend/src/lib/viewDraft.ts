@@ -1,4 +1,9 @@
-import type { ChartDefinition, UpdateViewInput, View, ViewShareOption } from "@repo/common";
+import type {
+  ChartDefinition,
+  UpdateViewInput,
+  View,
+  ViewShareOption,
+} from "@repo/common";
 
 const MAX_NAME_LENGTH = 500;
 
@@ -52,7 +57,10 @@ export function removeCard(draft: ViewDraft, id: string): ViewDraft {
   return { ...draft, cards: draft.cards.filter((c) => c.id !== id) };
 }
 
-function cardsChanged(saved: readonly ChartDefinition[], cards: readonly DraftCard[]): boolean {
+function cardsChanged(
+  saved: readonly ChartDefinition[],
+  cards: readonly DraftCard[],
+): boolean {
   if (saved.length !== cards.length) return true;
   return cards.some((card, i) => card.name !== saved[i]?.name);
 }
@@ -74,7 +82,8 @@ export function diffDraft(baseline: Baseline, draft: ViewDraft): DraftChanges {
     update.charts = draft.cards.map((c) => ({ name: c.name }));
   }
 
-  const shareOption = draft.shareOption !== baseline.shareOption ? draft.shareOption : null;
+  const shareOption =
+    draft.shareOption !== baseline.shareOption ? draft.shareOption : null;
 
   return { update: hasKeys(update) ? update : null, shareOption };
 }
