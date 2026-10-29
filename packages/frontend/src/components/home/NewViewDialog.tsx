@@ -73,7 +73,7 @@ export function NewViewDialog({ onCreated, disabled }: NewViewDialogProps) {
             )}
             {create.isError && (
               <p role="alert" className="text-sm text-destructive">
-                Couldn't create the view. Try again.
+                Couldn&apos;t create the view. Try again.
               </p>
             )}
 

@@ -83,7 +83,7 @@ export function diffDraft(baseline: Baseline, draft: ViewDraft): DraftChanges {
   }
 
   const shareOption =
-    draft.shareOption !== baseline.shareOption ? draft.shareOption : null;
+    draft.shareOption === baseline.shareOption ? null : draft.shareOption;
 
   return { update: hasKeys(update) ? update : null, shareOption };
 }
