@@ -1,11 +1,13 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   CaretLeftIcon,
   CaretRightIcon,
+  DownloadSimpleIcon,
   MagnifyingGlassIcon,
+  SpinnerGapIcon,
 } from "@phosphor-icons/react";
 import type { Report } from "@repo/common";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   createFileRoute,
   useCanGoBack,
@@ -15,7 +17,11 @@ import { cn } from "cn";
 import { Button } from "@frontend/components/ui/button.tsx";
 import { Input } from "@frontend/components/ui/input.tsx";
 import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
-import { reportPdfUrlOptions } from "@frontend/lib/reportDownloads.ts";
+import {
+  downloadReport,
+  reportFileName,
+  reportPdfUrlOptions,
+} from "@frontend/lib/reportDownloads.ts";
 import { filterReports, viewNameFor } from "@frontend/lib/reportSearch.ts";
 import { trpc } from "@frontend/lib/trpc.ts";
 
@@ -222,6 +228,7 @@ function ReportRow({
       <td className="px-4">
         <div className="flex items-center justify-end gap-4">
           <ViewLink path={report.path} viewName={viewName} />
+          <DownloadButton report={report} viewName={viewName} />
         </div>
       </td>
     </tr>
@@ -275,6 +282,57 @@ function ViewLink({ path, viewName }: { path: string; viewName: string }) {
     >
       {label}
     </a>
+  );
+}
+
+function DownloadButton({
+  report,
+  viewName,
+}: {
+  report: ReportRowData;
+  viewName: string;
+}) {
+  const download = useMutation({
+    mutationFn: () =>
+      downloadReport(report.path, reportFileName(viewName, report.takenAt)),
+  });
+  // The disabled state only applies after React re-renders, so a fast double
+  // click could otherwise start two downloads.
+  const inFlight = useRef(false);
+
+  function start() {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    download.mutate(undefined, {
+      onSettled: () => {
+        inFlight.current = false;
+      },
+    });
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      {download.isError && (
+        <span role="alert" className="text-sm text-destructive">
+          Download failed
+        </span>
+      )}
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={start}
+        disabled={download.isPending}
+        aria-busy={download.isPending}
+        aria-label={`${download.isError ? "Retry downloading" : "Download"} ${viewName} report`}
+        className="text-primary hover:text-primary"
+      >
+        {download.isPending ? (
+          <SpinnerGapIcon className="size-6 animate-spin" />
+        ) : (
+          <DownloadSimpleIcon className="size-6" />
+        )}
+      </Button>
+    </div>
   );
 }
 
