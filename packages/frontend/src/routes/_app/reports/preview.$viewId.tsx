@@ -133,7 +133,9 @@ function ReportPreview() {
       status={status}
       errorMessage={status === "error" ? failureMessage(viewQuery.error) : null}
       listError={
-        listQuery.isError && trpcCode(listQuery.error) !== "NOT_IMPLEMENTED"
+        status === "ready" &&
+        listQuery.isError &&
+        trpcCode(listQuery.error) !== "NOT_IMPLEMENTED"
           ? failureMessage(listQuery.error)
           : null
       }
