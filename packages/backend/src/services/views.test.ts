@@ -159,7 +159,7 @@ describe("view access checks", () => {
 });
 
 describe("listViews", () => {
-  it.fails("lists the actor's own views and everyone's shared views, newest first", async () => {
+  it("lists the actor's own views and everyone's shared views, newest first", async () => {
     const { db } = seeded();
 
     const views = await listViews(db, owner);
@@ -172,7 +172,7 @@ describe("listViews", () => {
     ]);
   });
 
-  it.fails("never lists another user's private view", async () => {
+  it("never lists another user's private view", async () => {
     const { db } = seeded();
 
     const views = await listViews(db, other);
@@ -185,7 +185,7 @@ describe("listViews", () => {
     ]);
   });
 
-  it.fails("lists a shared view of the actor's own once, not twice", async () => {
+  it("lists a shared view of the actor's own once, not twice", async () => {
     const { db } = seeded();
 
     const views = await listViews(db, owner);
@@ -193,7 +193,7 @@ describe("listViews", () => {
     expect(views.filter((v) => v.viewId === "mineShared")).toHaveLength(1);
   });
 
-  it.fails("lists only shared views for a Viewer", async () => {
+  it("lists only shared views for a Viewer", async () => {
     const { db } = seeded();
 
     const views = await listViews(db, viewer);
@@ -205,7 +205,7 @@ describe("listViews", () => {
     ]);
   });
 
-  it.fails("lists every view for a Global Admin, private ones included", async () => {
+  it("lists every view for a Global Admin, private ones included", async () => {
     const { db } = seeded();
 
     const views = await listViews(db, globalAdmin);
@@ -219,7 +219,7 @@ describe("listViews", () => {
     ]);
   });
 
-  it.fails("returns an empty list when there are no views", async () => {
+  it("returns an empty list when there are no views", async () => {
     const { db } = fakeFirestore();
 
     await expect(listViews(db, owner)).resolves.toEqual([]);
@@ -227,7 +227,7 @@ describe("listViews", () => {
 });
 
 describe("getView", () => {
-  it.fails("returns the author's own private view", async () => {
+  it("returns the author's own private view", async () => {
     const { db } = seeded();
 
     await expect(
@@ -235,7 +235,7 @@ describe("getView", () => {
     ).resolves.toEqual(viewOf("minePrivate"));
   });
 
-  it.fails("returns a shared view to someone else", async () => {
+  it("returns a shared view to someone else", async () => {
     const { db } = seeded();
 
     for (const viewId of ["theirsView", "theirsEdit"]) {
@@ -245,7 +245,7 @@ describe("getView", () => {
     }
   });
 
-  it.fails("returns a shared view to a Viewer", async () => {
+  it("returns a shared view to a Viewer", async () => {
     const { db } = seeded();
 
     await expect(
@@ -253,7 +253,7 @@ describe("getView", () => {
     ).resolves.toEqual(viewOf("theirsView"));
   });
 
-  it.fails("throws NOT_FOUND for someone else's private view", async () => {
+  it("throws NOT_FOUND for someone else's private view", async () => {
     const { db } = seeded();
 
     await expect(
@@ -261,7 +261,7 @@ describe("getView", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
-  it.fails("returns anyone's private view to a Global Admin", async () => {
+  it("returns anyone's private view to a Global Admin", async () => {
     const { db } = seeded();
 
     await expect(
@@ -269,7 +269,7 @@ describe("getView", () => {
     ).resolves.toEqual(viewOf("minePrivate"));
   });
 
-  it.fails("throws the same NOT_FOUND for an unknown view", async () => {
+  it("throws the same NOT_FOUND for an unknown view", async () => {
     const { db } = seeded();
 
     await expect(
@@ -440,7 +440,7 @@ describe("copyView", () => {
 });
 
 describe("updateView", () => {
-  it.fails("changes the charts and stamps the update time", async () => {
+  it("changes the charts and stamps the update time", async () => {
     freezeTime();
     const { db, doc } = seeded();
 
@@ -460,7 +460,7 @@ describe("updateView", () => {
     });
   });
 
-  it.fails("changes only the name when only the name is given", async () => {
+  it("changes only the name when only the name is given", async () => {
     freezeTime();
     const { db } = seeded();
 
@@ -474,7 +474,7 @@ describe("updateView", () => {
     );
   });
 
-  it.fails("can empty the chart list", async () => {
+  it("can empty the chart list", async () => {
     const { db } = seeded();
 
     const updated = await updateView(db, owner, {
@@ -485,7 +485,7 @@ describe("updateView", () => {
     expect(updated.charts).toEqual([]);
   });
 
-  it.fails("lets anyone but a Viewer edit a view shared as ANYONE_EDIT", async () => {
+  it("lets anyone but a Viewer edit a view shared as ANYONE_EDIT", async () => {
     freezeTime();
     const { db, doc } = seeded();
 
@@ -504,7 +504,7 @@ describe("updateView", () => {
     });
   });
 
-  it.fails("forbids editing a view that is shared for viewing only", async () => {
+  it("forbids editing a view that is shared for viewing only", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -513,7 +513,7 @@ describe("updateView", () => {
     expect(doc("views", "theirsView")).toEqual(VIEWS.theirsView);
   });
 
-  it.fails("gives a Global Admin no extra right to edit what they can see", async () => {
+  it("gives a Global Admin no extra right to edit what they can see", async () => {
     const { db, doc } = seeded();
 
     // They can see a private view, but cannot edit it.
@@ -527,7 +527,7 @@ describe("updateView", () => {
     expect(doc("views", "theirsView")).toEqual(VIEWS.theirsView);
   });
 
-  it.fails("lets a Global Admin edit a view shared as ANYONE_EDIT", async () => {
+  it("lets a Global Admin edit a view shared as ANYONE_EDIT", async () => {
     const { db } = seeded();
 
     const updated = await updateView(db, globalAdmin, {
@@ -538,7 +538,7 @@ describe("updateView", () => {
     expect(updated.name).toBe("Renamed");
   });
 
-  it.fails("lets a Viewer edit a view of their own", async () => {
+  it("lets a Viewer edit a view of their own", async () => {
     freezeTime();
     const { db, doc } = seeded();
 
@@ -560,7 +560,7 @@ describe("updateView", () => {
     });
   });
 
-  it.fails("forbids a Viewer from editing someone else's view, even one shared as ANYONE_EDIT", async () => {
+  it("forbids a Viewer from editing someone else's view, even one shared as ANYONE_EDIT", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -569,7 +569,7 @@ describe("updateView", () => {
     expect(doc("views", "theirsEdit")).toEqual(VIEWS.theirsEdit);
   });
 
-  it.fails("throws NOT_FOUND, not FORBIDDEN, for someone else's private view", async () => {
+  it("throws NOT_FOUND, not FORBIDDEN, for someone else's private view", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -578,7 +578,7 @@ describe("updateView", () => {
     expect(doc("views", "theirsPrivate")).toEqual(VIEWS.theirsPrivate);
   });
 
-  it.fails("throws NOT_FOUND for an unknown view, creating nothing", async () => {
+  it("throws NOT_FOUND for an unknown view, creating nothing", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -587,7 +587,7 @@ describe("updateView", () => {
     expect(doc("views", "missing")).toBeUndefined();
   });
 
-  it.fails("leaves every other view untouched", async () => {
+  it("leaves every other view untouched", async () => {
     const { db, doc } = seeded();
 
     await updateView(db, owner, { viewId: "minePrivate", name: "Renamed" });
