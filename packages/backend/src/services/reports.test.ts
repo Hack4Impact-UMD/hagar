@@ -265,7 +265,7 @@ describe("listReports", () => {
 });
 
 describe("getReport", () => {
-  it.fails("returns a report on a view the actor can see", async () => {
+  it("returns a report on a view the actor can see", async () => {
     const { db } = seeded();
 
     await expect(getReport(db, owner, { reportId: id(2) })).resolves.toEqual(
@@ -276,7 +276,7 @@ describe("getReport", () => {
     );
   });
 
-  it.fails("returns a report on a shared view to a Viewer", async () => {
+  it("returns a report on a shared view to a Viewer", async () => {
     const { db } = seeded();
 
     await expect(getReport(db, viewer, { reportId: id(2) })).resolves.toEqual(
@@ -284,7 +284,7 @@ describe("getReport", () => {
     );
   });
 
-  it.fails("returns any report on an existing view to a Global Admin", async () => {
+  it("returns any report on an existing view to a Global Admin", async () => {
     const { db } = seeded();
 
     await expect(
@@ -292,7 +292,7 @@ describe("getReport", () => {
     ).resolves.toEqual(reportOf(3));
   });
 
-  it.fails("throws NOT_FOUND for a report on a view the actor can't see", async () => {
+  it("throws NOT_FOUND for a report on a view the actor can't see", async () => {
     const { db } = seeded();
 
     await expect(
@@ -303,7 +303,7 @@ describe("getReport", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
-  it.fails("throws the same NOT_FOUND for an unknown report", async () => {
+  it("throws the same NOT_FOUND for an unknown report", async () => {
     const { db } = seeded();
 
     await expect(
@@ -311,7 +311,7 @@ describe("getReport", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
-  it.fails("throws NOT_FOUND for a report whose view no longer exists", async () => {
+  it("throws NOT_FOUND for a report whose view no longer exists", async () => {
     const { db } = seeded();
 
     await expect(
