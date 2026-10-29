@@ -1,7 +1,8 @@
-import { MAX_USER_INFO } from "@repo/common";
+import { canEditView, MAX_USER_INFO } from "@repo/common";
 import type { UserInfo, View } from "@repo/common";
-import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { TRPCClientError } from "@trpc/client";
 import { useEffect, useState } from "react";
 import { NewViewDialog } from "@frontend/components/home/NewViewDialog.tsx";
 import { ViewPicker } from "@frontend/components/home/ViewPicker.tsx";
@@ -29,12 +30,7 @@ function Home() {
         <h1 data-testid="homepage" className="text-3xl font-bold">
           {firstName ? `Welcome, ${firstName}` : "Welcome"}
         </h1>
-        <button
-          type="button"
-          data-testid="sign-out"
-          onClick={() => void auth.signOut()}
-          className="border px-3 py-1"
-        >
+        <button type="button" data-testid="sign-out" onClick={() => void auth.signOut()} className="border px-3 py-1">
           Sign out
         </button>
       </header>
@@ -48,8 +44,14 @@ function HomeContent({ onNotice }: { onNotice: (message: string) => void }) {
   const { view } = Route.useSearch();
   const navigate = Route.useNavigate();
   const queryClient = useQueryClient();
+  const me = useQuery({ ...trpc.me.queryOptions(), staleTime: "static" });
   const views = useQuery(trpc.views.list.queryOptions());
   const { authors, authorsLoading } = useAuthors(views.data ?? []);
+
+  // The view being customized, as the server had it when Customize was pressed.
+  const [editing, setEditing] = useState<View | null>(null);
+  const [startingEdit, setStartingEdit] = useState(false);
+  const isEditing = editing !== null;
 
   const selected = views.data?.find((v) => v.viewId === view);
   const firstViewId = views.data?.[0]?.viewId;
@@ -71,12 +73,35 @@ function HomeContent({ onNotice }: { onNotice: (message: string) => void }) {
     await navigate({ search: { view: viewId } });
   }
 
+  async function startCustomizing(viewId: string) {
+    setStartingEdit(true);
+    try {
+      // The draft starts from the server's latest copy, not the cached one.
+      const fresh = await queryClient.fetchQuery({
+        ...trpc.views.get.queryOptions({ viewId }),
+        staleTime: 0,
+      });
+      setEditing(fresh);
+    } catch (error) {
+      if (errorCode(error) === "NOT_FOUND") {
+        onNotice("That view can't be found.");
+        void queryClient.invalidateQueries({
+          queryKey: trpc.views.list.queryKey(),
+        });
+      } else {
+        onNotice("Couldn't open this view for customizing. Try again.");
+      }
+    } finally {
+      setStartingEdit(false);
+    }
+  }
+
   if (views.isPending) return <HomeSkeleton />;
 
   if (views.isError) {
     return (
       <div className="flex flex-col items-start gap-3">
-        <p>We could&apos;t load your views.</p>
+        <p>We couldn&apos;t load your views.</p>
         <Button variant="outline" onClick={() => void views.refetch()}>
           Retry
         </Button>
@@ -95,30 +120,64 @@ function HomeContent({ onNotice }: { onNotice: (message: string) => void }) {
 
   if (!selected) return <HomeSkeleton />;
 
+  const canEdit = me.data !== undefined && canEditView(me.data, selected);
+
   return (
     <>
-      <div className="flex justify-end gap-3">
-        <NewViewDialog onCreated={showNewView} />
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        <NewViewDialog onCreated={showNewView} disabled={isEditing} />
+        <CopyButton key={selected.viewId} viewId={selected.viewId} onCopied={showNewView} disabled={isEditing} />
         <ViewPicker
           views={views.data}
           authors={authors}
           authorsLoading={authorsLoading}
           selectedId={selected.viewId}
           onSelect={(viewId) => void navigate({ search: { view: viewId } })}
+          disabled={isEditing}
         />
+        {canEdit && !isEditing && (
+          <Button disabled={startingEdit} onClick={() => void startCustomizing(selected.viewId)}>
+            {startingEdit ? "Opening…" : "Customize view"}
+          </Button>
+        )}
       </div>
-      <ViewDetails viewId={selected.viewId} onNotice={onNotice} />
+
+      {isEditing ? (
+        // Replaced by the real editor in Task 8.
+        <div className="flex flex-col items-start gap-3">
+          <p>Customizing {editing.name}</p>
+          <Button variant="outline" onClick={() => setEditing(null)}>
+            Cancel
+          </Button>
+        </div>
+      ) : (
+        <ViewDetails viewId={selected.viewId} onNotice={onNotice} />
+      )}
     </>
   );
 }
 
-function ViewDetails({
-  viewId,
-  onNotice,
-}: {
-  viewId: string;
-  onNotice: (message: string) => void;
-}) {
+function CopyButton({ viewId, onCopied, disabled }: { viewId: string; onCopied: (viewId: string) => Promise<void>; disabled?: boolean }) {
+  const copy = useMutation({
+    ...trpc.views.copy.mutationOptions(),
+    onSuccess: (view) => onCopied(view.viewId),
+  });
+
+  return (
+    <div className="flex items-center gap-2">
+      {copy.isError && (
+        <p role="alert" className="text-sm text-destructive">
+          {"Couldn't copy this view."}
+        </p>
+      )}
+      <Button variant="outline" disabled={disabled || copy.isPending} onClick={() => copy.mutate({ viewId })}>
+        {copy.isPending ? "Copying…" : "Copy"}
+      </Button>
+    </div>
+  );
+}
+
+function ViewDetails({ viewId, onNotice }: { viewId: string; onNotice: (message: string) => void }) {
   const queryClient = useQueryClient();
   const view = useQuery(trpc.views.get.queryOptions({ viewId }));
   const notFound = view.error?.data?.code === "NOT_FOUND";
@@ -152,8 +211,7 @@ function ViewDetails({
   return (
     <section className="flex flex-col gap-6">
       <p>
-        Showing <strong>{charts.length}</strong> analytics in the{" "}
-        <strong>{name}</strong> view
+        Showing <strong>{charts.length}</strong> analytics in the <strong>{name}</strong> view
       </p>
 
       {charts.length === 0 ? (
@@ -202,9 +260,7 @@ function useAuthors(views: View[]) {
   }
 
   const results = useQueries({
-    queries: chunks.map((chunk) =>
-      trpc.users.info.queryOptions({ uids: chunk }),
-    ),
+    queries: chunks.map((chunk) => trpc.users.info.queryOptions({ uids: chunk })),
   });
 
   const authors = new Map<string, UserInfo>();
@@ -213,4 +269,9 @@ function useAuthors(views: View[]) {
   }
 
   return { authors, authorsLoading: results.some((r) => r.isPending) };
+}
+
+/** The tRPC error code, such as "NOT_FOUND", or undefined for other errors. */
+function errorCode(error: unknown): string | undefined {
+  return error instanceof TRPCClientError ? error.data?.code : undefined;
 }
