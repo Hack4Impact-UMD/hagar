@@ -188,7 +188,7 @@ describe("assertUploadedReport", () => {
 });
 
 describe("listReports", () => {
-  it.fails("lists the reports on every view the actor can see, newest first", async () => {
+  it("lists the reports on every view the actor can see, newest first", async () => {
     const { db } = seeded();
 
     const reports = await listReports(db, owner);
@@ -196,14 +196,14 @@ describe("listReports", () => {
     expect(reports).toEqual([reportOf(4), reportOf(2), reportOf(1)]);
   });
 
-  it.fails("leaves out reports on someone else's private view", async () => {
+  it("leaves out reports on someone else's private view", async () => {
     const { db } = seeded();
 
     expect(ids(await listReports(db, owner))).not.toContain(id(3));
     expect(ids(await listReports(db, other))).toEqual([id(4), id(3), id(2)]);
   });
 
-  it.fails("lists reports on shared views for a Viewer", async () => {
+  it("lists reports on shared views for a Viewer", async () => {
     const { db } = seeded();
 
     const reports = await listReports(db, viewer);
@@ -211,7 +211,7 @@ describe("listReports", () => {
     expect(ids(reports)).toEqual([id(4), id(2)]);
   });
 
-  it.fails("lists reports on every existing view for a Global Admin", async () => {
+  it("lists reports on every existing view for a Global Admin", async () => {
     const { db } = seeded();
 
     const reports = await listReports(db, globalAdmin);
@@ -219,19 +219,19 @@ describe("listReports", () => {
     expect(ids(reports)).toEqual([id(4), id(3), id(2), id(1)]);
   });
 
-  it.fails("leaves out a report whose view no longer exists", async () => {
+  it("leaves out a report whose view no longer exists", async () => {
     const { db } = seeded();
 
     expect(ids(await listReports(db, globalAdmin))).not.toContain(id(5));
   });
 
-  it.fails("returns an empty list when there are no reports", async () => {
+  it("returns an empty list when there are no reports", async () => {
     const { db } = fakeFirestore({ views: VIEWS });
 
     await expect(listReports(db, owner)).resolves.toEqual([]);
   });
 
-  it.fails("lists only one view's reports when given its id", async () => {
+  it("lists only one view's reports when given its id", async () => {
     const { db } = seeded();
 
     const reports = await listReports(db, owner, { viewId: "ownerShared" });
@@ -239,7 +239,7 @@ describe("listReports", () => {
     expect(reports).toEqual([reportOf(4), reportOf(2)]);
   });
 
-  it.fails("accepts an empty input as no filter", async () => {
+  it("accepts an empty input as no filter", async () => {
     const { db } = seeded();
 
     const reports = await listReports(db, owner, {});
@@ -247,7 +247,7 @@ describe("listReports", () => {
     expect(ids(reports)).toEqual([id(4), id(2), id(1)]);
   });
 
-  it.fails("throws NOT_FOUND for the reports of a view the actor can't see", async () => {
+  it("throws NOT_FOUND for the reports of a view the actor can't see", async () => {
     const { db } = seeded();
 
     await expect(
@@ -255,7 +255,7 @@ describe("listReports", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
-  it.fails("throws the same NOT_FOUND for an unknown view", async () => {
+  it("throws the same NOT_FOUND for an unknown view", async () => {
     const { db } = seeded();
 
     await expect(
@@ -265,7 +265,7 @@ describe("listReports", () => {
 });
 
 describe("getReport", () => {
-  it.fails("returns a report on a view the actor can see", async () => {
+  it("returns a report on a view the actor can see", async () => {
     const { db } = seeded();
 
     await expect(getReport(db, owner, { reportId: id(2) })).resolves.toEqual(
@@ -276,7 +276,7 @@ describe("getReport", () => {
     );
   });
 
-  it.fails("returns a report on a shared view to a Viewer", async () => {
+  it("returns a report on a shared view to a Viewer", async () => {
     const { db } = seeded();
 
     await expect(getReport(db, viewer, { reportId: id(2) })).resolves.toEqual(
@@ -284,7 +284,7 @@ describe("getReport", () => {
     );
   });
 
-  it.fails("returns any report on an existing view to a Global Admin", async () => {
+  it("returns any report on an existing view to a Global Admin", async () => {
     const { db } = seeded();
 
     await expect(
@@ -292,7 +292,7 @@ describe("getReport", () => {
     ).resolves.toEqual(reportOf(3));
   });
 
-  it.fails("throws NOT_FOUND for a report on a view the actor can't see", async () => {
+  it("throws NOT_FOUND for a report on a view the actor can't see", async () => {
     const { db } = seeded();
 
     await expect(
@@ -303,7 +303,7 @@ describe("getReport", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
-  it.fails("throws the same NOT_FOUND for an unknown report", async () => {
+  it("throws the same NOT_FOUND for an unknown report", async () => {
     const { db } = seeded();
 
     await expect(
@@ -311,7 +311,7 @@ describe("getReport", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
-  it.fails("throws NOT_FOUND for a report whose view no longer exists", async () => {
+  it("throws NOT_FOUND for a report whose view no longer exists", async () => {
     const { db } = seeded();
 
     await expect(
@@ -321,7 +321,7 @@ describe("getReport", () => {
 });
 
 describe("createReport", () => {
-  it.fails("records a report of the view as it is now", async () => {
+  it("records a report of the view as it is now", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(NOW));
     const { db, doc } = seeded();
@@ -343,7 +343,7 @@ describe("createReport", () => {
     expect(doc("reports", id(9))).toEqual(expected);
   });
 
-  it.fails("checks the PDF at the path it records", async () => {
+  it("checks the PDF at the path it records", async () => {
     const { db } = seeded();
 
     await createReport(db, owner, { viewId: "ownerShared", reportId: id(9) });
@@ -353,7 +353,7 @@ describe("createReport", () => {
     );
   });
 
-  it.fails("defaults the notes to an empty string", async () => {
+  it("defaults the notes to an empty string", async () => {
     const { db } = seeded();
 
     const created = await createReport(db, owner, {
@@ -364,7 +364,7 @@ describe("createReport", () => {
     expect(created.notes).toBe("");
   });
 
-  it.fails("leaves the view itself untouched", async () => {
+  it("leaves the view itself untouched", async () => {
     const { db, doc } = seeded();
 
     await createReport(db, owner, { viewId: "ownerShared", reportId: id(9) });
@@ -372,7 +372,7 @@ describe("createReport", () => {
     expect(doc("views", "ownerShared")).toEqual(VIEWS.ownerShared);
   });
 
-  it.fails("lets a Viewer take a report of a view they can see", async () => {
+  it("lets a Viewer take a report of a view they can see", async () => {
     const { db, doc } = seeded();
 
     const created = await createReport(db, viewer, {
@@ -384,7 +384,7 @@ describe("createReport", () => {
     expect(doc("reports", id(9))).toBeDefined();
   });
 
-  it.fails("lets a Global Admin take a report of any existing view", async () => {
+  it("lets a Global Admin take a report of any existing view", async () => {
     const { db } = seeded();
 
     const created = await createReport(db, globalAdmin, {
@@ -395,7 +395,7 @@ describe("createReport", () => {
     expect(created.charts).toEqual(VIEWS.otherPrivate?.charts);
   });
 
-  it.fails("throws NOT_FOUND for a view the actor can't see, writing nothing", async () => {
+  it("throws NOT_FOUND for a view the actor can't see, writing nothing", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -404,7 +404,7 @@ describe("createReport", () => {
     expect(doc("reports", id(9))).toBeUndefined();
   });
 
-  it.fails("throws the same NOT_FOUND for an unknown view", async () => {
+  it("throws the same NOT_FOUND for an unknown view", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -413,7 +413,7 @@ describe("createReport", () => {
     expect(doc("reports", id(9))).toBeUndefined();
   });
 
-  it.fails("throws BAD_REQUEST when the PDF was never uploaded, writing nothing", async () => {
+  it("throws BAD_REQUEST when the PDF was never uploaded, writing nothing", async () => {
     bucket.file.exists.mockResolvedValue([false]);
     const { db, doc } = seeded();
 
@@ -423,7 +423,7 @@ describe("createReport", () => {
     expect(doc("reports", id(9))).toBeUndefined();
   });
 
-  it.fails("throws BAD_REQUEST when the upload is not a PDF", async () => {
+  it("throws BAD_REQUEST when the upload is not a PDF", async () => {
     bucket.file.getMetadata.mockResolvedValue([
       { contentType: "image/png", size: "10" },
     ]);
@@ -435,7 +435,7 @@ describe("createReport", () => {
     expect(doc("reports", id(9))).toBeUndefined();
   });
 
-  it.fails("throws CONFLICT for a report id that is already recorded", async () => {
+  it("throws CONFLICT for a report id that is already recorded", async () => {
     const { db, doc } = seeded();
 
     await expect(
