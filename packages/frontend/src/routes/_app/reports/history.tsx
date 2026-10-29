@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { CaretLeftIcon } from "@phosphor-icons/react";
+import { useMemo, useState } from "react";
+import { CaretLeftIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import type { Report } from "@repo/common";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -8,8 +8,9 @@ import {
   useRouter,
 } from "@tanstack/react-router";
 import { Button } from "@frontend/components/ui/button.tsx";
+import { Input } from "@frontend/components/ui/input.tsx";
 import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
-import { viewNameFor } from "@frontend/lib/reportSearch.ts";
+import { filterReports, viewNameFor } from "@frontend/lib/reportSearch.ts";
 import { trpc } from "@frontend/lib/trpc.ts";
 
 /**
@@ -30,6 +31,7 @@ const takenAtFormat = new Intl.DateTimeFormat(undefined, {
 type ReportRowData = Pick<Report, "reportId" | "viewId" | "takenAt" | "path">;
 
 function ReportsHistory() {
+  const [query, setQuery] = useState("");
   const reports = useQuery(trpc.reports.list.queryOptions());
   const views = useQuery(trpc.views.list.queryOptions());
 
@@ -39,6 +41,10 @@ function ReportsHistory() {
         views.data?.map((view) => [view.viewId, view.name]),
       ),
     [views.data],
+  );
+  const matches = useMemo(
+    () => filterReports(reports.data ?? [], viewNames, query),
+    [reports.data, viewNames, query],
   );
 
   let content: React.ReactNode;
@@ -71,10 +77,16 @@ function ReportsHistory() {
         <p>No reports yet.</p>
       </Message>
     );
+  } else if (matches.length === 0) {
+    content = (
+      <Message>
+        <p>No reports match your search.</p>
+      </Message>
+    );
   } else {
     content = (
       <ReportTable>
-        {reports.data.map((report) => (
+        {matches.map((report) => (
           <ReportRow
             key={report.reportId}
             report={report}
@@ -91,6 +103,20 @@ function ReportsHistory() {
     <main className="flex h-[calc(100svh-3rem)] flex-col gap-6 px-6 pb-6">
       <PageHeader />
       <section className="flex min-h-0 flex-1 flex-col gap-4 rounded-xl border bg-card p-6">
+        <div className="relative w-63">
+          <MagnifyingGlassIcon
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2"
+          />
+          <Input
+            type="search"
+            aria-label="Search reports by view name"
+            placeholder="Search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            className="h-8 pl-8"
+          />
+        </div>
         {content}
       </section>
     </main>
