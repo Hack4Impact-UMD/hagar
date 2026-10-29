@@ -119,8 +119,10 @@ export function ViewPicker({
                 aria-selected={i === activeIndex}
                 // Stops the input losing focus, which would close the list
                 // before the click lands.
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => choose(view)}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  choose(view);
+                }}
                 onMouseEnter={() => setActiveIndex(i)}
                 className={cn(
                   "flex cursor-pointer items-center gap-2 px-3 py-2 text-sm",

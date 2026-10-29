@@ -76,7 +76,7 @@ function HomeContent({ onNotice }: { onNotice: (message: string) => void }) {
   if (views.isError) {
     return (
       <div className="flex flex-col items-start gap-3">
-        <p>We couldn't load your views.</p>
+        <p>We could&apos;t load your views.</p>
         <Button variant="outline" onClick={() => void views.refetch()}>
           Retry
         </Button>
@@ -87,7 +87,7 @@ function HomeContent({ onNotice }: { onNotice: (message: string) => void }) {
   if (views.data.length === 0) {
     return (
       <div className="flex flex-col items-start gap-3">
-        <p>You don't have any views yet.</p>
+        <p>You don&apos;t have any views yet.</p>
         <NewViewDialog onCreated={showNewView} />
       </div>
     );
@@ -139,7 +139,7 @@ function ViewDetails({
   if (view.isError) {
     return (
       <div className="flex flex-col items-start gap-3">
-        <p>We couldn't load this view.</p>
+        <p>We couldn&apos;t load this view.</p>
         <Button variant="outline" onClick={() => void view.refetch()}>
           Retry
         </Button>
@@ -162,6 +162,7 @@ function ViewDetails({
         <ul className="grid gap-6 md:grid-cols-3">
           {charts.map((chart, i) => (
             <li
+              // oxlint-disable-next-line react/no-array-index-key -- cards have no id and names can repeat; this list never reorders while viewing.
               key={i}
               className="flex flex-col gap-4 rounded-lg border p-4 md:first:col-span-3"
             >
