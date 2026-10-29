@@ -188,7 +188,7 @@ describe("assertUploadedReport", () => {
 });
 
 describe("listReports", () => {
-  it.fails("lists the reports on every view the actor can see, newest first", async () => {
+  it("lists the reports on every view the actor can see, newest first", async () => {
     const { db } = seeded();
 
     const reports = await listReports(db, owner);
@@ -196,14 +196,14 @@ describe("listReports", () => {
     expect(reports).toEqual([reportOf(4), reportOf(2), reportOf(1)]);
   });
 
-  it.fails("leaves out reports on someone else's private view", async () => {
+  it("leaves out reports on someone else's private view", async () => {
     const { db } = seeded();
 
     expect(ids(await listReports(db, owner))).not.toContain(id(3));
     expect(ids(await listReports(db, other))).toEqual([id(4), id(3), id(2)]);
   });
 
-  it.fails("lists reports on shared views for a Viewer", async () => {
+  it("lists reports on shared views for a Viewer", async () => {
     const { db } = seeded();
 
     const reports = await listReports(db, viewer);
@@ -211,7 +211,7 @@ describe("listReports", () => {
     expect(ids(reports)).toEqual([id(4), id(2)]);
   });
 
-  it.fails("lists reports on every existing view for a Global Admin", async () => {
+  it("lists reports on every existing view for a Global Admin", async () => {
     const { db } = seeded();
 
     const reports = await listReports(db, globalAdmin);
@@ -219,19 +219,19 @@ describe("listReports", () => {
     expect(ids(reports)).toEqual([id(4), id(3), id(2), id(1)]);
   });
 
-  it.fails("leaves out a report whose view no longer exists", async () => {
+  it("leaves out a report whose view no longer exists", async () => {
     const { db } = seeded();
 
     expect(ids(await listReports(db, globalAdmin))).not.toContain(id(5));
   });
 
-  it.fails("returns an empty list when there are no reports", async () => {
+  it("returns an empty list when there are no reports", async () => {
     const { db } = fakeFirestore({ views: VIEWS });
 
     await expect(listReports(db, owner)).resolves.toEqual([]);
   });
 
-  it.fails("lists only one view's reports when given its id", async () => {
+  it("lists only one view's reports when given its id", async () => {
     const { db } = seeded();
 
     const reports = await listReports(db, owner, { viewId: "ownerShared" });
@@ -239,7 +239,7 @@ describe("listReports", () => {
     expect(reports).toEqual([reportOf(4), reportOf(2)]);
   });
 
-  it.fails("accepts an empty input as no filter", async () => {
+  it("accepts an empty input as no filter", async () => {
     const { db } = seeded();
 
     const reports = await listReports(db, owner, {});
@@ -247,7 +247,7 @@ describe("listReports", () => {
     expect(ids(reports)).toEqual([id(4), id(2), id(1)]);
   });
 
-  it.fails("throws NOT_FOUND for the reports of a view the actor can't see", async () => {
+  it("throws NOT_FOUND for the reports of a view the actor can't see", async () => {
     const { db } = seeded();
 
     await expect(
@@ -255,7 +255,7 @@ describe("listReports", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
-  it.fails("throws the same NOT_FOUND for an unknown view", async () => {
+  it("throws the same NOT_FOUND for an unknown view", async () => {
     const { db } = seeded();
 
     await expect(
