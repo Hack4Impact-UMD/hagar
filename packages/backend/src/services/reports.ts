@@ -1,10 +1,17 @@
-import { canSeeView, MAX_REPORT_BYTES, storedReport } from "@repo/common";
+import {
+  canSeeView,
+  MAX_REPORT_BYTES,
+  nowUtc,
+  reportFilePath,
+  storedReport,
+} from "@repo/common";
 import type {
   ActiveUserProfile,
   CreateReportInput,
   GetReportInput,
   ListReportsInput,
   Report,
+  StoredReport,
 } from "@repo/common";
 import { TRPCError } from "@trpc/server";
 import type { Firestore } from "firebase-admin/firestore";
@@ -161,13 +168,58 @@ export async function getReport(
  * PDF. The charts and the time come from the backend, not the caller. Anyone
  * who can see the view may, Viewers included.
  */
-export function createReport(
-  _db: Firestore,
-  _actor: ActiveUserProfile,
-  _input: CreateReportInput,
+export async function createReport(
+  db: Firestore,
+  actor: ActiveUserProfile,
+  input: CreateReportInput,
 ): Promise<Report> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "reports.create is not implemented yet.",
+  const viewRef = db.collection(VIEWS_COLLECTION).doc(input.viewId);
+  const initialViewSnap = await viewRef.get();
+  if (!initialViewSnap.exists) {
+    throw reportNotFound();
+  }
+
+  const initialView = toView(initialViewSnap.id, initialViewSnap.data());
+  if (!canSeeView(actor, initialView)) {
+    throw reportNotFound();
+  }
+
+  const path = reportFilePath(input.viewId, input.reportId);
+  await assertUploadedReport(path);
+
+  const reportRef = db.collection(COLLECTION).doc(input.reportId);
+
+  return db.runTransaction(async (tx) => {
+    const [viewSnap, reportSnap] = await Promise.all([
+      tx.get(viewRef),
+      tx.get(reportRef),
+    ]);
+
+    if (!viewSnap.exists) {
+      throw reportNotFound();
+    }
+
+    const view = toView(viewSnap.id, viewSnap.data());
+    if (!canSeeView(actor, view)) {
+      throw reportNotFound();
+    }
+
+    if (reportSnap.exists) {
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "A report with that id already exists.",
+      });
+    }
+
+    const stored: StoredReport = {
+      viewId: input.viewId,
+      charts: view.charts,
+      takenAt: nowUtc(),
+      notes: input.notes ?? "",
+      path,
+    };
+
+    tx.create(reportRef, stored);
+    return toReport(input.reportId, stored);
   });
 }
