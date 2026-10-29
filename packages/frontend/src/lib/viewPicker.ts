@@ -13,7 +13,16 @@ export function fullName(firstName: string, lastName: string): string {
  * surrounding spaces, in their original order. An empty query keeps them all.
  * An author missing from `authorNames` can still match on the view's name.
  */
-export function filterViewOptions(views: View[], authorNames: Map<string, string>, query: string) {
+export function filterViewOptions(
+  views: View[],
+  authorNames: Map<string, string>,
+  query: string,
+) {
   const q = query.trim().toLowerCase();
-  return views.filter((v) => !q || v.name.toLowerCase().includes(q) || authorNames.get(v.authorUid)?.toLowerCase().includes(q));
+  return views.filter(
+    (v) =>
+      !q ||
+      v.name.toLowerCase().includes(q) ||
+      authorNames.get(v.authorUid)?.toLowerCase().includes(q),
+  );
 }

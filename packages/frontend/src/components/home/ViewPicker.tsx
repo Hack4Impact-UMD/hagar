@@ -2,7 +2,11 @@ import type { UserInfo, View } from "@repo/common";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "cn";
 import { useId, useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@frontend/components/ui/avatar.tsx";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@frontend/components/ui/avatar.tsx";
 import { profilePhotoUrlOptions } from "@frontend/lib/profilePhotos.ts";
 import { filterViewOptions, fullName } from "@frontend/lib/viewPicker.ts";
 
@@ -15,13 +19,25 @@ type ViewPickerProps = {
   disabled?: boolean;
 };
 
-export function ViewPicker({ views, authors, authorsLoading, selectedId, onSelect, disabled }: ViewPickerProps) {
+export function ViewPicker({
+  views,
+  authors,
+  authorsLoading,
+  selectedId,
+  onSelect,
+  disabled,
+}: ViewPickerProps) {
   const listId = useId();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const authorNames = new Map([...authors.values()].map((a) => [a.uid, fullName(a.firstName, a.lastName)]));
+  const authorNames = new Map(
+    [...authors.values()].map((a) => [
+      a.uid,
+      fullName(a.firstName, a.lastName),
+    ]),
+  );
   const options = filterViewOptions(views, authorNames, query);
   const active = options[activeIndex];
   const selected = views.find((v) => v.viewId === selectedId);
@@ -65,7 +81,9 @@ export function ViewPicker({ views, authors, authorsLoading, selectedId, onSelec
         aria-expanded={open}
         aria-controls={listId}
         aria-autocomplete="list"
-        aria-activedescendant={open && active ? `${listId}-${active.viewId}` : undefined}
+        aria-activedescendant={
+          open && active ? `${listId}-${active.viewId}` : undefined
+        }
         placeholder={selected?.name ?? "Choose a view"}
         value={query}
         disabled={disabled}
@@ -81,8 +99,16 @@ export function ViewPicker({ views, authors, authorsLoading, selectedId, onSelec
       />
 
       {open && (
-        <ul id={listId} role="listbox" className="absolute z-10 mt-1 max-h-72 w-full overflow-auto rounded-md border bg-background shadow-md">
-          {options.length === 0 && <li className="px-3 py-2 text-sm text-muted-foreground">No views found</li>}
+        <ul
+          id={listId}
+          role="listbox"
+          className="absolute z-10 mt-1 max-h-72 w-full overflow-auto rounded-md border bg-background shadow-md"
+        >
+          {options.length === 0 && (
+            <li className="px-3 py-2 text-sm text-muted-foreground">
+              No views found
+            </li>
+          )}
           {options.map((view, i) => {
             const author = authors.get(view.authorUid);
             return (
@@ -96,11 +122,16 @@ export function ViewPicker({ views, authors, authorsLoading, selectedId, onSelec
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => choose(view)}
                 onMouseEnter={() => setActiveIndex(i)}
-                className={cn("flex cursor-pointer items-center gap-2 px-3 py-2 text-sm", i === activeIndex && "bg-muted")}
+                className={cn(
+                  "flex cursor-pointer items-center gap-2 px-3 py-2 text-sm",
+                  i === activeIndex && "bg-muted",
+                )}
               >
                 <AuthorPhoto photoPath={author?.photoPath ?? null} />
                 <span className="truncate">{view.name}</span>
-                <span className="ml-auto truncate text-muted-foreground">{authorLabel(author, authorsLoading)}</span>
+                <span className="ml-auto truncate text-muted-foreground">
+                  {authorLabel(author, authorsLoading)}
+                </span>
               </li>
             );
           })}
