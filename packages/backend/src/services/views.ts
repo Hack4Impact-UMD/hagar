@@ -4,7 +4,6 @@ import {
   canShareView,
   nowUtc,
   storedView,
-  // view,
 } from "@repo/common";
 import type {
   ActiveUserProfile,
@@ -178,10 +177,6 @@ export function updateView(
   _actor: ActiveUserProfile,
   _input: UpdateViewInput,
 ): Promise<View> {
-  // throw new TRPCError({
-  //   code: "NOT_IMPLEMENTED",
-  //   message: "views.update is not implemented yet.",
-  // });
   return _db.runTransaction(async (tx) => {
     assertValidViewId(_input.viewId);
     const ref = _db.collection(COLLECTION).doc(_input.viewId);
