@@ -123,7 +123,7 @@ export function ViewPicker({
         placeholder="Search"
         disabled={disabled}
         value={query}
-        className="h-8 bg-background pl-8 text-sm shadow-none focus-visible:border-border focus-visible:ring-0 [&::-webkit-search-cancel-button]:appearance-none"
+        className="h-8 bg-background pl-8 text-sm shadow-none [&::-webkit-search-cancel-button]:appearance-none"
         onFocus={() => {
           setOpen(true);
           syncActiveToCurrent();
