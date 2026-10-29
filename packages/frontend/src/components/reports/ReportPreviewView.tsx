@@ -50,8 +50,11 @@ export function ReportPreviewView({
     generatePending || status !== "ready" || !view || view.charts.length === 0;
 
   return (
-    <main data-testid="report-preview" className="flex flex-col gap-6 p-6">
-      <div>
+    <main
+      data-testid="report-preview"
+      className="flex flex-col gap-6 p-6 md:h-[calc(100svh-3rem)] md:min-h-0"
+    >
+      <div className="shrink-0">
         <p className="text-2xl font-bold">Report Preview</p>
         <p className="text-muted-foreground">
           Create, customize, and export reports.
@@ -74,7 +77,7 @@ export function ReportPreviewView({
         </p>
       ) : null}
 
-      <section className="rounded-lg border p-6">
+      <section className="min-h-0 overflow-y-auto rounded-lg border p-6">
         {(status === "loading" || status === "empty") && (
           <ReportPreviewSkeleton />
         )}
@@ -91,12 +94,12 @@ export function ReportPreviewView({
         )}
 
         {status === "ready" && view && (
-          <div className="flex flex-col gap-4">
+          <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
             <h1 className="text-2xl font-bold">{view.name}</h1>
             {view.charts.length === 0 ? (
               <p>This view has no charts yet.</p>
             ) : (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className={previewGridClass}>
                 {view.charts.map((chart, index) => (
                   <div
                     key={index} // oxlint-disable-line react/no-array-index-key -- names can repeat; order is the identity
@@ -111,7 +114,7 @@ export function ReportPreviewView({
         )}
       </section>
 
-      <footer className="flex flex-col items-end gap-2">
+      <footer className="flex shrink-0 flex-col items-end gap-2">
         <div className="flex flex-wrap items-center justify-end gap-2">
           {canEdit && (
             <Button type="button" variant="outline" disabled>
@@ -147,11 +150,15 @@ export function ReportPreviewView({
   );
 }
 
+// Wide enough to fill the card, short enough that the buttons stay on screen.
+const previewGridClass =
+  "grid w-full grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3";
+
 function ReportPreviewSkeleton() {
   return (
-    <div className="flex flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
       <h1 className="text-2xl font-bold">Report Title</h1>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className={previewGridClass}>
         <Skeleton className="aspect-square w-full" />
         <Skeleton className="aspect-square w-full" />
         <Skeleton className="aspect-square w-full" />

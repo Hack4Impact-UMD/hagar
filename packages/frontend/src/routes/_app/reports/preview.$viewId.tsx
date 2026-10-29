@@ -36,7 +36,8 @@ function ReportPreview() {
   // Bumped when the view changes so a finished export cannot paint the previous view's link.
   const exportGeneration = useRef(0);
   const seenViewId = useRef(viewId);
-  // Set only after reports.create returns. A later link failure retries this path.
+  // Set after reports.create returns. A failed download link retries this file.
+  // A successful link clears it, so the next click records a new report.
   const savedPath = useRef<string | null>(null);
   // Which view the in-flight or finished export belongs to.
   const [exportViewId, setExportViewId] = useState<string | null>(null);
@@ -92,6 +93,10 @@ function ReportPreview() {
 
   const openDownload = (path: string, generation: number) => {
     link.mutate(path, {
+      onSuccess: () => {
+        if (exportGeneration.current !== generation) return;
+        savedPath.current = null;
+      },
       onSettled: () => {
         if (exportGeneration.current === generation) {
           exportInFlight.current = false;
