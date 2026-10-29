@@ -1,4 +1,8 @@
+import { nowUtc } from "@repo/common";
+import type { StoredEmailCampaignRecord } from "@repo/common";
 import { type } from "arktype";
+import { getFirestore } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 import { setTimeout as sleep } from "node:timers/promises";
 
 const BASE_URL = "https://api.virtuoussoftware.com";
@@ -8,6 +12,7 @@ const PAGE_SIZE = 1000;
 const searchPage = type({ list: "unknown[]", total: "string | number" });
 const emailIds = type({ id: "number" }).array();
 const listIds = type({ emailListId: "number" }).array();
+const emails = type({ id: "number", name: "string", html: "string" }).array();
 
 /**
  * Runs one page of a Virtuous search and returns the parsed JSON. Every call to
@@ -84,6 +89,51 @@ export async function getAllCampaigns(): Promise<string[]> {
   return emails.map((email) => String(email.id));
 }
 
-export function updateCampaign(_platformCampaignID: string): Promise<void> {
-  return Promise.reject(new Error("not implemented"));
+export async function updateCampaign(
+  platformCampaignID: string,
+): Promise<void> {
+  const email = emails
+    .assert(await searchAll("/api/Email/Search"))
+    .find((candidate) => String(candidate.id) === platformCampaignID);
+  if (!email) {
+    throw new Error(`Virtuous has no email with id ${platformCampaignID}.`);
+  }
+
+  const bucket = getStorage().bucket();
+  const path = `email-content/virtuous/${platformCampaignID}.html`;
+  await bucket
+    .file(path)
+    .save(email.html, { contentType: "text/html; charset=utf-8" });
+  const content = new URL(`gs://${bucket.name}/${path}`);
+  const lastFetchedAt = nowUtc();
+
+  const campaigns = getFirestore().collection("email-campaigns");
+  const existing = await campaigns
+    .where("platform", "==", "Virtuous")
+    .where("platformCampaignID", "==", platformCampaignID)
+    .limit(1)
+    .get();
+  const [doc] = existing.docs;
+
+  // Firestore cannot store a `URL` object, so documents hold its text.
+  if (doc) {
+    await doc.ref.update({
+      name: email.name,
+      content: content.href,
+      lastFetchedAt,
+    });
+    return;
+  }
+  const record: StoredEmailCampaignRecord = {
+    platform: "Virtuous",
+    platformCampaignID,
+    region: "US",
+    listIDs: [],
+    name: email.name,
+    content,
+    lastFetchedAt,
+    notes: "",
+    snapshots: [],
+  };
+  await campaigns.doc().set({ ...record, content: content.href });
 }
