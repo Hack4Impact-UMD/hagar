@@ -6,8 +6,8 @@ const MAX_ATTEMPTS = 3; // "few" times, change accordingly
 const PAGE_SIZE = 1000;
 
 const searchPage = type({ list: "unknown[]", total: "string | number" });
-const emailIds = type({ id: "string | number" }).array();
-const listIds = type({ emailListId: "string | number" }).array();
+const emailIds = type({ id: "number" }).array();
+const listIds = type({ emailListId: "number" }).array();
 
 /**
  * Runs one page of a Virtuous search and returns the parsed JSON. Every call to
