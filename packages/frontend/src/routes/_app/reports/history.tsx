@@ -1,5 +1,9 @@
 import { useMemo, useState } from "react";
-import { CaretLeftIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
+import {
+  CaretLeftIcon,
+  CaretRightIcon,
+  MagnifyingGlassIcon,
+} from "@phosphor-icons/react";
 import type { Report } from "@repo/common";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -7,9 +11,11 @@ import {
   useCanGoBack,
   useRouter,
 } from "@tanstack/react-router";
+import { cn } from "cn";
 import { Button } from "@frontend/components/ui/button.tsx";
 import { Input } from "@frontend/components/ui/input.tsx";
 import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
+import { reportPdfUrlOptions } from "@frontend/lib/reportDownloads.ts";
 import { filterReports, viewNameFor } from "@frontend/lib/reportSearch.ts";
 import { trpc } from "@frontend/lib/trpc.ts";
 
@@ -169,7 +175,10 @@ function ReportTable({
             <th className="sticky top-0 w-2/5 bg-card px-7.5 pb-3">
               View name
             </th>
-            <th className="sticky top-0 bg-card px-4 pb-3">Date</th>
+            <th className="sticky top-0 w-2/5 bg-card px-4 pb-3">Date</th>
+            <th className="sticky top-0 bg-card pb-3">
+              <span className="sr-only">Actions</span>
+            </th>
           </tr>
         </thead>
         <tbody>{children}</tbody>
@@ -186,6 +195,9 @@ function SkeletonRow() {
       </td>
       <td className="px-4">
         <Skeleton className="h-5 w-48" />
+      </td>
+      <td className="px-7.5">
+        <Skeleton className="ml-auto h-5 w-24" />
       </td>
     </tr>
   );
@@ -207,7 +219,62 @@ function ReportRow({
           {takenAtFormat.format(new Date(report.takenAt))}
         </time>
       </td>
+      <td className="px-4">
+        <div className="flex items-center justify-end gap-4">
+          <ViewLink path={report.path} viewName={viewName} />
+        </div>
+      </td>
     </tr>
+  );
+}
+
+/**
+ * A real link rather than `window.open` after the URL arrives: browsers block
+ * a new tab opened outside the click itself as a popup. So the URL is looked
+ * up ahead of time and the link is disabled until it is ready.
+ */
+function ViewLink({ path, viewName }: { path: string; viewName: string }) {
+  const url = useQuery(reportPdfUrlOptions(path));
+  const linkStyle =
+    "inline-flex items-center gap-1 text-base font-bold text-primary";
+  const label = (
+    <>
+      View <CaretRightIcon aria-hidden className="size-4" />
+    </>
+  );
+
+  if (url.isError) {
+    return (
+      <span className="flex items-center gap-1 text-sm text-destructive">
+        Could not open
+        <Button
+          variant="link"
+          size="xs"
+          aria-label={`Retry opening ${viewName} report`}
+          onClick={() => void url.refetch()}
+        >
+          Retry
+        </Button>
+      </span>
+    );
+  }
+  if (url.isPending) {
+    return (
+      <span aria-disabled="true" className={cn(linkStyle, "opacity-50")}>
+        {label}
+      </span>
+    );
+  }
+  return (
+    <a
+      href={url.data}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`View ${viewName} report`}
+      className={cn(linkStyle, "hover:underline")}
+    >
+      {label}
+    </a>
   );
 }
 
