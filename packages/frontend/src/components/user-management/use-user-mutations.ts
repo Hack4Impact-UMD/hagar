@@ -13,7 +13,7 @@ function refreshUserLists() {
 
 /*
   The user management mutations for a single row. Call it once per row so
-  'isPending' only locks the row being changed. 'me' is never updated.
+  'isPending' only locks the row being changed.
  */
 export function useUserMutations(reportError: ReportError) {
   const handlers = {

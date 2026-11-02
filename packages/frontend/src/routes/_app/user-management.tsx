@@ -1,28 +1,31 @@
 import { isActive } from "@repo/common";
 import type { UserRegion } from "@repo/common";
-import { XIcon } from "@phosphor-icons/react";
+import { UserPlusIcon, XIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@frontend/components/ui/button.tsx";
 import { PendingUsersTable } from "@frontend/components/user-management/pending-users-table.tsx";
-import { trpc } from "@frontend/lib/trpc.ts";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@frontend/components/ui/tabs.tsx";
+import { queryClient, trpc } from "@frontend/lib/trpc.ts";
 import { ActiveUsersGrid } from "@frontend/components/user-management/active-users-grid.tsx";
 
-type Tab = "pending" | "users";
+type View = "pending" | "users";
 
-const SUBTITLES: Record<Tab, string> = {
+const SUBTITLES: Record<View, string> = {
   pending: "Review and approve requests for new user access.",
   users: "Manage and edit information of current users",
 };
 
 export const Route = createFileRoute("/_app/user-management")({
+  // Viewers get the same page as an unknown URL, so the page's existence isn't
+  // advertised to people who can't use it. The root guard has already cached `me`.
+  beforeLoad: async () => {
+    const me = await queryClient.query({
+      ...trpc.me.queryOptions(),
+      staleTime: "static",
+    });
+    if (isActive(me) && me.role === "Viewer") throw notFound();
+  },
   component: UserManagement,
 });
 
@@ -33,25 +36,60 @@ function UserManagement() {
     staleTime: "static",
   });
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>("pending");
-  // Kept here so the region filter survives switching tabs.
+  const [view, setView] = useState<View>("users");
+  const showView = (next: View) => {
+    setView(next);
+    setError(null);
+  };
+  // Kept here so the region filter survives switching views.
   const [region, setRegion] = useState<UserRegion | undefined>();
+  // Same query as the pending table, so the count costs no extra request.
+  const pending = useQuery(
+    trpc.users.list.queryOptions({ stage: "AWAITING APPROVAL" }),
+  );
 
   // The root route only lets active users into the app.
   if (!me || !isActive(me)) return null;
 
   return (
     <main className="flex flex-1 flex-col">
-      <header className="px-6 pt-6 pb-6 md:px-10">
-        <h1
-          data-testid="user-management"
-          className="text-[2.1875rem] font-bold text-black leading-[normal]"
-        >
-          User Management
-        </h1>
-        <p className="text-[1.5rem] text-[#808080] leading-[normal]">
-          {SUBTITLES[tab]}
-        </p>
+      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 px-6 pt-6 pb-6 md:px-10">
+        <div>
+          <h1
+            data-testid="user-management"
+            className="text-[2.1875rem] font-bold text-black leading-[normal]"
+          >
+            User Management
+          </h1>
+          <p className="text-[1.5rem] text-[#808080] leading-[normal]">
+            {SUBTITLES[view]}
+          </p>
+        </div>
+        {/* The way back from the pending view must stay, even once it's empty. */}
+        {view === "pending" || pending.data?.length !== 0 ? (
+          <button
+            type="button"
+            data-testid={
+              view === "users" ? "pending-requests-link" : "view-users-link"
+            }
+            className="flex cursor-pointer items-center gap-2 text-base font-bold text-[#C75C3B] underline"
+            onClick={() => showView(view === "users" ? "pending" : "users")}
+          >
+            {view === "users" ? (
+              <>
+                <UserPlusIcon className="size-6" aria-hidden />
+                Pending Requests
+                {pending.data ? ` (${pending.data.length})` : ""}
+                <span aria-hidden>→</span>
+              </>
+            ) : (
+              <>
+                <span aria-hidden>←</span>
+                View Users
+              </>
+            )}
+          </button>
+        ) : null}
       </header>
 
       {error ? (
@@ -73,34 +111,18 @@ function UserManagement() {
         </div>
       ) : null}
 
-      <Tabs
-        value={tab}
-        onValueChange={(next) => {
-          setTab(next as Tab);
-          setError(null);
-        }}
-        className="flex-1"
-      >
-        <TabsList variant="line" className="mx-6 mb-4 md:mx-10">
-          <TabsTrigger value="pending" data-testid="tab-pending">
-            Pending Requests
-          </TabsTrigger>
-          <TabsTrigger value="users" data-testid="tab-users">
-            View Users
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="pending">
-          <PendingUsersTable me={me} reportError={setError} />
-        </TabsContent>
-        <TabsContent value="users" className="bg-[#F1DED2] px-6 py-8 md:px-10">
+      {view === "pending" ? (
+        <PendingUsersTable me={me} reportError={setError} />
+      ) : (
+        <div className="flex-1 bg-[#F1DED2] px-6 py-8 md:px-10">
           <ActiveUsersGrid
             me={me}
             region={region}
             onRegionChange={setRegion}
             reportError={setError}
           />
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
     </main>
   );
 }

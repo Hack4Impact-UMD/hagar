@@ -6,7 +6,7 @@ import type {
 } from "@repo/common";
 import { canAssignRole, canManage } from "@repo/common";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Input } from "@frontend/components/ui/input.tsx";
 import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
@@ -47,9 +47,11 @@ export function ActiveUsersGrid({
 }: ActiveUsersGridProps) {
   const [search, setSearch] = useState("");
   const [role, setRole] = useState<UserRole | null>(null);
-  const users = useQuery(
-    trpc.users.list.queryOptions({ stage: "ACTIVE", region }),
-  );
+  const users = useQuery({
+    ...trpc.users.list.queryOptions({ stage: "ACTIVE", region }),
+    // Keeps the old cards on screen while a new region loads, not skeletons.
+    placeholderData: keepPreviousData,
+  });
 
   const filtered = users.data
     ? filterUsers(users.data, { search, role })
@@ -62,7 +64,7 @@ export function ActiveUsersGrid({
           <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-black" />
           <Input
             type="search"
-            placeholder="Search name, email or phone"
+            placeholder="Search"
             aria-label="Search name, email or phone"
             data-testid="search-users"
             className="h-8 w-[12.125rem] truncate rounded-lg border-[#E5E5E5] bg-[#F9F6F1] pl-8 text-sm leading-5 font-medium text-[#0A0A0A] shadow-none md:text-sm"

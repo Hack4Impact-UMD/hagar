@@ -72,10 +72,13 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   await page.getByRole("link", { name: "Profile" }).click();
   await expect(page.getByTestId("profile")).toHaveText("Profile");
   await page.getByRole("link", { name: "Back to homepage" }).click();
-  await page.getByRole("link", { name: "User management" }).click();
-  await expect(page.getByTestId("user-management")).toHaveText(
-    "User Management",
+
+  // Viewers can't manage users, so the page looks like any unknown URL.
+  await expect(page.getByRole("link", { name: "User management" })).toHaveCount(
+    0,
   );
+  await page.goto("/user-management");
+  await expect(page.getByTestId("not-found")).toBeVisible();
 
   await page.goto("/no-such-page");
   await expect(page.getByTestId("not-found")).toBeVisible();
