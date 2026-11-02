@@ -19,7 +19,7 @@ export const profilePhotoTypes = [
 export type ProfilePhotoType = (typeof profilePhotoTypes)[number];
 
 /** Keep in step with the size limit in `storage.rules`. */
-export const MAX_PROFILE_PHOTO_BYTES = 5 * 1024 * 1024;
+export const MAX_PROFILE_PHOTO_BYTES = 10 * 1024 * 1024;
 
 export const profilePhotoPath = type(/^profile-photos\/[^/]{1,128}\/avatar$/);
 

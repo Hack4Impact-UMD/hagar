@@ -1,8 +1,4 @@
-import type { ComponentProps, ReactNode } from "react";
-
-const FIELD_LABEL = "flex flex-col text-base font-semibold gap-2";
-const FIELD_INPUT =
-  "border w-full h-12 sm:h-15 px-4 text-base rounded-[0.625em]";
+import type { ReactNode } from "react";
 
 type AuthLayoutProps = {
   title: string;
@@ -56,41 +52,5 @@ export function AuthLayout({
         className="hidden lg:block h-screen w-[50.35vw] object-cover sticky top-0"
       />
     </main>
-  );
-}
-
-type AuthFieldProps = ComponentProps<"input"> & { label: string };
-
-export function AuthField({ label, ...inputProps }: AuthFieldProps) {
-  return (
-    <label className={FIELD_LABEL}>
-      {label}
-      <input {...inputProps} className={FIELD_INPUT} />
-    </label>
-  );
-}
-
-type AuthSubmitButtonProps = ComponentProps<"button"> & { pending: boolean };
-
-export function AuthSubmitButton({
-  pending,
-  children,
-  ...buttonProps
-}: AuthSubmitButtonProps) {
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="flex items-center justify-center gap-3 bg-primary text-white font-bold w-full h-14 sm:h-17.5 rounded-[0.625em] hover:bg-primary/90 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
-      {...buttonProps}
-    >
-      {pending ? (
-        <span
-          aria-hidden="true"
-          className="size-5 motion-safe:animate-[spin_1.5s_linear_infinite] rounded-full border-2 border-white/40 border-t-white"
-        />
-      ) : null}
-      {children}
-    </button>
   );
 }

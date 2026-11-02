@@ -37,7 +37,6 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
 
   await page.getByTestId("region").click();
   await page.getByRole("option", { name: "New Zealand" }).click();
-  // lines 33 and 34 are a coderabbit suggestion to update calling select option that works with the Radix SelectPrimitive.Trigger
   await page.getByTestId("next").click();
 
   // The page sends the verification email on arrival and polls until the

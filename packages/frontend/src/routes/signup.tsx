@@ -2,11 +2,9 @@ import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { useState } from "react";
-import {
-  AuthField,
-  AuthLayout,
-  AuthSubmitButton,
-} from "@frontend/components/auth/AuthLayout.tsx";
+import { AuthLayout } from "@frontend/components/auth/AuthLayout.tsx";
+import { FormField } from "@frontend/components/form/FormField.tsx";
+import { SubmitButton } from "@frontend/components/form/SubmitButton.tsx";
 import { authErrorMessage } from "@frontend/lib/authErrors.ts";
 import { auth } from "@frontend/lib/firebase.ts";
 
@@ -20,6 +18,10 @@ function Signup() {
   const createAccount = useMutation({
     mutationFn: () => createUserWithEmailAndPassword(auth, email, password),
   });
+  // Success is not the end of the wait: the redirect to the next page only
+  // happens after the route guards fetch the new profile. Staying busy until
+  // this page unmounts avoids a dead moment with an idle form.
+  const busy = createAccount.isPending || createAccount.isSuccess;
 
   return (
     <AuthLayout
@@ -37,34 +39,31 @@ function Signup() {
         createAccount.error ? authErrorMessage(createAccount.error) : undefined
       }
     >
-      <AuthField
+      <FormField
         label="Email"
         type="email"
         required
         value={email}
-        disabled={createAccount.isPending}
+        disabled={busy}
         data-testid="email"
         onChange={(event) => setEmail(event.target.value)}
       />
-      <AuthField
+      <FormField
         label="Password"
         type="password"
         required
         minLength={8}
         value={password}
-        disabled={createAccount.isPending}
+        disabled={busy}
         data-testid="password"
         onChange={(event) => setPassword(event.target.value)}
       />
       <p className="flex justify-start pb-7.5 text-chart-3">
         At least 8 characters
       </p>
-      <AuthSubmitButton
-        pending={createAccount.isPending}
-        data-testid="create-account"
-      >
+      <SubmitButton pending={busy} data-testid="create-account">
         Create account
-      </AuthSubmitButton>
+      </SubmitButton>
     </AuthLayout>
   );
 }
