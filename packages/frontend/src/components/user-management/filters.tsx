@@ -12,8 +12,8 @@ import { userRoles } from "@common/user-helpers.ts";
 // Radix Select can't use an empty string as an item value, so "no filter" needs a sentinel.
 const ALL = "all";
 
-/* The orange pill style the design uses for filter and edit dropdowns */
-export const pillTriggerClass =
+/* The orange pill style the design uses for the filter dropdowns */
+const pillTriggerClass =
   "border-primary bg-primary text-primary-foreground shadow-none hover:bg-primary/90 data-placeholder:text-primary-foreground [&_svg]:text-primary-foreground!";
 
 interface RegionFilterProps {

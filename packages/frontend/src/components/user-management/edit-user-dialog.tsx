@@ -11,7 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@frontend/components/ui/dialog.tsx";
-import { Input } from "@frontend/components/ui/input.tsx";
 import {
   Select,
   SelectContent,
@@ -138,19 +137,15 @@ function EditUserForm({
 
         <div className="grid grid-cols-2 gap-x-6 gap-y-3">
           {READ_ONLY_FIELDS.map((field) => (
-            <label
+            <div
               key={field.key}
               className={`${FIELD_LABEL} ${field.half ? "" : "col-span-2"}`}
             >
               {field.label}
-              {/* Disabled for semantics, but drawn at full strength to match the other fields */}
-              <Input
-                value={user[field.key] ?? ""}
-                readOnly
-                disabled
-                className={`h-8 ${FIELD_BOX} disabled:cursor-default disabled:opacity-100`}
-              />
-            </label>
+              <p className="min-h-8 text-sm leading-8 font-medium break-words text-black">
+                {user[field.key] ?? ""}
+              </p>
+            </div>
           ))}
 
           <div className={`col-span-2 ${FIELD_LABEL}`}>

@@ -59,14 +59,16 @@ export function ConfirmDialog({
         <AlertDialogFooter className="gap-3">
           <AlertDialogCancel
             data-testid="confirm-dialog-cancel"
-            className="h-auto rounded-[0.5rem] border-[#D9D4CE] bg-white px-4 py-2 text-sm leading-normal"
+            className="h-auto cursor-pointer rounded-[0.5rem] border-[#D9D4CE] bg-white px-4 py-2 text-sm leading-normal"
             disabled={pending}
           >
             Cancel
           </AlertDialogCancel>
           <AlertDialogAction
             data-testid="confirm-dialog-confirm"
-            className="h-auto rounded-[0.5rem] px-4 py-2 text-sm leading-normal"
+            // `cn` doesn't merge conflicting utilities, so the destructive
+            // variant's pale tint would otherwise beat the solid red.
+            className={`h-auto cursor-pointer rounded-[0.5rem] px-4 py-2 text-sm leading-normal ${destructive ? "bg-[#DC3E42]! text-white! hover:bg-[#EC6753]!" : ""}`}
             variant={destructive ? "destructive" : "default"}
             disabled={pending}
             onClick={(event) => {
