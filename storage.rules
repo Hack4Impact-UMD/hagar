@@ -20,7 +20,7 @@ service firebase.storage {
         && request.auth.uid == uid
         && file == 'avatar'
         && request.resource.contentType.matches('image/(png|jpeg|webp)')
-        && request.resource.size <= 5 * 1024 * 1024;
+        && request.resource.size <= 10 * 1024 * 1024;
     }
   }
 }

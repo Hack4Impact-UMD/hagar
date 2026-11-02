@@ -1,14 +1,16 @@
-import { validatePhoneNumber } from "@repo/common";
-import type { PhoneErrors, UserRegion } from "@repo/common";
+import type { UserRegion } from "@repo/common";
 import { profilePhotoProblem } from "@frontend/lib/profilePhotos.ts";
 
-export interface ProfileFormErrors extends PhoneErrors {
+export interface ProfileFormErrors {
   firstName?: string;
   lastName?: string;
+  phoneNumber?: string;
   region?: string;
   photo?: string;
 }
 
+// Phone numbers vary too much between countries to check their format, so
+// only presence and the backend's length cap are checked.
 export function validateProfileForm(values: {
   firstName: string;
   lastName: string;
@@ -32,10 +34,11 @@ export function validateProfileForm(values: {
     errors.lastName = "Last name must be 500 characters or fewer.";
   }
 
-  // Use the shared phone validation logic from common
-  const phoneResult = validatePhoneNumber({ phoneNumber: values.phoneNumber });
-  if (phoneResult.phoneNumber) {
-    errors.phoneNumber = phoneResult.phoneNumber;
+  const phone = values.phoneNumber.trim();
+  if (!phone) {
+    errors.phoneNumber = "Phone number is required.";
+  } else if (phone.length > 100) {
+    errors.phoneNumber = "Phone number must be 100 characters or fewer.";
   }
 
   if (!values.region) {

@@ -2,11 +2,9 @@ import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useState } from "react";
-import {
-  AuthField,
-  AuthLayout,
-  AuthSubmitButton,
-} from "@frontend/components/auth/AuthLayout.tsx";
+import { AuthLayout } from "@frontend/components/auth/AuthLayout.tsx";
+import { FormField } from "@frontend/components/form/FormField.tsx";
+import { SubmitButton } from "@frontend/components/form/SubmitButton.tsx";
 import {
   authErrorMessage,
   isBadCredentials,
@@ -28,6 +26,10 @@ function Login() {
       if (isBadCredentials(error)) setPassword("");
     },
   });
+  // Success is not the end of the wait: the redirect to the next page only
+  // happens after the route guards fetch the profile. Staying busy until this
+  // page unmounts avoids a dead moment with an idle form.
+  const busy = logIn.isPending || logIn.isSuccess;
 
   return (
     <AuthLayout
@@ -43,21 +45,21 @@ function Login() {
       onSubmit={() => logIn.mutate()}
       error={logIn.error ? authErrorMessage(logIn.error) : undefined}
     >
-      <AuthField
+      <FormField
         label="Email"
         type="email"
         required
         value={email}
-        disabled={logIn.isPending}
+        disabled={busy}
         data-testid="email"
         onChange={(event) => setEmail(event.target.value)}
       />
-      <AuthField
+      <FormField
         label="Password"
         type="password"
         required
         value={password}
-        disabled={logIn.isPending}
+        disabled={busy}
         data-testid="password"
         onChange={(event) => setPassword(event.target.value)}
       />
@@ -65,9 +67,9 @@ function Login() {
       <a href="" className="underline flex justify-end pb-7.5 text-[#808080]">
         Forgot Password?
       </a>
-      <AuthSubmitButton pending={logIn.isPending} data-testid="log-in">
+      <SubmitButton pending={busy} data-testid="log-in">
         Login
-      </AuthSubmitButton>
+      </SubmitButton>
     </AuthLayout>
   );
 }
