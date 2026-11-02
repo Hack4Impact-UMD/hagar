@@ -321,7 +321,7 @@ describe("updateProfile", () => {
 });
 
 function photoOf(uid: string) {
-  return `profile-photos/${uid}/123e4567-e89b-42d3-a456-426614174000.png`;
+  return `profile-photos/${uid}/avatar`;
 }
 
 function completeUser(
