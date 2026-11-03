@@ -413,6 +413,19 @@ describe("copyView", () => {
     expect(copy.name.startsWith("Copy of ")).toBe(true);
   });
 
+  it("drops half an emoji when the length limit cuts through it", async () => {
+    // "Copy of " is 8 units, so the 2-unit emoji starts at unit 499 and the
+    // limit of 500 would keep only its first half.
+    const emojiName = `${"x".repeat(491)}😀`;
+    const { db } = fakeFirestore({
+      views: { emoji: { ...storedOf("mineShared"), name: emojiName } },
+    });
+
+    const copy = await copyView(db, owner, { viewId: "emoji" });
+
+    expect(copy.name).toBe(`Copy of ${"x".repeat(491)}`);
+  });
+
   it("throws NOT_FOUND for someone else's private view, copying nothing", async () => {
     const { db, doc } = seeded();
 

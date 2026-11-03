@@ -1,4 +1,5 @@
 import {
+  MAX_VIEW_NAME_LENGTH,
   canEditView,
   canSeeView,
   canShareView,
@@ -19,9 +20,6 @@ import { TRPCError } from "@trpc/server";
 import type { Firestore } from "firebase-admin/firestore";
 
 export const COLLECTION = "views";
-
-// Must match the name length cap in the `name` schema in @repo/common.
-const MAX_NAME_LENGTH = 500;
 
 // Drops any stray fields in the document so they never reach the client.
 export const parseStoredView = storedView.onUndeclaredKey("delete");
@@ -149,7 +147,7 @@ export function copyView(
     // The limit counts UTF-16 units, so the cut can land between the two halves
     // of an emoji. A lone leading half is not valid Unicode and is lost when
     // stored as UTF-8, so it is dropped too.
-    let name = `Copy of ${original.name}`.slice(0, MAX_NAME_LENGTH);
+    let name = `Copy of ${original.name}`.slice(0, MAX_VIEW_NAME_LENGTH);
     if (/[\uD800-\uDBFF]$/.test(name)) name = name.slice(0, -1);
 
     const ref = db.collection(COLLECTION).doc();

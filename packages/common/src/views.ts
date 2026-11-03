@@ -3,7 +3,8 @@ import { utcDateString } from "@common/dates.ts";
 import type { UserProfile } from "@common/user.ts";
 
 // Length caps exist only to bound abuse. They sit far above any real value.
-const name = type("1 <= string <= 500");
+export const MAX_VIEW_NAME_LENGTH = 500;
+const name = type(`1 <= string <= ${MAX_VIEW_NAME_LENGTH}`);
 
 /**
  * A single chart or metric on a view. Only its name is defined for now.
