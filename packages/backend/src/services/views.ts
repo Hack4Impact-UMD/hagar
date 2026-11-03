@@ -198,7 +198,7 @@ export function updateView(
     const updatedAt = nowUtc();
     tx.update(ref, { ...changes, updatedAt });
 
-    return { viewId: input.viewId, ...stored, ...changes, updatedAt };
+    return toView(ref.id, { ...stored, ...changes, updatedAt });
   });
 }
 
