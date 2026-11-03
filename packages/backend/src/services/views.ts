@@ -79,6 +79,10 @@ export function assertCanShareView(
   }
 }
 
+/**
+ * Throws `NOT_FOUND` if `viewId` contains "/" because .doc() reads the argument as a path 
+ * and it should be a single document name, not a path into another collection or subcollection. 
+ */
 export function assertValidViewId(viewId: string): void {
   if (viewId.includes("/")) throw viewNotFound();
 }
@@ -89,19 +93,19 @@ export function assertValidViewId(viewId: string): void {
  * pagination.
  */
 export async function listViews(
-  _db: Firestore,
-  _actor: ActiveUserProfile,
+  db: Firestore,
+  actor: ActiveUserProfile,
 ): Promise<View[]> {
-  const views = _db.collection(COLLECTION);
+  const views = db.collection(COLLECTION);
 
   let docs: QueryDocumentSnapshot[];
-  if (_actor.role === "Global Admin") {
+  if (actor.role === "Global Admin") {
     const snapshots = await views.orderBy("updatedAt", "desc").get();
     docs = snapshots.docs;
   } else {
     const [mine, shared] = await Promise.all([
       views
-        .where("authorUid", "==", _actor.uid)
+        .where("authorUid", "==", actor.uid)
         .orderBy("updatedAt", "desc")
         .get(),
       views
@@ -123,16 +127,16 @@ export async function listViews(
 
 /** Returns one view, or throws `NOT_FOUND` if it is missing or not visible. */
 export async function getView(
-  _db: Firestore,
-  _actor: ActiveUserProfile,
-  _input: GetViewInput,
+  db: Firestore,
+  actor: ActiveUserProfile,
+  input: GetViewInput,
 ): Promise<View> {
-  assertValidViewId(_input.viewId);
-  const entry = await _db.collection(COLLECTION).doc(_input.viewId).get();
+  assertValidViewId(input.viewId);
+  const entry = await db.collection(COLLECTION).doc(input.viewId).get();
   if (!entry.exists) throw viewNotFound();
 
   const view = toView(entry.id, entry.data());
-  assertCanSeeView(_actor, view);
+  assertCanSeeView(actor, view);
   return view;
 }
 
@@ -173,28 +177,28 @@ export function copyView(
  * their own views.
  */
 export function updateView(
-  _db: Firestore,
-  _actor: ActiveUserProfile,
-  _input: UpdateViewInput,
+  db: Firestore,
+  actor: ActiveUserProfile,
+  input: UpdateViewInput,
 ): Promise<View> {
-  return _db.runTransaction(async (tx) => {
-    assertValidViewId(_input.viewId);
-    const ref = _db.collection(COLLECTION).doc(_input.viewId);
+  return db.runTransaction(async (tx) => {
+    assertValidViewId(input.viewId);
+    const ref = db.collection(COLLECTION).doc(input.viewId);
     const snap = await tx.get(ref);
     if (!snap.exists) throw viewNotFound();
     const stored = parseStoredView.assert(snap.data());
 
-    assertCanSeeView(_actor, stored);
-    assertCanEditView(_actor, stored);
+    assertCanSeeView(actor, stored);
+    assertCanEditView(actor, stored);
 
     const changes: { name?: string; charts?: StoredView["charts"] } = {};
-    if (_input.name !== undefined) changes.name = _input.name;
-    if (_input.charts !== undefined) changes.charts = _input.charts;
+    if (input.name !== undefined) changes.name = input.name;
+    if (input.charts !== undefined) changes.charts = input.charts;
 
     const updatedAt = nowUtc();
     tx.update(ref, { ...changes, updatedAt });
 
-    return { viewId: _input.viewId, ...stored, ...changes, updatedAt };
+    return { viewId: input.viewId, ...stored, ...changes, updatedAt };
   });
 }
 
