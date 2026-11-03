@@ -80,8 +80,8 @@ export function assertCanShareView(
 }
 
 /**
- * Throws `NOT_FOUND` if `viewId` contains "/" because .doc() reads the argument as a path 
- * and it should be a single document name, not a path into another collection or subcollection. 
+ * Throws `NOT_FOUND` if `viewId` contains "/" because .doc() reads the argument as a path
+ * and it should be a single document name, not a path into another collection or subcollection.
  */
 export function assertValidViewId(viewId: string): void {
   if (viewId.includes("/")) throw viewNotFound();
