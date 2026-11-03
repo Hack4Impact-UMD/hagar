@@ -1,11 +1,17 @@
-import { canEditView, MAX_USER_INFO } from "@repo/common";
+import { canEditView, canShareView, MAX_USER_INFO } from "@repo/common";
 import type { UserInfo, View } from "@repo/common";
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { TRPCClientError } from "@trpc/client";
 import { useEffect, useState } from "react";
 import { NewViewDialog } from "@frontend/components/home/NewViewDialog.tsx";
 import { ViewPicker } from "@frontend/components/home/ViewPicker.tsx";
+import { ViewEditor } from "@frontend/components/home/ViewEditor.tsx";
 import { Button } from "@frontend/components/ui/button.tsx";
 import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
 import { auth } from "@frontend/lib/firebase.ts";
@@ -30,7 +36,12 @@ function Home() {
         <h1 data-testid="homepage" className="text-3xl font-bold">
           {firstName ? `Welcome, ${firstName}` : "Welcome"}
         </h1>
-        <button type="button" data-testid="sign-out" onClick={() => void auth.signOut()} className="border px-3 py-1">
+        <button
+          type="button"
+          data-testid="sign-out"
+          onClick={() => void auth.signOut()}
+          className="border px-3 py-1"
+        >
           Sign out
         </button>
       </header>
@@ -126,7 +137,12 @@ function HomeContent({ onNotice }: { onNotice: (message: string) => void }) {
     <>
       <div className="flex flex-wrap items-center justify-end gap-3">
         <NewViewDialog onCreated={showNewView} disabled={isEditing} />
-        <CopyButton key={selected.viewId} viewId={selected.viewId} onCopied={showNewView} disabled={isEditing} />
+        <CopyButton
+          key={selected.viewId}
+          viewId={selected.viewId}
+          onCopied={showNewView}
+          disabled={isEditing}
+        />
         <ViewPicker
           views={views.data}
           authors={authors}
@@ -136,20 +152,21 @@ function HomeContent({ onNotice }: { onNotice: (message: string) => void }) {
           disabled={isEditing}
         />
         {canEdit && !isEditing && (
-          <Button disabled={startingEdit} onClick={() => void startCustomizing(selected.viewId)}>
+          <Button
+            disabled={startingEdit}
+            onClick={() => void startCustomizing(selected.viewId)}
+          >
             {startingEdit ? "Opening…" : "Customize view"}
           </Button>
         )}
       </div>
 
       {isEditing ? (
-        // Replaced by the real editor in Task 8.
-        <div className="flex flex-col items-start gap-3">
-          <p>Customizing {editing.name}</p>
-          <Button variant="outline" onClick={() => setEditing(null)}>
-            Cancel
-          </Button>
-        </div>
+        <ViewEditor
+          view={editing}
+          canShare={me.data !== undefined && canShareView(me.data, editing)}
+          onCancel={() => setEditing(null)}
+        />
       ) : (
         <ViewDetails viewId={selected.viewId} onNotice={onNotice} />
       )}
@@ -157,7 +174,15 @@ function HomeContent({ onNotice }: { onNotice: (message: string) => void }) {
   );
 }
 
-function CopyButton({ viewId, onCopied, disabled }: { viewId: string; onCopied: (viewId: string) => Promise<void>; disabled?: boolean }) {
+function CopyButton({
+  viewId,
+  onCopied,
+  disabled,
+}: {
+  viewId: string;
+  onCopied: (viewId: string) => Promise<void>;
+  disabled?: boolean;
+}) {
   const copy = useMutation({
     ...trpc.views.copy.mutationOptions(),
     onSuccess: (view) => onCopied(view.viewId),
@@ -167,17 +192,27 @@ function CopyButton({ viewId, onCopied, disabled }: { viewId: string; onCopied: 
     <div className="flex items-center gap-2">
       {copy.isError && (
         <p role="alert" className="text-sm text-destructive">
-          {"Couldn't copy this view."}
+          Couldn&apos;t copy this view.
         </p>
       )}
-      <Button variant="outline" disabled={disabled || copy.isPending} onClick={() => copy.mutate({ viewId })}>
+      <Button
+        variant="outline"
+        disabled={disabled || copy.isPending}
+        onClick={() => copy.mutate({ viewId })}
+      >
         {copy.isPending ? "Copying…" : "Copy"}
       </Button>
     </div>
   );
 }
 
-function ViewDetails({ viewId, onNotice }: { viewId: string; onNotice: (message: string) => void }) {
+function ViewDetails({
+  viewId,
+  onNotice,
+}: {
+  viewId: string;
+  onNotice: (message: string) => void;
+}) {
   const queryClient = useQueryClient();
   const view = useQuery(trpc.views.get.queryOptions({ viewId }));
   const notFound = view.error?.data?.code === "NOT_FOUND";
@@ -211,7 +246,8 @@ function ViewDetails({ viewId, onNotice }: { viewId: string; onNotice: (message:
   return (
     <section className="flex flex-col gap-6">
       <p>
-        Showing <strong>{charts.length}</strong> analytics in the <strong>{name}</strong> view
+        Showing <strong>{charts.length}</strong> analytics in the{" "}
+        <strong>{name}</strong> view
       </p>
 
       {charts.length === 0 ? (
@@ -260,7 +296,9 @@ function useAuthors(views: View[]) {
   }
 
   const results = useQueries({
-    queries: chunks.map((chunk) => trpc.users.info.queryOptions({ uids: chunk })),
+    queries: chunks.map((chunk) =>
+      trpc.users.info.queryOptions({ uids: chunk }),
+    ),
   });
 
   const authors = new Map<string, UserInfo>();
