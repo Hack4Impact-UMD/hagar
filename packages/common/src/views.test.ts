@@ -13,9 +13,11 @@ import {
 
 const chart = {
   name: "Open rate",
-  chartId: "TEST_METRIC",
-  width: 4,
-  params: { value: 1 },
+  chartId: "EMAIL_LIST_SIZE",
+  params: {
+    emailListId: "list-1",
+    pointInTime: { type: "RELATIVE", anchor: "NOW" },
+  },
 };
 
 const author = { uid: "user-1", role: "Local Admin" } as const;
