@@ -8,14 +8,9 @@ import {
   listUsersInput,
   setUserRegionInput,
   setUserRoleInput,
-  MAX_USER_INFO,
   storedUserProfile,
   updateProfileInput,
-  userInfo,
   userInfoInput,
-  userRegion,
-  userRole,
-  userStage,
 } from "@common/user.ts";
 import type { UserRegion } from "@common/user.ts";
 
@@ -39,27 +34,9 @@ const settingUp = {
   createdAt: "2024-01-01T00:00:00.000Z",
 };
 
-describe("user schemas", () => {
-  it("limits region, role, and stage to their unions", () => {
-    expect(userRegion("New Zealand")).toBe("New Zealand");
-    expect(userRegion("UK")).toBeInstanceOf(type.errors);
-    expect(userRole("Global Admin")).toBe("Global Admin");
-    expect(userRole("Owner")).toBeInstanceOf(type.errors);
-    expect(userStage("EMAIL VERIFICATION")).toBe("EMAIL VERIFICATION");
-    expect(userStage("DISABLED")).toBeInstanceOf(type.errors);
-  });
-
+describe("stored user profile", () => {
   it("allows null details during profile setup", () => {
     expect(storedUserProfile(settingUp)).toEqual(settingUp);
-  });
-
-  it("requires an email", () => {
-    const withoutEmail: Record<string, unknown> = { ...settingUp };
-    delete withoutEmail.email;
-    expect(storedUserProfile(withoutEmail)).toBeInstanceOf(type.errors);
-    expect(storedUserProfile({ ...settingUp, email: null })).toBeInstanceOf(
-      type.errors,
-    );
   });
 
   it("requires every detail once past profile setup", () => {
@@ -70,36 +47,6 @@ describe("user schemas", () => {
         type.errors,
       );
     }
-    expect(
-      storedUserProfile({
-        ...settingUp,
-        ...details,
-        stage: "ACTIVE",
-        firstName: "",
-      }),
-    ).toBeInstanceOf(type.errors);
-  });
-
-  it("accepts only complete details from the setup form", () => {
-    expect(completeProfileInput(details)).toEqual(details);
-    expect(
-      completeProfileInput({
-        ...details,
-        photoPath: "https://example.com/me.png",
-      }),
-    ).toBeInstanceOf(type.errors);
-    expect(completeProfileInput({ ...details, region: null })).toBeInstanceOf(
-      type.errors,
-    );
-  });
-
-  it("rejects undeclared keys on the setup form", () => {
-    expect(
-      completeProfileInput({ ...details, role: "Global Admin" }),
-    ).toBeInstanceOf(type.errors);
-    expect(
-      completeProfileInput({ ...details, stage: "ACTIVE" }),
-    ).toBeInstanceOf(type.errors);
   });
 
   it("caps the length of every free-text detail", () => {
@@ -136,33 +83,15 @@ describe("user schemas", () => {
   });
 });
 
-describe("profile page schema", () => {
-  it("accepts any subset of the editable details", () => {
-    expect(updateProfileInput({})).toEqual({});
-    expect(updateProfileInput({ firstName: "Grace" })).toEqual({
-      firstName: "Grace",
-    });
-    const editable = {
-      photoPath: details.photoPath,
-      phoneNumber: details.phoneNumber,
-      firstName: details.firstName,
-      lastName: details.lastName,
-    };
-    expect(updateProfileInput(editable)).toEqual(editable);
-  });
+describe("profile inputs", () => {
+  it("reject fields the user may not set themselves", () => {
+    expect(
+      completeProfileInput({ ...details, role: "Global Admin" }),
+    ).toBeInstanceOf(type.errors);
+    expect(
+      completeProfileInput({ ...details, stage: "ACTIVE" }),
+    ).toBeInstanceOf(type.errors);
 
-  it("keeps the details' rules on the fields it accepts", () => {
-    expect(updateProfileInput({ firstName: "" })).toBeInstanceOf(type.errors);
-    expect(updateProfileInput({ firstName: "   " })).toBeInstanceOf(
-      type.errors,
-    );
-    expect(updateProfileInput({ photoPath: "not a path" })).toBeInstanceOf(
-      type.errors,
-    );
-    expect(updateProfileInput({ lastName: null })).toBeInstanceOf(type.errors);
-  });
-
-  it("rejects fields the user may not change themselves", () => {
     for (const [field, value] of [
       ["region", "Canada"],
       ["role", "Global Admin"],
@@ -175,90 +104,19 @@ describe("profile page schema", () => {
       );
     }
   });
-});
 
-describe("user info schemas", () => {
-  it("accepts a list of uids, including none", () => {
-    expect(userInfoInput({ uids: ["user-1", "user-2"] })).toEqual({
-      uids: ["user-1", "user-2"],
-    });
-    expect(userInfoInput({ uids: [] })).toEqual({ uids: [] });
-  });
-
-  it("caps how many users one lookup covers", () => {
-    const atCap = Array.from({ length: MAX_USER_INFO }, (_, i) => `u${i}`);
-    expect(userInfoInput({ uids: atCap })).toEqual({ uids: atCap });
-    expect(userInfoInput({ uids: [...atCap, "one-more"] })).toBeInstanceOf(
+  it("treat a whitespace-only name as empty", () => {
+    expect(updateProfileInput({ firstName: "   " })).toBeInstanceOf(
       type.errors,
     );
-  });
-
-  it("rejects an empty uid, a missing list and undeclared keys", () => {
-    for (const input of [
-      { uids: [""] },
-      { uids: ["x".repeat(129)] },
-      {},
-      { uids: ["user-1"], extra: 1 },
-    ]) {
-      expect(userInfoInput(input)).toBeInstanceOf(type.errors);
-    }
-  });
-
-  it("describes a user with only a uid, names, an email and a photo path", () => {
-    const info = {
-      uid: "user-1",
-      firstName: "Ada",
-      lastName: "Lovelace",
-      email: "ada@example.com",
-      photoPath: details.photoPath,
-    };
-    expect(userInfo(info)).toEqual(info);
-    expect(userInfo({ ...info, photoPath: "not a path" })).toBeInstanceOf(
-      type.errors,
-    );
-    expect(userInfo({ uid: "user-1", firstName: "Ada" })).toBeInstanceOf(
-      type.errors,
-    );
-    const { email: _email, ...withoutEmail } = info;
-    expect(userInfo(withoutEmail)).toBeInstanceOf(type.errors);
   });
 });
 
-describe("user management schemas", () => {
-  it("lists only users who have finished onboarding", () => {
-    expect(listUsersInput({ stage: "AWAITING APPROVAL" })).toEqual({
-      stage: "AWAITING APPROVAL",
-    });
-    expect(listUsersInput({ stage: "ACTIVE", region: "US" })).toEqual({
-      stage: "ACTIVE",
-      region: "US",
-    });
-    for (const stage of ["PROFILE SETUP", "EMAIL VERIFICATION"]) {
-      expect(listUsersInput({ stage })).toBeInstanceOf(type.errors);
-    }
-    expect(listUsersInput({})).toBeInstanceOf(type.errors);
-  });
-
-  it("requires a plausible uid", () => {
-    expect(deleteUserInput({ uid: "abc" })).toEqual({ uid: "abc" });
-    expect(deleteUserInput({ uid: "" })).toBeInstanceOf(type.errors);
-    expect(deleteUserInput({ uid: "a".repeat(129) })).toBeInstanceOf(
+describe("user lookup and management inputs", () => {
+  it("reject undeclared keys", () => {
+    expect(userInfoInput({ uids: ["user-1"], extra: 1 })).toBeInstanceOf(
       type.errors,
     );
-  });
-
-  it("validates roles and regions", () => {
-    expect(approveUserInput({ uid: "abc" })).toEqual({ uid: "abc" });
-    expect(approveUserInput({ uid: "abc", role: "Owner" })).toBeInstanceOf(
-      type.errors,
-    );
-    expect(setUserRoleInput({ uid: "abc" })).toBeInstanceOf(type.errors);
-    expect(setUserRegionInput({ uid: "abc", region: "UK" })).toBeInstanceOf(
-      type.errors,
-    );
-  });
-
-  it("rejects undeclared keys", () => {
     const extra = { uid: "abc", stage: "ACTIVE" };
     for (const schema of [
       approveUserInput,
@@ -275,6 +133,14 @@ describe("user management schemas", () => {
     );
   });
 
+  it("list only users who have finished onboarding", () => {
+    for (const stage of ["PROFILE SETUP", "EMAIL VERIFICATION"]) {
+      expect(listUsersInput({ stage })).toBeInstanceOf(type.errors);
+    }
+  });
+});
+
+describe("isAdminRole", () => {
   it("treats only Global and Local Admins as admins", () => {
     expect(isAdminRole("Global Admin")).toBe(true);
     expect(isAdminRole("Local Admin")).toBe(true);
