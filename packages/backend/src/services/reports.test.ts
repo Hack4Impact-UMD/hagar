@@ -77,6 +77,7 @@ function report(n: number, viewId: string, takenAt: string): StoredReport {
     takenAt,
     notes: `Report ${n}`,
     path: reportFilePath(viewId, id(n)),
+    requesterUid: "owner",
   };
 }
 
@@ -338,6 +339,7 @@ describe("createReport", () => {
       takenAt: NOW,
       notes: "For the board",
       path: reportFilePath("ownerShared", id(9)),
+      requesterUid: owner.uid,
     };
     expect(created).toEqual({ reportId: id(9), ...expected });
     expect(doc("reports", id(9))).toEqual(expected);
