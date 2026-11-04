@@ -2,6 +2,13 @@ import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useState } from "react";
+import { AuthLayout } from "@frontend/components/auth/AuthLayout.tsx";
+import { FormField } from "@frontend/components/form/FormField.tsx";
+import { SubmitButton } from "@frontend/components/form/SubmitButton.tsx";
+import {
+  authErrorMessage,
+  isBadCredentials,
+} from "@frontend/lib/authErrors.ts";
 import { auth } from "@frontend/lib/firebase.ts";
 
 export const Route = createFileRoute("/login")({ component: Login });
@@ -13,56 +20,56 @@ function Login() {
   // changes.
   const logIn = useMutation({
     mutationFn: () => signInWithEmailAndPassword(auth, email, password),
+    // Clears only a rejected password so a network error doesn't make the user
+    // retype it.
+    onError: (error) => {
+      if (isBadCredentials(error)) setPassword("");
+    },
   });
+  // Success is not the end of the wait: the redirect to the next page only
+  // happens after the route guards fetch the profile. Staying busy until this
+  // page unmounts avoids a dead moment with an idle form.
+  const busy = logIn.isPending || logIn.isSuccess;
 
   return (
-    <main className="flex flex-col gap-4 p-6">
-      <h1>Log in</h1>
-      <form
-        className="flex flex-col gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          logIn.mutate();
-        }}
-      >
-        <label>
-          Email{" "}
-          <input
-            type="email"
-            required
-            value={email}
-            data-testid="email"
-            onChange={(event) => setEmail(event.target.value)}
-            className="border"
-          />
-        </label>
-        <label>
-          Password{" "}
-          <input
-            type="password"
-            required
-            value={password}
-            data-testid="password"
-            onChange={(event) => setPassword(event.target.value)}
-            className="border"
-          />
-        </label>
-        <button
-          type="submit"
-          data-testid="log-in"
-          disabled={logIn.isPending}
-          className="self-start border px-3 py-1"
-        >
-          Log in
-        </button>
-        {logIn.error ? <p role="alert">{logIn.error.message}</p> : null}
-      </form>
-      <p>
-        No account yet?{" "}
-        <Link to="/signup" className="underline">
-          Sign up
-        </Link>
-      </p>
-    </main>
+    <AuthLayout
+      title="Login"
+      prompt={
+        <>
+          Don&apos;t have an account yet?{" "}
+          <Link to="/signup" className="underline text-primary">
+            Sign up
+          </Link>
+        </>
+      }
+      onSubmit={() => logIn.mutate()}
+      error={logIn.error ? authErrorMessage(logIn.error) : undefined}
+    >
+      <FormField
+        label="Email"
+        type="email"
+        required
+        value={email}
+        disabled={busy}
+        data-testid="email"
+        onChange={(event) => setEmail(event.target.value)}
+      />
+      <FormField
+        label="Password"
+        type="password"
+        required
+        value={password}
+        disabled={busy}
+        data-testid="password"
+        onChange={(event) => setPassword(event.target.value)}
+      />
+      {/* oxlint-disable-next-line jsx-a11y/anchor-is-valid */}
+      <a href="" className="underline flex justify-end pb-7.5 text-[#808080]">
+        Forgot Password?
+      </a>
+      <SubmitButton pending={busy} data-testid="log-in">
+        Login
+      </SubmitButton>
+    </AuthLayout>
   );
 }

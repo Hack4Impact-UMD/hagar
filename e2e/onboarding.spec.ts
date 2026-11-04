@@ -34,7 +34,9 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
     mimeType: "image/png",
     buffer: Buffer.from(ONE_PIXEL_PNG, "base64"),
   });
-  await page.getByTestId("region").selectOption("New Zealand");
+
+  await page.getByTestId("region").click();
+  await page.getByRole("option", { name: "New Zealand" }).click();
   await page.getByTestId("next").click();
 
   // The page sends the verification email on arrival and polls until the
@@ -70,11 +72,13 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   await page.getByRole("link", { name: "Profile" }).click();
   await expect(page.getByTestId("profile")).toHaveText("Profile");
   await page.getByRole("link", { name: "Back to homepage" }).click();
-  await page.getByRole("link", { name: "User management" }).click();
-  await expect(page.getByTestId("user-management")).toHaveText(
-    "User management",
+
+  // Viewers can't manage users, so the page looks like any unknown URL.
+  await expect(page.getByRole("link", { name: "User management" })).toHaveCount(
+    0,
   );
-  await page.getByRole("link", { name: "Back to homepage" }).click();
+  await page.goto("/user-management");
+  await expect(page.getByTestId("not-found")).toBeVisible();
 
   await page.goto("/no-such-page");
   await expect(page.getByTestId("not-found")).toBeVisible();
@@ -83,7 +87,7 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
 
   await page.getByTestId("sign-out").click();
   await expect(page).toHaveURL(/\/login$/);
-  await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Login" })).toBeVisible();
 
   // An approved user goes straight to the homepage after logging in.
   await page.getByTestId("email").fill(TEST_USER.email);
