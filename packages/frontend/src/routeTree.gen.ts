@@ -16,6 +16,7 @@ import { Route as ProfileSetupRouteImport } from './routes/profile-setup'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppHomePreviewRouteImport } from './routes/_app/home-preview'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppUserManagementRouteImport } from './routes/_app/user-management'
 import { Route as AppReportsHistoryRouteImport } from './routes/_app/reports/history'
@@ -55,6 +56,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppHomePreviewRoute = AppHomePreviewRouteImport.update({
+  id: '/home-preview',
+  path: '/home-preview',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppProfileRoute = AppProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/profile-setup': typeof ProfileSetupRoute
   '/signup': typeof SignupRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/home-preview': typeof AppHomePreviewRoute
   '/profile': typeof AppProfileRoute
   '/user-management': typeof AppUserManagementRoute
   '/reports/history': typeof AppReportsHistoryRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByTo {
   '/profile-setup': typeof ProfileSetupRoute
   '/signup': typeof SignupRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/home-preview': typeof AppHomePreviewRoute
   '/profile': typeof AppProfileRoute
   '/user-management': typeof AppUserManagementRoute
   '/': typeof AppIndexRoute
@@ -108,6 +116,7 @@ export interface FileRoutesById {
   '/profile-setup': typeof ProfileSetupRoute
   '/signup': typeof SignupRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/_app/home-preview': typeof AppHomePreviewRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/user-management': typeof AppUserManagementRoute
   '/_app/': typeof AppIndexRoute
@@ -123,6 +132,7 @@ export interface FileRouteTypes {
     | '/profile-setup'
     | '/signup'
     | '/verify-email'
+    | '/home-preview'
     | '/profile'
     | '/user-management'
     | '/reports/history'
@@ -134,6 +144,7 @@ export interface FileRouteTypes {
     | '/profile-setup'
     | '/signup'
     | '/verify-email'
+    | '/home-preview'
     | '/profile'
     | '/user-management'
     | '/'
@@ -147,6 +158,7 @@ export interface FileRouteTypes {
     | '/profile-setup'
     | '/signup'
     | '/verify-email'
+    | '/_app/home-preview'
     | '/_app/profile'
     | '/_app/user-management'
     | '/_app/'
@@ -214,6 +226,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/home-preview': {
+      id: '/_app/home-preview'
+      path: '/home-preview'
+      fullPath: '/home-preview'
+      preLoaderRoute: typeof AppHomePreviewRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/profile': {
       id: '/_app/profile'
       path: '/profile'
@@ -246,6 +265,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteRouteChildren {
+  AppHomePreviewRoute: typeof AppHomePreviewRoute
   AppProfileRoute: typeof AppProfileRoute
   AppUserManagementRoute: typeof AppUserManagementRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -254,6 +274,7 @@ interface AppRouteRouteChildren {
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
+  AppHomePreviewRoute: AppHomePreviewRoute,
   AppProfileRoute: AppProfileRoute,
   AppUserManagementRoute: AppUserManagementRoute,
   AppIndexRoute: AppIndexRoute,
