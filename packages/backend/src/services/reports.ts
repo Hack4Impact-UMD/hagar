@@ -217,6 +217,7 @@ export async function createReport(
       takenAt: nowUtc(),
       notes: input.notes ?? "",
       path,
+      requesterUid: actor.uid,
     };
 
     tx.create(reportRef, stored);
