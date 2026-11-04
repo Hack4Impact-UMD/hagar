@@ -1,11 +1,15 @@
 import { XIcon } from "@phosphor-icons/react";
 import type { View, ViewShareOption } from "@repo/common";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { TRPCClientError } from "@trpc/client";
 import { Dialog } from "radix-ui";
 import { useState } from "react";
 import { Button } from "@frontend/components/ui/button.tsx";
+import { trpc } from "@frontend/lib/trpc.ts";
 import {
   addCard,
   cleanName,
+  diffDraft,
   draftFromView,
   removeCard,
 } from "@frontend/lib/viewDraft.ts";
@@ -19,12 +23,101 @@ const SHARE_OPTIONS: { value: ViewShareOption; label: string }[] = [
 type ViewEditorProps = {
   view: View;
   canShare: boolean;
-  onCancel: () => void;
+  onExit: () => void;
+  onNotice: (message: string) => void;
 };
 
-export function ViewEditor({ view, canShare, onCancel }: ViewEditorProps) {
+export function ViewEditor({
+  view,
+  canShare,
+  onExit,
+  onNotice,
+}: ViewEditorProps) {
+  const queryClient = useQueryClient();
+  // The view as last saved. After a partly failed save it includes the part
+  // that did save, so a retry sends only the rest.
+  const [baseline, setBaseline] = useState(view);
   const [draft, setDraft] = useState(() => draftFromView(view));
-  const error = nameError(draft.name);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const update = useMutation(trpc.views.update.mutationOptions());
+  const setShareOption = useMutation(
+    trpc.views.setShareOption.mutationOptions(),
+  );
+  const nameProblem = nameError(draft.name);
+
+  // The page reads the view from the cache, so it shows the saved version
+  // right away. The list is refetched because saving moves the view to the top.
+  function storeSaved(saved: View) {
+    queryClient.setQueryData(
+      trpc.views.get.queryKey({ viewId: saved.viewId }),
+      saved,
+    );
+    void queryClient.invalidateQueries({
+      queryKey: trpc.views.list.queryKey(),
+    });
+  }
+
+  async function save() {
+    const changes = diffDraft(baseline, draft);
+    if (!changes.update && !changes.shareOption) {
+      onExit();
+      return;
+    }
+
+    setSaving(true);
+    setSaveError(null);
+    // Set once the first call succeeds, to tell a partial save from a failed one.
+    let saved: View | null = null;
+    try {
+      if (changes.update) {
+        saved = await update.mutateAsync({
+          viewId: view.viewId,
+          ...changes.update,
+        });
+        storeSaved(saved);
+      }
+      if (changes.shareOption) {
+        saved = await setShareOption.mutateAsync({
+          viewId: view.viewId,
+          shareOption: changes.shareOption,
+        });
+        storeSaved(saved);
+      }
+      onExit();
+    } catch (error) {
+      const code = errorCode(error);
+      if (code === "NOT_FOUND") {
+        onNotice("That view can't be found.");
+        void queryClient.invalidateQueries({
+          queryKey: trpc.views.list.queryKey(),
+        });
+        onExit();
+        return;
+      }
+      if (code === "FORBIDDEN") {
+        onNotice("You no longer have permission to edit this view.");
+        void queryClient.invalidateQueries({
+          queryKey: trpc.views.get.queryKey({ viewId: view.viewId }),
+        });
+        void queryClient.invalidateQueries({
+          queryKey: trpc.views.list.queryKey(),
+        });
+        onExit();
+        return;
+      }
+      if (saved) {
+        setBaseline(saved);
+        setSaveError(
+          "Your name and cards were saved, but the sharing change wasn't. Try again.",
+        );
+        return;
+      }
+      setSaveError("Couldn't save your changes. Try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <section className="flex flex-col gap-6">
@@ -34,7 +127,8 @@ export function ViewEditor({ view, canShare, onCancel }: ViewEditorProps) {
           <input
             value={draft.name}
             onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-            aria-invalid={error !== null}
+            disabled={saving}
+            aria-invalid={nameProblem !== null}
             className="w-72 rounded-md border px-3 py-1.5"
           />
         </label>
@@ -50,6 +144,7 @@ export function ViewEditor({ view, canShare, onCancel }: ViewEditorProps) {
                   shareOption: e.target.value as ViewShareOption,
                 })
               }
+              disabled={saving}
               className="rounded-md border px-3 py-1.5"
             >
               {SHARE_OPTIONS.map((option) => (
@@ -61,12 +156,25 @@ export function ViewEditor({ view, canShare, onCancel }: ViewEditorProps) {
           </label>
         )}
 
-        <Button variant="outline" onClick={onCancel} className="ml-auto">
-          Cancel
-        </Button>
+        <div className="ml-auto flex gap-2">
+          <Button variant="outline" onClick={onExit} disabled={saving}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => void save()}
+            disabled={saving || nameProblem !== null}
+          >
+            {saving ? "Saving…" : "Save"}
+          </Button>
+        </div>
       </div>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {nameProblem && <p className="text-sm text-destructive">{nameProblem}</p>}
+      {saveError && (
+        <p role="alert" className="text-sm text-destructive">
+          {saveError}
+        </p>
+      )}
 
       <ul className="grid gap-6 md:grid-cols-3">
         {draft.cards.map((card) => (
@@ -78,6 +186,7 @@ export function ViewEditor({ view, canShare, onCancel }: ViewEditorProps) {
               type="button"
               aria-label={`Remove ${card.name}`}
               onClick={() => setDraft(removeCard(draft, card.id))}
+              disabled={saving}
               className="absolute top-2 right-2 rounded-md p-1 hover:bg-muted"
             >
               <XIcon aria-hidden="true" />
@@ -87,7 +196,10 @@ export function ViewEditor({ view, canShare, onCancel }: ViewEditorProps) {
           </li>
         ))}
         <li>
-          <AddCardDialog onAdd={(name) => setDraft(addCard(draft, name))} />
+          <AddCardDialog
+            onAdd={(name) => setDraft(addCard(draft, name))}
+            disabled={saving}
+          />
         </li>
       </ul>
     </section>
@@ -100,7 +212,18 @@ function nameError(name: string): string | null {
   return "Name must be 500 characters or fewer.";
 }
 
-function AddCardDialog({ onAdd }: { onAdd: (name: string) => void }) {
+/** The tRPC error code, such as "NOT_FOUND", or undefined for other errors. */
+function errorCode(error: unknown): string | undefined {
+  return error instanceof TRPCClientError ? error.data?.code : undefined;
+}
+
+function AddCardDialog({
+  onAdd,
+  disabled,
+}: {
+  onAdd: (name: string) => void;
+  disabled: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
 
@@ -124,6 +247,7 @@ function AddCardDialog({ onAdd }: { onAdd: (name: string) => void }) {
       <Dialog.Trigger asChild>
         <button
           type="button"
+          disabled={disabled}
           className="flex h-full min-h-48 w-full items-center justify-center rounded-lg border-2 border-dashed text-muted-foreground hover:bg-muted"
         >
           + Add analytic

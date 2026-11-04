@@ -165,7 +165,8 @@ function HomeContent({ onNotice }: { onNotice: (message: string) => void }) {
         <ViewEditor
           view={editing}
           canShare={me.data !== undefined && canShareView(me.data, editing)}
-          onCancel={() => setEditing(null)}
+          onExit={() => setEditing(null)}
+          onNotice={onNotice}
         />
       ) : (
         <ViewDetails viewId={selected.viewId} onNotice={onNotice} />
