@@ -21,6 +21,7 @@ const stored = {
   takenAt: "2024-05-01T12:30:00.000Z",
   notes: "Sent to the board",
   path,
+  requesterUid: "user-1",
 };
 
 describe("reportPath", () => {
@@ -85,8 +86,11 @@ describe("storedReport", () => {
     }
   });
 
-  it("rejects a missing view, a bad path, or a bad chart", () => {
+  it("rejects a missing view or requester, a bad path, or a bad chart", () => {
     expect(storedReport({ ...stored, viewId: "" })).toBeInstanceOf(type.errors);
+    expect(storedReport({ ...stored, requesterUid: "" })).toBeInstanceOf(
+      type.errors,
+    );
     expect(storedReport({ ...stored, path: "report.pdf" })).toBeInstanceOf(
       type.errors,
     );
