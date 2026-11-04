@@ -6,8 +6,9 @@ import {
   MagnifyingGlassIcon,
   SpinnerGapIcon,
 } from "@phosphor-icons/react";
+import { MAX_USER_INFO } from "@repo/common";
 import type { Report } from "@repo/common";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import {
   createFileRoute,
   useCanGoBack,
@@ -34,13 +35,24 @@ export const Route = createFileRoute("/_app/reports/history")({
   component: ReportsHistory,
 });
 
-// The time tells apart reports of the same view taken on the same day.
+const takenOnFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "long" });
+// Shown on hover, to tell apart reports of the same view taken on one day.
 const takenAtFormat = new Intl.DateTimeFormat(undefined, {
   dateStyle: "long",
   timeStyle: "short",
 });
 
 type ReportRowData = Pick<Report, "reportId" | "viewId" | "takenAt" | "path">;
+
+const UNKNOWN_AUTHOR_NAME = "Unknown user";
+
+function chunks<T>(items: readonly T[], size: number): T[][] {
+  const result: T[][] = [];
+  for (let start = 0; start < items.length; start += size) {
+    result.push(items.slice(start, start + size));
+  }
+  return result;
+}
 
 function ReportsHistory() {
   const [query, setQuery] = useState("");
@@ -54,13 +66,41 @@ function ReportsHistory() {
       ),
     [views.data],
   );
+  // A report stores only who asked for it, so names come from `users.info`,
+  // which takes at most MAX_USER_INFO ids per call.
+  const requesterUids = useMemo(
+    () => [...new Set(reports.data?.map((report) => report.requesterUid))],
+    [reports.data],
+  );
+  const authors = useQueries({
+    queries: chunks(requesterUids, MAX_USER_INFO).map((uids) =>
+      trpc.users.info.queryOptions({ uids }),
+    ),
+    combine: (results) => ({
+      names: new Map<string, string>(
+        results.flatMap((result) =>
+          (result.data ?? []).map((user) => [
+            user.uid,
+            `${user.firstName} ${user.lastName}`,
+          ]),
+        ),
+      ),
+      isPending: results.some((result) => result.isPending),
+      isError: results.some((result) => result.isError),
+      retry: () => {
+        for (const result of results) {
+          if (result.isError) void result.refetch();
+        }
+      },
+    }),
+  });
   const matches = useMemo(
     () => filterReports(reports.data ?? [], viewNames, query),
     [reports.data, viewNames, query],
   );
 
   let content: React.ReactNode;
-  if (reports.isError || views.isError) {
+  if (reports.isError || views.isError || authors.isError) {
     content = (
       <Message>
         <p role="alert">Reports could not be loaded.</p>
@@ -69,13 +109,14 @@ function ReportsHistory() {
           onClick={() => {
             if (reports.isError) void reports.refetch();
             if (views.isError) void views.refetch();
+            authors.retry();
           }}
         >
           Try again
         </Button>
       </Message>
     );
-  } else if (reports.isPending || views.isPending) {
+  } else if (reports.isPending || views.isPending || authors.isPending) {
     content = (
       <ReportTable busy>
         {Array.from({ length: 5 }, (_, index) => (
@@ -103,6 +144,9 @@ function ReportsHistory() {
             key={report.reportId}
             report={report}
             viewName={viewNameFor(viewNames, report.viewId)}
+            authorName={
+              authors.names.get(report.requesterUid) ?? UNKNOWN_AUTHOR_NAME
+            }
           />
         ))}
       </ReportTable>
@@ -178,10 +222,11 @@ function ReportTable({
       <table className="w-full table-fixed border-collapse" aria-busy={busy}>
         <thead>
           <tr className="text-left text-base font-bold">
-            <th className="sticky top-0 w-2/5 bg-card px-7.5 pb-3">
+            <th className="sticky top-0 w-3/10 bg-card px-7.5 pb-3">
               View name
             </th>
-            <th className="sticky top-0 w-2/5 bg-card px-4 pb-3">Date</th>
+            <th className="sticky top-0 w-3/10 bg-card px-4 pb-3">Date</th>
+            <th className="sticky top-0 w-1/5 bg-card px-4 pb-3">Author</th>
             <th className="sticky top-0 bg-card pb-3">
               <span className="sr-only">Actions</span>
             </th>
@@ -202,6 +247,9 @@ function SkeletonRow() {
       <td className="px-4">
         <Skeleton className="h-5 w-48" />
       </td>
+      <td className="px-4">
+        <Skeleton className="h-5 w-28" />
+      </td>
       <td className="px-7.5">
         <Skeleton className="ml-auto h-5 w-24" />
       </td>
@@ -212,18 +260,26 @@ function SkeletonRow() {
 function ReportRow({
   report,
   viewName,
+  authorName,
 }: {
   report: ReportRowData;
   viewName: string;
+  authorName: string;
 }) {
   return (
     <tr className="h-23 border">
       <td className="px-7.5 text-lg break-words">{viewName}</td>
       <td className="px-4 text-lg text-muted-foreground">
         Created{" "}
-        <time dateTime={report.takenAt}>
-          {takenAtFormat.format(new Date(report.takenAt))}
+        <time
+          dateTime={report.takenAt}
+          title={takenAtFormat.format(new Date(report.takenAt))}
+        >
+          {takenOnFormat.format(new Date(report.takenAt))}
         </time>
+      </td>
+      <td className="px-4 text-lg break-words text-muted-foreground">
+        {authorName}
       </td>
       <td className="px-4">
         <div className="flex items-center justify-end gap-4">
