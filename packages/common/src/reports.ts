@@ -42,7 +42,9 @@ export const storedReport = type({
   takenAt: utcDateString,
   notes: "string <= 10000",
   path: reportPath,
+  requesterUid: "string >= 1",
 });
+
 export type StoredReport = typeof storedReport.infer;
 
 export const report = type({ reportId: "string >= 1" }).and(storedReport);
