@@ -108,7 +108,7 @@ function actor(uid: string, role: UserRole = "Local Admin"): ActiveUserProfile {
     role,
     createdAt: "2024-01-01T00:00:00.000Z",
     stage: "ACTIVE",
-    photoPath: "profile-photos/user-1/123e4567-e89b-42d3-a456-426614174000.png",
+    photoPath: "profile-photos/user-1/avatar",
     phoneNumber: "+15555550100",
     firstName: "Ada",
     lastName: "Lovelace",

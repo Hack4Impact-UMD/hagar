@@ -19,7 +19,7 @@ service firebase.storage {
           || user.role == 'Global Admin'
         );
     }
-
+    
     // Each user has one profile photo, `avatar`, in their own folder, which is
     // how the backend tells whose photo a path is. Uploading again overwrites
     // it, so a user can never store more than one file. Only the backend,
