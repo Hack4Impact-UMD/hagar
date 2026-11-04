@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { NewViewDialog } from "@frontend/components/home/NewViewDialog.tsx";
 import { ViewPicker } from "@frontend/components/home/ViewPicker.tsx";
 import { ViewEditor } from "@frontend/components/home/ViewEditor.tsx";
+import { ViewCard } from "@frontend/components/home/ViewCard.tsx";
 import { Button } from "@frontend/components/ui/button.tsx";
 import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
 import { auth } from "@frontend/lib/firebase.ts";
@@ -137,58 +138,52 @@ function HomeContent({ onNotice }: { onNotice: (message: string) => void }) {
   const canEdit = me.data !== undefined && canEditView(me.data, selected);
 
   return (
-    <>
-      return (
-      <div className="flex flex-col gap-8">
-        {/* The editor has its own row with Cancel and Save, so this one is hidden
+    <div className="flex flex-col gap-8">
+      {/* The editor has its own row with Cancel and Save, so this one is hidden
           while customizing. */}
-        {!isEditing && (
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <p className="text-lg">
-              Showing <strong>{selected.charts.length}</strong> analytics in the{" "}
-              <strong>{selected.name}</strong> view
-            </p>
-            <div className="flex flex-wrap items-center gap-3">
-              <NewViewDialog onCreated={showNewView} />
-              <CopyButton
-                key={selected.viewId}
-                viewId={selected.viewId}
-                onCopied={showNewView}
-              />
-              <ViewPicker
-                views={views.data}
-                authors={authors}
-                authorsLoading={authorsLoading}
-                selectedId={selected.viewId}
-                onSelect={(viewId) =>
-                  void navigate({ search: { view: viewId } })
-                }
-              />
-              {canEdit && (
-                <Button
-                  disabled={startingEdit}
-                  onClick={() => void startCustomizing(selected.viewId)}
-                >
-                  {startingEdit ? "Opening…" : "Customize view"}
-                </Button>
-              )}
-            </div>
+      {!isEditing && (
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <p className="text-lg">
+            Showing <strong>{selected.charts.length}</strong> analytics in the{" "}
+            <strong>{selected.name}</strong> view
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <NewViewDialog onCreated={showNewView} />
+            <CopyButton
+              key={selected.viewId}
+              viewId={selected.viewId}
+              onCopied={showNewView}
+            />
+            <ViewPicker
+              views={views.data}
+              authors={authors}
+              authorsLoading={authorsLoading}
+              selectedId={selected.viewId}
+              onSelect={(viewId) => void navigate({ search: { view: viewId } })}
+            />
+            {canEdit && (
+              <Button
+                disabled={startingEdit}
+                onClick={() => void startCustomizing(selected.viewId)}
+              >
+                {startingEdit ? "Opening…" : "Customize view"}
+              </Button>
+            )}
           </div>
-        )}
+        </div>
+      )}
 
-        {isEditing ? (
-          <ViewEditor
-            view={editing}
-            canShare={me.data !== undefined && canShareView(me.data, editing)}
-            onExit={() => setEditing(null)}
-            onNotice={onNotice}
-          />
-        ) : (
-          <ViewDetails viewId={selected.viewId} onNotice={onNotice} />
-        )}
-      </div>
-      );
-    </>
+      {isEditing ? (
+        <ViewEditor
+          view={editing}
+          canShare={me.data !== undefined && canShareView(me.data, editing)}
+          onExit={() => setEditing(null)}
+          onNotice={onNotice}
+        />
+      ) : (
+        <ViewDetails viewId={selected.viewId} onNotice={onNotice} />
+      )}
+    </div>
   );
 }
 
@@ -267,16 +262,13 @@ function ViewDetails({
       {charts.length === 0 ? (
         <p>This view has no cards yet</p>
       ) : (
-        <ul className="grid gap-6 md:grid-cols-3">
+        <ul className="grid gap-10 md:grid-cols-3">
           {charts.map((chart, i) => (
-            <li
+            <ViewCard
               // oxlint-disable-next-line react/no-array-index-key -- cards have no id and names can repeat; this list never reorders while viewing.
               key={i}
-              className="flex flex-col gap-4 rounded-lg border p-4 md:first:col-span-3"
-            >
-              <h2 className="text-lg">{chart.name}</h2>
-              <div aria-hidden="true" className="h-48 rounded-md bg-muted" />
-            </li>
+              name={chart.name}
+            />
           ))}
         </ul>
       )}

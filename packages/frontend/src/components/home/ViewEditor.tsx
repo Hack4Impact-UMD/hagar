@@ -1,11 +1,13 @@
-import { XIcon } from "@phosphor-icons/react";
+import { PlusCircleIcon } from "@phosphor-icons/react";
 import type { View, ViewShareOption } from "@repo/common";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { TRPCClientError } from "@trpc/client";
 import { Dialog } from "radix-ui";
 import { useState } from "react";
+import { ViewCard } from "@frontend/components/home/ViewCard.tsx";
 import { Button } from "@frontend/components/ui/button.tsx";
 import { trpc } from "@frontend/lib/trpc.ts";
+
 import {
   addCard,
   cleanName,
@@ -164,7 +166,7 @@ export function ViewEditor({
             onClick={() => void save()}
             disabled={saving || nameProblem !== null}
           >
-            {saving ? "Saving…" : "Save"}
+            {saving ? "Saving…" : "Save changes"}
           </Button>
         </div>
       </div>
@@ -176,24 +178,14 @@ export function ViewEditor({
         </p>
       )}
 
-      <ul className="grid gap-6 md:grid-cols-3">
+      <ul className="grid gap-10 md:grid-cols-3">
         {draft.cards.map((card) => (
-          <li
+          <ViewCard
             key={card.id}
-            className="relative flex flex-col gap-4 rounded-lg border p-4 md:first:col-span-3"
-          >
-            <button
-              type="button"
-              aria-label={`Remove ${card.name}`}
-              onClick={() => setDraft(removeCard(draft, card.id))}
-              disabled={saving}
-              className="absolute top-2 right-2 rounded-md p-1 hover:bg-muted"
-            >
-              <XIcon aria-hidden="true" />
-            </button>
-            <h2 className="pr-8 text-lg">{card.name}</h2>
-            <div aria-hidden="true" className="h-48 rounded-md bg-muted" />
-          </li>
+            name={card.name}
+            onRemove={() => setDraft(removeCard(draft, card.id))}
+            disabled={saving}
+          />
         ))}
         <li>
           <AddCardDialog
@@ -248,9 +240,10 @@ function AddCardDialog({
         <button
           type="button"
           disabled={disabled}
-          className="flex h-full min-h-48 w-full items-center justify-center rounded-lg border-2 border-dashed text-muted-foreground hover:bg-muted"
+          className="flex h-full min-h-48 w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-primary bg-[#F9F6F1] text-lg font-bold text-primary hover:brightness-95 disabled:opacity-50"
         >
-          + Add analytic
+          <PlusCircleIcon aria-hidden="true" size={48} />
+          Add analytic
         </button>
       </Dialog.Trigger>
 
