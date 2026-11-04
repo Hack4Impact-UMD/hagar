@@ -1,5 +1,6 @@
-import type { ActiveUserProfile, StoredView, UserRole } from "@repo/common";
+﻿import type { ActiveUserProfile, StoredView, UserRole } from "@repo/common";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { chart } from "@backend/testing/charts.ts";
 import { fakeFirestore } from "@backend/testing/fakeFirestore.ts";
 import {
   assertCanEditView,
@@ -26,7 +27,7 @@ function stored(
     name: `${authorUid}'s ${shareOption} view`,
     authorUid,
     shareOption,
-    charts: [{ name: "Open rate" }],
+    charts: [chart("Open rate")],
     updatedAt,
   };
 }
@@ -302,12 +303,12 @@ describe("createView", () => {
 
     const created = await createView(db, owner, {
       name: "Q3 overview",
-      charts: [{ name: "Open rate" }, { name: "List growth" }],
+      charts: [chart("Open rate"), chart("List growth")],
       shareOption: "ANYONE_VIEW",
     });
 
     expect(created).toMatchObject({
-      charts: [{ name: "Open rate" }, { name: "List growth" }],
+      charts: [chart("Open rate"), chart("List growth")],
       shareOption: "ANYONE_VIEW",
     });
     expect(doc("views", created.viewId)).toMatchObject({
@@ -446,11 +447,11 @@ describe("updateView", () => {
 
     const updated = await updateView(db, owner, {
       viewId: "minePrivate",
-      charts: [{ name: "Clicks" }, { name: "Bounces" }],
+      charts: [chart("Clicks"), chart("Bounces")],
     });
 
     const changes = {
-      charts: [{ name: "Clicks" }, { name: "Bounces" }],
+      charts: [chart("Clicks"), chart("Bounces")],
       updatedAt: NOW,
     };
     expect(updated).toEqual(viewOf("minePrivate", changes));
@@ -491,12 +492,15 @@ describe("updateView", () => {
 
     const updated = await updateView(db, owner, {
       viewId: "theirsEdit",
-      charts: [{ name: "Clicks" }],
+      charts: [chart("Clicks")],
     });
 
     // The author and the sharing stay as they were.
     expect(updated).toEqual(
-      viewOf("theirsEdit", { charts: [{ name: "Clicks" }], updatedAt: NOW }),
+      viewOf("theirsEdit", {
+        charts: [chart("Clicks")],
+        updatedAt: NOW,
+      }),
     );
     expect(doc("views", "theirsEdit")).toMatchObject({
       authorUid: "other",
@@ -545,12 +549,12 @@ describe("updateView", () => {
     const updated = await updateView(db, ownerAsViewer, {
       viewId: "minePrivate",
       name: "Renamed",
-      charts: [{ name: "Clicks" }],
+      charts: [chart("Clicks")],
     });
 
     const changes = {
       name: "Renamed",
-      charts: [{ name: "Clicks" }],
+      charts: [chart("Clicks")],
       updatedAt: NOW,
     };
     expect(updated).toEqual(viewOf("minePrivate", changes));
