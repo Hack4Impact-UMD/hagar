@@ -164,7 +164,7 @@ function ReportsHistory() {
         <div className="relative w-63">
           <MagnifyingGlassIcon
             aria-hidden
-            className="pointer-events-none absolute top-1/2 left-2.75 size-4 -translate-y-1/2"
+            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2"
           />
           <Input
             type="search"
@@ -291,7 +291,7 @@ function ReportRow({
       <td className="px-4 text-lg break-words text-muted-foreground">
         {authorName}
       </td>
-      <td className="px-4">
+      <td className="pr-8 pl-4">
         <div className="flex items-center justify-end gap-4">
           <ViewLink path={report.path} reportLabel={reportLabel} />
           <DownloadButton
