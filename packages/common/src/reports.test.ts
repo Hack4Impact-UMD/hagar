@@ -21,6 +21,7 @@ const stored = {
   takenAt: "2024-05-01T12:30:00.000Z",
   notes: "Sent to the board",
   path,
+  requesterUid: "user-1",
 };
 
 describe("reportPath", () => {

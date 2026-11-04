@@ -68,7 +68,12 @@ const VIEWS: Record<string, StoredView> = {
   otherPrivate: view("other", "PRIVATE", ["Bounces"]),
 };
 
-function report(n: number, viewId: string, takenAt: string): StoredReport {
+function report(
+  n: number,
+  viewId: string,
+  takenAt: string,
+  requesterUid = "owner",
+): StoredReport {
   return {
     viewId,
     // What the view showed when the report was taken, which is not what it
@@ -77,6 +82,7 @@ function report(n: number, viewId: string, takenAt: string): StoredReport {
     takenAt,
     notes: `Report ${n}`,
     path: reportFilePath(viewId, id(n)),
+    requesterUid,
   };
 }
 
@@ -127,6 +133,8 @@ function reportOf(n: number) {
 function ids(reports: { reportId: string }[]) {
   return reports.map((r) => r.reportId);
 }
+
+// THE FOLLOWING TESTS ARE OUTDATED
 
 describe("toReport", () => {
   it("adds the id and drops stray fields", () => {
@@ -338,6 +346,7 @@ describe("createReport", () => {
       takenAt: NOW,
       notes: "For the board",
       path: reportFilePath("ownerShared", id(9)),
+      requesterUid: owner.uid,
     };
     expect(created).toEqual({ reportId: id(9), ...expected });
     expect(doc("reports", id(9))).toEqual(expected);
@@ -381,6 +390,7 @@ describe("createReport", () => {
     });
 
     expect(created.viewId).toBe("ownerShared");
+    expect(created.requesterUid).toBe(viewer.uid);
     expect(doc("reports", id(9))).toBeDefined();
   });
 
@@ -393,6 +403,7 @@ describe("createReport", () => {
     });
 
     expect(created.charts).toEqual(VIEWS.otherPrivate?.charts);
+    expect(created.requesterUid).toBe(globalAdmin.uid);
   });
 
   it("throws NOT_FOUND for a view the actor can't see, writing nothing", async () => {
@@ -401,6 +412,7 @@ describe("createReport", () => {
     await expect(
       createReport(db, owner, { viewId: "otherPrivate", reportId: id(9) }),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
+
     expect(doc("reports", id(9))).toBeUndefined();
   });
 
