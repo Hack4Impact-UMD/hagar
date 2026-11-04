@@ -31,19 +31,22 @@ function Home() {
   const [notice, setNotice] = useState<string | null>(null);
 
   return (
-    <main className="flex flex-col gap-6 p-6 md:px-10">
+    <main className="flex flex-col gap-2 p-6 md:px-10">
       <header className="flex items-start justify-between gap-4">
-        <h1 data-testid="homepage" className="text-3xl font-bold">
+        <h1
+          data-testid="homepage"
+          className="text-[2.1875rem] leading-[normal] font-bold"
+        >
           {firstName ? `Welcome, ${firstName}` : "Welcome"}
         </h1>
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="sm"
           data-testid="sign-out"
           onClick={() => void auth.signOut()}
-          className="border px-3 py-1"
         >
           Sign out
-        </button>
+        </Button>
       </header>
       {notice && <p role="status">{notice}</p>}
       <HomeContent onNotice={setNotice} />
@@ -135,42 +138,56 @@ function HomeContent({ onNotice }: { onNotice: (message: string) => void }) {
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-end gap-3">
-        <NewViewDialog onCreated={showNewView} disabled={isEditing} />
-        <CopyButton
-          key={selected.viewId}
-          viewId={selected.viewId}
-          onCopied={showNewView}
-          disabled={isEditing}
-        />
-        <ViewPicker
-          views={views.data}
-          authors={authors}
-          authorsLoading={authorsLoading}
-          selectedId={selected.viewId}
-          onSelect={(viewId) => void navigate({ search: { view: viewId } })}
-          disabled={isEditing}
-        />
-        {canEdit && !isEditing && (
-          <Button
-            disabled={startingEdit}
-            onClick={() => void startCustomizing(selected.viewId)}
-          >
-            {startingEdit ? "Opening…" : "Customize view"}
-          </Button>
+      return (
+      <div className="flex flex-col gap-8">
+        {/* The editor has its own row with Cancel and Save, so this one is hidden
+          while customizing. */}
+        {!isEditing && (
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <p className="text-lg">
+              Showing <strong>{selected.charts.length}</strong> analytics in the{" "}
+              <strong>{selected.name}</strong> view
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <NewViewDialog onCreated={showNewView} />
+              <CopyButton
+                key={selected.viewId}
+                viewId={selected.viewId}
+                onCopied={showNewView}
+              />
+              <ViewPicker
+                views={views.data}
+                authors={authors}
+                authorsLoading={authorsLoading}
+                selectedId={selected.viewId}
+                onSelect={(viewId) =>
+                  void navigate({ search: { view: viewId } })
+                }
+              />
+              {canEdit && (
+                <Button
+                  disabled={startingEdit}
+                  onClick={() => void startCustomizing(selected.viewId)}
+                >
+                  {startingEdit ? "Opening…" : "Customize view"}
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {isEditing ? (
+          <ViewEditor
+            view={editing}
+            canShare={me.data !== undefined && canShareView(me.data, editing)}
+            onExit={() => setEditing(null)}
+            onNotice={onNotice}
+          />
+        ) : (
+          <ViewDetails viewId={selected.viewId} onNotice={onNotice} />
         )}
       </div>
-
-      {isEditing ? (
-        <ViewEditor
-          view={editing}
-          canShare={me.data !== undefined && canShareView(me.data, editing)}
-          onExit={() => setEditing(null)}
-          onNotice={onNotice}
-        />
-      ) : (
-        <ViewDetails viewId={selected.viewId} onNotice={onNotice} />
-      )}
+      );
     </>
   );
 }
@@ -200,6 +217,7 @@ function CopyButton({
         variant="outline"
         disabled={disabled || copy.isPending}
         onClick={() => copy.mutate({ viewId })}
+        className="border-primary text-primary"
       >
         {copy.isPending ? "Copying…" : "Copy"}
       </Button>
@@ -242,15 +260,10 @@ function ViewDetails({
     );
   }
 
-  const { name, charts } = view.data;
+  const { charts } = view.data;
 
   return (
-    <section className="flex flex-col gap-6">
-      <p>
-        Showing <strong>{charts.length}</strong> analytics in the{" "}
-        <strong>{name}</strong> view
-      </p>
-
+    <section>
       {charts.length === 0 ? (
         <p>This view has no cards yet</p>
       ) : (

@@ -41,7 +41,11 @@ export function NewViewDialog({ onCreated, disabled }: NewViewDialogProps) {
   return (
     <Dialog.Root open={open} onOpenChange={handleOpenChange}>
       <Dialog.Trigger asChild>
-        <Button variant="outline" disabled={disabled}>
+        <Button
+          variant="outline"
+          disabled={disabled}
+          className="border-primary text-primary"
+        >
           New view
         </Button>
       </Dialog.Trigger>
