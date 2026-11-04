@@ -8,19 +8,17 @@ import { ViewCard } from "@frontend/components/home/ViewCard.tsx";
 import { Button } from "@frontend/components/ui/button.tsx";
 import { trpc } from "@frontend/lib/trpc.ts";
 
-import {
-  addCard,
-  cleanName,
-  diffDraft,
-  draftFromView,
-  removeCard,
-} from "@frontend/lib/viewDraft.ts";
+import { addCard, cleanName, diffDraft, draftFromView, removeCard } from "@frontend/lib/viewDraft.ts";
 
 const SHARE_OPTIONS: { value: ViewShareOption; label: string }[] = [
   { value: "PRIVATE", label: "Private" },
   { value: "ANYONE_VIEW", label: "Anyone can view" },
   { value: "ANYONE_EDIT", label: "Anyone can edit" },
 ];
+
+// Matches the app's shared Input, which can't be used here because lint only
+// links a wrapping <label> to a native input or select.
+const FIELD_CLASS = "h-9 rounded-md border border-input bg-transparent px-2.5 text-sm disabled:opacity-50 aria-invalid:border-destructive";
 
 type ViewEditorProps = {
   view: View;
@@ -29,12 +27,7 @@ type ViewEditorProps = {
   onNotice: (message: string) => void;
 };
 
-export function ViewEditor({
-  view,
-  canShare,
-  onExit,
-  onNotice,
-}: ViewEditorProps) {
+export function ViewEditor({ view, canShare, onExit, onNotice }: ViewEditorProps) {
   const queryClient = useQueryClient();
   // The view as last saved. After a partly failed save it includes the part
   // that did save, so a retry sends only the rest.
@@ -43,18 +36,13 @@ export function ViewEditor({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const update = useMutation(trpc.views.update.mutationOptions());
-  const setShareOption = useMutation(
-    trpc.views.setShareOption.mutationOptions(),
-  );
+  const setShareOption = useMutation(trpc.views.setShareOption.mutationOptions());
   const nameProblem = nameError(draft.name);
 
   // The page reads the view from the cache, so it shows the saved version
   // right away. The list is refetched because saving moves the view to the top.
   function storeSaved(saved: View) {
-    queryClient.setQueryData(
-      trpc.views.get.queryKey({ viewId: saved.viewId }),
-      saved,
-    );
+    queryClient.setQueryData(trpc.views.get.queryKey({ viewId: saved.viewId }), saved);
     void queryClient.invalidateQueries({
       queryKey: trpc.views.list.queryKey(),
     });
@@ -110,9 +98,7 @@ export function ViewEditor({
       }
       if (saved) {
         setBaseline(saved);
-        setSaveError(
-          "Your name and cards were saved, but the sharing change wasn't. Try again.",
-        );
+        setSaveError("Your name and cards were saved, but the sharing change wasn't. Try again.");
         return;
       }
       setSaveError("Couldn't save your changes. Try again.");
@@ -126,13 +112,7 @@ export function ViewEditor({
       <div className="flex flex-wrap items-end gap-4">
         <label className="flex flex-col gap-1 text-sm">
           Name
-          <input
-            value={draft.name}
-            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-            disabled={saving}
-            aria-invalid={nameProblem !== null}
-            className="w-72 rounded-md border px-3 py-1.5"
-          />
+          <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} disabled={saving} aria-invalid={nameProblem !== null} className={`w-72 ${FIELD_CLASS}`} />
         </label>
 
         {canShare && (
@@ -147,7 +127,7 @@ export function ViewEditor({
                 })
               }
               disabled={saving}
-              className="rounded-md border px-3 py-1.5"
+              className={FIELD_CLASS}
             >
               {SHARE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -159,13 +139,10 @@ export function ViewEditor({
         )}
 
         <div className="ml-auto flex gap-2">
-          <Button variant="outline" onClick={onExit} disabled={saving}>
+          <Button variant="outline" onClick={onExit} disabled={saving} className="border-primary text-primary">
             Cancel
           </Button>
-          <Button
-            onClick={() => void save()}
-            disabled={saving || nameProblem !== null}
-          >
+          <Button onClick={() => void save()} disabled={saving || nameProblem !== null}>
             {saving ? "Saving…" : "Save changes"}
           </Button>
         </div>
@@ -180,18 +157,10 @@ export function ViewEditor({
 
       <ul className="grid gap-10 md:grid-cols-3">
         {draft.cards.map((card) => (
-          <ViewCard
-            key={card.id}
-            name={card.name}
-            onRemove={() => setDraft(removeCard(draft, card.id))}
-            disabled={saving}
-          />
+          <ViewCard key={card.id} name={card.name} onRemove={() => setDraft(removeCard(draft, card.id))} disabled={saving} />
         ))}
         <li>
-          <AddCardDialog
-            onAdd={(name) => setDraft(addCard(draft, name))}
-            disabled={saving}
-          />
+          <AddCardDialog onAdd={(name) => setDraft(addCard(draft, name))} disabled={saving} />
         </li>
       </ul>
     </section>
@@ -209,13 +178,7 @@ function errorCode(error: unknown): string | undefined {
   return error instanceof TRPCClientError ? error.data?.code : undefined;
 }
 
-function AddCardDialog({
-  onAdd,
-  disabled,
-}: {
-  onAdd: (name: string) => void;
-  disabled: boolean;
-}) {
+function AddCardDialog({ onAdd, disabled }: { onAdd: (name: string) => void; disabled: boolean }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
 
@@ -249,29 +212,16 @@ function AddCardDialog({
 
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/40" />
-        <Dialog.Content
-          aria-describedby={undefined}
-          className="fixed top-1/2 left-1/2 w-[min(90vw,24rem)] -translate-x-1/2 -translate-y-1/2 rounded-lg bg-background p-6 shadow-lg"
-        >
-          <Dialog.Title className="text-lg font-semibold">
-            Add analytic
-          </Dialog.Title>
+        <Dialog.Content aria-describedby={undefined} className="fixed top-1/2 left-1/2 w-[min(90vw,24rem)] -translate-x-1/2 -translate-y-1/2 rounded-lg bg-background p-6 shadow-lg">
+          <Dialog.Title className="text-lg font-semibold">Add analytic</Dialog.Title>
 
           <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
             <label className="flex flex-col gap-1 text-sm">
               Name
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="rounded-md border px-3 py-1.5"
-              />
+              <input value={name} onChange={(e) => setName(e.target.value)} lassName={FIELD_CLASS} />
             </label>
 
-            {tooLong && (
-              <p className="text-sm text-destructive">
-                Name must be 500 characters or fewer.
-              </p>
-            )}
+            {tooLong && <p className="text-sm text-destructive">Name must be 500 characters or fewer.</p>}
 
             <div className="flex justify-end gap-2">
               <Dialog.Close asChild>
