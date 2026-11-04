@@ -41,7 +41,8 @@ export async function downloadReport(
 // Characters Windows, macOS or Linux reject in file names, plus control
 // characters.
 const UNSAFE_FILE_NAME_CHARS = /[\\/:*?"<>|\p{Cc}]/gu;
-const MAX_NAME_LENGTH = 100;
+// Keeps the whole file name well under the 255 characters most systems allow.
+export const MAX_FILENAME_LENGTH = 100;
 
 /**
  * A file name like `Q3 Sales - 2026-10-02.pdf`, with the date in the user's
@@ -51,9 +52,10 @@ const MAX_NAME_LENGTH = 100;
  */
 export function reportFileName(viewName: string, takenAt: string): string {
   const safeName = viewName
-    .replace(UNSAFE_FILE_NAME_CHARS, "_")
+    // Before the unsafe characters, which include tabs and new lines.
     .replace(/\s+/g, " ")
-    .slice(0, MAX_NAME_LENGTH)
+    .replace(UNSAFE_FILE_NAME_CHARS, "_")
+    .slice(0, MAX_FILENAME_LENGTH)
     .replace(/^[. ]+|[. ]+$/g, "");
   return `${safeName || "Report"} - ${localDate(takenAt)}.pdf`;
 }
