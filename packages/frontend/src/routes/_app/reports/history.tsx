@@ -268,6 +268,10 @@ function ReportRow({
   viewName: string;
   authorName: string;
 }) {
+  // Screen readers announce only an action's label, so it names the report
+  // fully: a view can have several reports, even on the same day.
+  const reportLabel = `${viewName} report from ${takenAtFormat.format(new Date(report.takenAt))}`;
+
   return (
     <tr className="h-23 border">
       <td className="px-7.5 text-lg break-words">{viewName}</td>
@@ -285,8 +289,12 @@ function ReportRow({
       </td>
       <td className="px-4">
         <div className="flex items-center justify-end gap-4">
-          <ViewLink path={report.path} viewName={viewName} />
-          <DownloadButton report={report} viewName={viewName} />
+          <ViewLink path={report.path} reportLabel={reportLabel} />
+          <DownloadButton
+            report={report}
+            viewName={viewName}
+            reportLabel={reportLabel}
+          />
         </div>
       </td>
     </tr>
@@ -298,7 +306,13 @@ function ReportRow({
  * a new tab opened outside the click itself as a popup. So the URL is looked
  * up ahead of time and the link is disabled until it is ready.
  */
-function ViewLink({ path, viewName }: { path: string; viewName: string }) {
+function ViewLink({
+  path,
+  reportLabel,
+}: {
+  path: string;
+  reportLabel: string;
+}) {
   const url = useQuery(reportPdfUrlOptions(path));
   const linkStyle =
     "inline-flex items-center gap-1 text-base font-bold text-primary";
@@ -315,7 +329,7 @@ function ViewLink({ path, viewName }: { path: string; viewName: string }) {
         <Button
           variant="link"
           size="xs"
-          aria-label={`Retry opening ${viewName} report`}
+          aria-label={`Retry opening ${reportLabel}`}
           onClick={() => void url.refetch()}
         >
           Retry
@@ -335,7 +349,7 @@ function ViewLink({ path, viewName }: { path: string; viewName: string }) {
       href={url.data}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label={`View ${viewName} report`}
+      aria-label={`View ${reportLabel}`}
       className={cn(linkStyle, "hover:underline")}
     >
       {label}
@@ -346,9 +360,11 @@ function ViewLink({ path, viewName }: { path: string; viewName: string }) {
 function DownloadButton({
   report,
   viewName,
+  reportLabel,
 }: {
   report: ReportRowData;
   viewName: string;
+  reportLabel: string;
 }) {
   const download = useMutation({
     mutationFn: () =>
@@ -381,7 +397,7 @@ function DownloadButton({
         onClick={start}
         disabled={download.isPending}
         aria-busy={download.isPending}
-        aria-label={`${download.isError ? "Retry downloading" : "Download"} ${viewName} report`}
+        aria-label={`${download.isError ? "Retry downloading" : "Download"} ${reportLabel}`}
         className="text-primary hover:text-primary"
       >
         {download.isPending ? (
