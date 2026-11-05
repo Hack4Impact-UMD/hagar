@@ -1,4 +1,11 @@
-import { storedCampaign } from "@repo/common";
+import {
+  storedCampaign,
+  nowUtc,
+  withLinkedItem,
+  withoutLinkedItem,
+  withUtmCode,
+  withoutUtmCode,
+} from "@repo/common";
 import type {
   ActiveUserProfile,
   Campaign,
@@ -38,37 +45,44 @@ export function campaignNotFound(): TRPCError {
 }
 
 /** Lists every campaign, most recently updated first. */
-export function listCampaigns(
-  _db: Firestore,
+export async function listCampaigns(
+  db: Firestore,
   _actor: ActiveUserProfile,
 ): Promise<Campaign[]> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "campaigns.list is not implemented yet.",
-  });
+  const snapshot = await db
+    .collection(COLLECTION)
+    .orderBy("updatedAt", "desc")
+    .get();
+  return snapshot.docs.map((doc) => toCampaign(doc.id, doc.data()));
 }
 
 /** Returns one campaign, or throws `NOT_FOUND`. */
-export function getCampaign(
-  _db: Firestore,
+export async function getCampaign(
+  db: Firestore,
   _actor: ActiveUserProfile,
-  _input: GetCampaignInput,
+  input: GetCampaignInput,
 ): Promise<Campaign> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "campaigns.get is not implemented yet.",
-  });
+  const doc = await db.collection(COLLECTION).doc(input.campaignId).get();
+  if (!doc.exists) throw campaignNotFound();
+  return toCampaign(doc.id, doc.data());
 }
 
 /** Replaces a campaign's notes and bumps `updatedAt`. */
 export function setCampaignNotes(
-  _db: Firestore,
+  db: Firestore,
   _actor: ActiveUserProfile,
-  _input: SetCampaignNotesInput,
+  input: SetCampaignNotesInput,
 ): Promise<Campaign> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "campaigns.setNotes is not implemented yet.",
+  const ref = db.collection(COLLECTION).doc(input.campaignId);
+
+  return db.runTransaction(async (tx) => {
+    const snapshot = await tx.get(ref);
+    if (!snapshot.exists) throw campaignNotFound();
+    const current = parseStoredCampaign.assert(snapshot.data());
+
+    const changes = { notes: input.notes, updatedAt: nowUtc() };
+    tx.update(ref, changes);
+    return toCampaign(ref.id, { ...current, ...changes });
   });
 }
 
@@ -78,25 +92,54 @@ export function setCampaignNotes(
  * not exist.
  */
 export function addLinkedItem(
-  _db: Firestore,
+  db: Firestore,
   _actor: ActiveUserProfile,
-  _input: LinkedItemInput,
+  input: LinkedItemInput,
 ): Promise<Campaign> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "campaigns.addLinkedItem is not implemented yet.",
+  const ref = db.collection(COLLECTION).doc(input.campaignId);
+  const itemRef = db
+    .collection(LINKED_ITEM_COLLECTIONS[input.item.type])
+    .doc(input.item.id);
+
+  return db.runTransaction(async (tx) => {
+    const [snapshot, itemSnapshot] = await tx.getAll(ref, itemRef);
+    if (!snapshot?.exists) throw campaignNotFound();
+    if (!itemSnapshot?.exists) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "That linked item does not exist.",
+      });
+    }
+    const current = parseStoredCampaign.assert(snapshot.data());
+
+    const next = withLinkedItem(current, input.item);
+    if (next === current) return toCampaign(ref.id, current);
+
+    const changes = { linkedItems: next.linkedItems, updatedAt: nowUtc() };
+    tx.update(ref, changes);
+    return toCampaign(ref.id, { ...current, ...changes });
   });
 }
 
 /** Removes a link. Removing one the campaign does not have changes nothing. */
 export function removeLinkedItem(
-  _db: Firestore,
+  db: Firestore,
   _actor: ActiveUserProfile,
-  _input: LinkedItemInput,
+  input: LinkedItemInput,
 ): Promise<Campaign> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "campaigns.removeLinkedItem is not implemented yet.",
+  const ref = db.collection(COLLECTION).doc(input.campaignId);
+
+  return db.runTransaction(async (tx) => {
+    const snapshot = await tx.get(ref);
+    if (!snapshot.exists) throw campaignNotFound();
+    const current = parseStoredCampaign.assert(snapshot.data());
+
+    const next = withoutLinkedItem(current, input.item);
+    if (next === current) return toCampaign(ref.id, current);
+
+    const changes = { linkedItems: next.linkedItems, updatedAt: nowUtc() };
+    tx.update(ref, changes);
+    return toCampaign(ref.id, { ...current, ...changes });
   });
 }
 
@@ -105,24 +148,44 @@ export function removeLinkedItem(
  * are compared exactly, so differing only in case makes a different code.
  */
 export function addUtmCode(
-  _db: Firestore,
+  db: Firestore,
   _actor: ActiveUserProfile,
-  _input: UtmCodeInput,
+  input: UtmCodeInput,
 ): Promise<Campaign> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "campaigns.addUtmCode is not implemented yet.",
+  const ref = db.collection(COLLECTION).doc(input.campaignId);
+
+  return db.runTransaction(async (tx) => {
+    const snapshot = await tx.get(ref);
+    if (!snapshot.exists) throw campaignNotFound();
+    const current = parseStoredCampaign.assert(snapshot.data());
+
+    const next = withUtmCode(current, input.utmCode);
+    if (next === current) return toCampaign(ref.id, current);
+
+    const changes = { utmCodes: next.utmCodes, updatedAt: nowUtc() };
+    tx.update(ref, changes);
+    return toCampaign(ref.id, { ...current, ...changes });
   });
 }
 
 /** Removes a UTM code. Removing one the campaign does not have changes nothing. */
 export function removeUtmCode(
-  _db: Firestore,
+  db: Firestore,
   _actor: ActiveUserProfile,
-  _input: UtmCodeInput,
+  input: UtmCodeInput,
 ): Promise<Campaign> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "campaigns.removeUtmCode is not implemented yet.",
+  const ref = db.collection(COLLECTION).doc(input.campaignId);
+
+  return db.runTransaction(async (tx) => {
+    const snapshot = await tx.get(ref);
+    if (!snapshot.exists) throw campaignNotFound();
+    const current = parseStoredCampaign.assert(snapshot.data());
+
+    const next = withoutUtmCode(current, input.utmCode);
+    if (next === current) return toCampaign(ref.id, current);
+
+    const changes = { utmCodes: next.utmCodes, updatedAt: nowUtc() };
+    tx.update(ref, changes);
+    return toCampaign(ref.id, { ...current, ...changes });
   });
 }
