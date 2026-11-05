@@ -19,11 +19,7 @@ export function AuthLayout({
   return (
     <main className="flex flex-row w-full h-screen overflow-hidden">
       <div className="flex-1 min-w-0 flex flex-col mx-4 sm:mx-8 my-6 sm:my-7.25">
-        <img
-          src="/logo.png"
-          alt="Hagar Logo"
-          className="w-28 sm:w-38.25"
-        />
+        <img src="/logo.png" alt="Hagar Logo" className="w-28 sm:w-38.25" />
         {/* Centered in the space left under the logo, so the form's
             position doesn't shift with its own height (e.g. the signup
             page's extra password hint). */}
