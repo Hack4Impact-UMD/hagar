@@ -26,8 +26,18 @@ import { Sidebar, SidebarContent } from "@frontend/components/ui/sidebar.tsx";
 const NAV_ITEMS = [
   { title: "Dashboards", to: "/", icon: HouseIcon, admin: false },
   { title: "Calendar", to: "/calendar", icon: CalendarBlankIcon, admin: false },
-  { title: "Campaigns", to: "/campaigns", icon: ClipboardTextIcon, admin: false },
-  { title: "Reports", to: "/reports/history", icon: FileTextIcon, admin: false },
+  {
+    title: "Campaigns",
+    to: "/campaigns",
+    icon: ClipboardTextIcon,
+    admin: false,
+  },
+  {
+    title: "Reports",
+    to: "/reports/history",
+    icon: FileTextIcon,
+    admin: false,
+  },
   {
     title: "User Management",
     to: "/user-management",
