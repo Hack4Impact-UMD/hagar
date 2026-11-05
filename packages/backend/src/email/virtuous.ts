@@ -7,6 +7,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 
 const BASE_URL = "https://api.virtuoussoftware.com";
 const MAX_ATTEMPTS = 3; // "few" times, change accordingly
+const MAX_WAIT_MS = 60_000;
 const PAGE_SIZE = 1000;
 
 const searchPage = type({ list: "unknown[]", total: "string | number" });
@@ -63,7 +64,13 @@ async function virtuousSearch(
       response.status === 429
         ? Number(response.headers.get("X-RateLimit-Reset")) || 0
         : 0;
-    await sleep(Math.max(reset * 1000 - Date.now(), 1000));
+    const wait = Math.max(reset * 1000 - Date.now(), 1000);
+    if (wait > MAX_WAIT_MS) {
+      throw new Error(
+        `Virtuous rate limit for ${path} resets in ${Math.ceil(wait / 1000)}s, which is too long to wait.`,
+      );
+    }
+    await sleep(wait);
   }
 }
 
