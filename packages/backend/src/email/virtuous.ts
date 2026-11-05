@@ -9,6 +9,7 @@ const BASE_URL = "https://api.virtuoussoftware.com";
 const MAX_ATTEMPTS = 3; // "few" times, change accordingly
 const MAX_WAIT_MS = 60_000;
 const PAGE_SIZE = 1000;
+const REQUEST_TIMEOUT_MS = 30_000;
 
 const searchPage = type({ list: "unknown[]", total: "string | number" });
 const emailIds = type({ id: "number" }).array();
@@ -37,15 +38,27 @@ async function virtuousSearch(
   url.searchParams.set("take", String(take));
 
   for (let attempt = 1; ; attempt++) {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-      // An empty search matches everything.
-      body: JSON.stringify({ search: "" }),
-    });
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+        },
+        // An empty search matches everything.
+        body: JSON.stringify({ search: "" }),
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+    } catch (error) {
+      if (attempt === MAX_ATTEMPTS) {
+        throw new Error(`Virtuous request to ${path} did not complete.`, {
+          cause: error,
+        });
+      }
+      await sleep(1000);
+      continue;
+    }
     if (response.ok) return response.json();
 
     const retryable = response.status === 429 || response.status >= 500;
