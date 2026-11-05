@@ -1,4 +1,4 @@
-import { MAX_REPORT_BYTES, reportFilePath } from "@repo/common";
+﻿import { MAX_REPORT_BYTES, reportFilePath } from "@repo/common";
 import type {
   ActiveUserProfile,
   StoredReport,
@@ -6,6 +6,7 @@ import type {
   UserRole,
 } from "@repo/common";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { chart } from "@backend/testing/charts.ts";
 import { fakeFirestore } from "@backend/testing/fakeFirestore.ts";
 import {
   assertUploadedReport,
@@ -57,7 +58,7 @@ function view(
     name: `${authorUid}'s ${shareOption} view`,
     authorUid,
     shareOption,
-    charts: chartNames.map((name) => ({ name })),
+    charts: chartNames.map(chart),
     updatedAt: "2024-01-01T00:00:00.000Z",
   };
 }
@@ -78,7 +79,7 @@ function report(
     viewId,
     // What the view showed when the report was taken, which is not what it
     // shows now.
-    charts: [{ name: "Snapshot chart" }],
+    charts: [chart("Snapshot chart")],
     takenAt,
     notes: `Report ${n}`,
     path: reportFilePath(viewId, id(n)),

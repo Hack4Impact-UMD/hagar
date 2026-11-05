@@ -17,32 +17,31 @@ export function AuthLayout({
   children,
 }: AuthLayoutProps) {
   return (
-    <main className="flex flex-row w-full min-h-screen">
-      {/* The equal 1fr rows above and below the form keep it centered in the
-          whole column, with the logo pinned to the top row. */}
-      <div className="flex-1 min-w-0 grid grid-rows-[1fr_auto_1fr] justify-items-center mx-4 sm:mx-8 my-6 sm:my-7.25 gap-y-10 md:gap-y-20">
-        <img
-          src="/logo.png"
-          alt="Hagar Logo"
-          className="w-28 sm:w-38.25 justify-self-start"
-        />
-        <div className="flex flex-col w-full max-w-lg lg:mx-12 xl:mx-24">
-          <h1 className="font-bold text-3xl sm:text-[2.5em]">{title}</h1>
-          <form
-            className="flex flex-col gap-2"
-            onSubmit={(event) => {
-              event.preventDefault();
-              onSubmit();
-            }}
-          >
-            <p className="pt-2 pb-6">{prompt}</p>
-            {children}
-            {error ? (
-              <p role="alert" className="text-red-600">
-                {error}
-              </p>
-            ) : null}
-          </form>
+    <main className="flex flex-row w-full h-screen overflow-hidden">
+      <div className="flex-1 min-w-0 flex flex-col mx-4 sm:mx-8 my-6 sm:my-7.25">
+        <img src="/logo.png" alt="Hagar Logo" className="w-28 sm:w-38.25" />
+        {/* Centered in the space left under the logo, so the form's
+            position doesn't shift with its own height (e.g. the signup
+            page's extra password hint). */}
+        <div className="flex flex-1 flex-col items-center justify-center">
+          <div className="flex flex-col w-full max-w-lg lg:mx-12 xl:mx-24">
+            <h1 className="font-bold text-3xl sm:text-[2.5em]">{title}</h1>
+            <form
+              className="flex flex-col gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                onSubmit();
+              }}
+            >
+              <p className="pt-2 pb-6">{prompt}</p>
+              {children}
+              {error ? (
+                <p role="alert" className="text-red-600">
+                  {error}
+                </p>
+              ) : null}
+            </form>
+          </div>
         </div>
       </div>
       {/* Decorative, so it has no alt text for screen readers to announce. */}
