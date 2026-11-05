@@ -100,31 +100,35 @@ export async function updateList(platformListID: string): Promise<void> {
   const lastFetchedAt = nowUtc();
   const snapshot = { count: list.total, fetchedAt: lastFetchedAt };
 
-  const collection = getFirestore().collection("email-lists");
-  const existing = await collection
+  const db = getFirestore();
+  const collection = db.collection("email-lists");
+  const query = collection
     .where("platform", "==", "Virtuous")
     .where("platformListID", "==", platformListID)
-    .limit(1)
-    .get();
-  const [doc] = existing.docs;
+    .limit(1);
 
-  if (!doc) {
-    const record: EmailList = {
-      platform: "Virtuous",
-      platformListID,
+  await db.runTransaction(async (tx) => {
+    const existing = await tx.get(query);
+    const [doc] = existing.docs;
+
+    if (!doc) {
+      const record: EmailList = {
+        platform: "Virtuous",
+        platformListID,
+        name: list.name,
+        lastFetchedAt,
+        snapshots: [snapshot],
+      };
+      tx.set(collection.doc(), record);
+      return;
+    }
+    const { snapshots } = EmailList.assert(doc.data());
+    const unchanged = snapshots.at(-1)?.count === snapshot.count;
+    tx.update(doc.ref, {
       name: list.name,
       lastFetchedAt,
-      snapshots: [snapshot],
-    };
-    await collection.doc().set(record);
-    return;
-  }
-  const { snapshots } = EmailList.assert(doc.data());
-  const unchanged = snapshots.at(-1)?.count === snapshot.count;
-  await doc.ref.update({
-    name: list.name,
-    lastFetchedAt,
-    ...(unchanged ? {} : { snapshots: [...snapshots, snapshot] }),
+      ...(unchanged ? {} : { snapshots: [...snapshots, snapshot] }),
+    });
   });
 }
 
@@ -151,28 +155,32 @@ export async function updateCampaign(
   const content = `gs://${bucket.name}/${path}`;
   const lastFetchedAt = nowUtc();
 
-  const campaigns = getFirestore().collection("email-campaigns");
-  const existing = await campaigns
+  const db = getFirestore();
+  const campaigns = db.collection("email-campaigns");
+  const query = campaigns
     .where("platform", "==", "Virtuous")
     .where("platformCampaignID", "==", platformCampaignID)
-    .limit(1)
-    .get();
-  const [doc] = existing.docs;
+    .limit(1);
 
-  if (doc) {
-    await doc.ref.update({ name: email.name, content, lastFetchedAt });
-    return;
-  }
-  const record: StoredEmailCampaignRecord = {
-    platform: "Virtuous",
-    platformCampaignID,
-    region: "US",
-    listIDs: [],
-    name: email.name,
-    content,
-    lastFetchedAt,
-    notes: "",
-    snapshots: [],
-  };
-  await campaigns.doc().set(record);
+  await db.runTransaction(async (tx) => {
+    const existing = await tx.get(query);
+    const [doc] = existing.docs;
+
+    if (doc) {
+      tx.update(doc.ref, { name: email.name, content, lastFetchedAt });
+      return;
+    }
+    const record: StoredEmailCampaignRecord = {
+      platform: "Virtuous",
+      platformCampaignID,
+      region: "US",
+      listIDs: [],
+      name: email.name,
+      content,
+      lastFetchedAt,
+      notes: "",
+      snapshots: [],
+    };
+    tx.set(campaigns.doc(), record);
+  });
 }
