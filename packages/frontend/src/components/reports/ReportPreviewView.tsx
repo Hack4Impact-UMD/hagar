@@ -52,32 +52,34 @@ export function ReportPreviewView({
   return (
     <main
       data-testid="report-preview"
-      className="flex flex-col gap-6 p-6 md:h-[calc(100svh-3rem)] md:min-h-0"
+      className="flex flex-col px-9 py-6 md:h-[calc(100svh-3rem)] md:min-h-0"
     >
-      <div className="shrink-0">
-        <p className="text-2xl font-bold">Report Preview</p>
-        <p className="text-muted-foreground">
+      <div className="mb-9 shrink-0">
+        <p className="text-[35px] font-bold">Report Preview</p>
+        <p className="text-2xl text-muted-foreground">
           Create, customize, and export reports.
         </p>
       </div>
 
-      <ViewPicker
-        views={views}
-        currentViewId={currentViewId}
-        listStatus={listStatus}
-        onSelect={onSelectView}
-        disabled={status === "loading"}
-      />
-      {listError ? (
-        <p role="alert" className="flex items-center gap-3 text-sm">
-          {listError}
-          <Button type="button" variant="outline" onClick={onRetry}>
-            Try again
-          </Button>
-        </p>
-      ) : null}
+      <div className="mb-7 shrink-0">
+        <ViewPicker
+          views={views}
+          currentViewId={currentViewId}
+          listStatus={listStatus}
+          onSelect={onSelectView}
+          disabled={status === "loading"}
+        />
+        {listError ? (
+          <p role="alert" className="mt-3 flex items-center gap-3 text-sm">
+            {listError}
+            <Button type="button" variant="outline" onClick={onRetry}>
+              Try again
+            </Button>
+          </p>
+        ) : null}
+      </div>
 
-      <section className="min-h-0 overflow-y-auto rounded-lg border p-6">
+      <section className="min-h-0 overflow-y-auto rounded-lg border px-[34px] pt-[34px] pb-6">
         {(status === "loading" || status === "empty") && (
           <ReportPreviewSkeleton />
         )}
@@ -94,7 +96,7 @@ export function ReportPreviewView({
         )}
 
         {status === "ready" && view && (
-          <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+          <div className="flex w-full flex-col gap-6">
             <h1 className="text-2xl font-bold">{view.name}</h1>
             {view.charts.length === 0 ? (
               <p>This view has no charts yet.</p>
@@ -103,7 +105,7 @@ export function ReportPreviewView({
                 {view.charts.map((chart, index) => (
                   <div
                     key={index} // oxlint-disable-line react/no-array-index-key -- names can repeat; order is the identity
-                    className="flex aspect-square items-center justify-center rounded-lg border p-4"
+                    className="flex aspect-square items-center justify-center rounded-lg border p-4 shadow-md"
                   >
                     {chart.name}
                   </div>
@@ -114,35 +116,46 @@ export function ReportPreviewView({
         )}
       </section>
 
-      <footer className="flex shrink-0 flex-col items-end gap-2">
-        <div className="flex flex-wrap items-center justify-end gap-2">
+      <footer className="mt-6 flex shrink-0 flex-col items-end gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-5">
           {canEdit && (
-            <Button type="button" variant="outline" disabled>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-[6px]"
+              disabled
+            >
               Edit
             </Button>
           )}
-          <Button variant="outline" asChild>
+          <Button size="sm" className="rounded-[6px]" asChild>
             <Link to="/reports/history">
               <FileTextIcon />
               View Past Reports
             </Link>
           </Button>
-          <Button type="button" disabled={exportDisabled} onClick={onExport}>
+          <Button
+            type="button"
+            size="sm"
+            className="rounded-[6px]"
+            disabled={exportDisabled}
+            onClick={onExport}
+          >
             <DownloadSimpleIcon />
             {generatePending ? "Exporting…" : "Export as PDF"}
           </Button>
+          {downloadUrl && (
+            <Button size="sm" className="rounded-[6px]" asChild>
+              <a href={downloadUrl} target="_blank" rel="noreferrer">
+                Open PDF
+              </a>
+            </Button>
+          )}
         </div>
         {generateError && (
           <p role="alert" className="text-destructive">
             {generateError}
-          </p>
-        )}
-        {downloadUrl && (
-          <p>
-            Report generated.{" "}
-            <a href={downloadUrl} target="_blank" rel="noreferrer">
-              Open PDF
-            </a>
           </p>
         )}
       </footer>
@@ -156,7 +169,7 @@ const previewGridClass =
 
 function ReportPreviewSkeleton() {
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+    <div className="flex w-full flex-col gap-6">
       <h1 className="text-2xl font-bold">Report Title</h1>
       <div className={previewGridClass}>
         <Skeleton className="aspect-square w-full" />
