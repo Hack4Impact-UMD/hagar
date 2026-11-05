@@ -48,6 +48,7 @@ export function ViewPicker({
   const selectView = useCallback(
     (viewId: string) => {
       onSelect(viewId);
+      setQuery("");
       close();
     },
     [onSelect, close],
@@ -171,7 +172,7 @@ export function ViewPicker({
                   {selected && (
                     <CheckIcon
                       aria-hidden
-                      className="size-3.5 shrink-0 text-muted-foreground"
+                      className="size-3.5 shrink-0 text-primary"
                     />
                   )}
                 </li>

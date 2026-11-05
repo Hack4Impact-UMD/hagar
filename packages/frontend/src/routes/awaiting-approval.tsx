@@ -14,12 +14,12 @@ function AwaitingApproval() {
         <div className="flex h-37.5 w-50 items-center justify-center bg-onboarding-icon-tile">
           <HourglassIcon aria-hidden size={160} className="text-white" />
         </div>
-        <h1 className="mt-8 text-[40px]/12 font-bold text-foreground">
+        <h1 className="mt-8 text-[40px] leading-none font-bold text-foreground">
           Your account is pending approval
         </h1>
         <p
           data-testid="awaiting-approval"
-          className="mt-6 max-w-122.5 text-lg/5.5 text-foreground"
+          className="mt-6 max-w-[516px] text-lg leading-none text-foreground"
         >
           Thanks for signing up! An admin needs to approve your account and
           assign you a role before you can access Hagar.
