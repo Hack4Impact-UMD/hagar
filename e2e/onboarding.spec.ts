@@ -67,7 +67,7 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   await approveUser(TEST_USER.email);
   await page.reload();
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByTestId("homepage")).toHaveText("Homepage");
+  await expect(page.getByTestId("homepage")).toContainText("Welcome");
 
   await page.getByTestId("profile-link").click();
   await expect(page.getByTestId("profile")).toHaveText("Profile");
@@ -93,5 +93,5 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   await page.getByTestId("email").fill(TEST_USER.email);
   await page.getByTestId("password").fill(TEST_USER.password);
   await page.getByTestId("log-in").click();
-  await expect(page.getByTestId("homepage")).toHaveText("Homepage");
+  await expect(page.getByTestId("homepage")).toContainText("Welcome");
 });

@@ -18,6 +18,7 @@ import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppCampaignsRouteImport } from './routes/_app/campaigns'
+import { Route as AppHomePreviewRouteImport } from './routes/_app/home-preview'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppUserManagementRouteImport } from './routes/_app/user-management'
 import { Route as AppReportsHistoryRouteImport } from './routes/_app/reports/history'
@@ -67,6 +68,11 @@ const AppCampaignsRoute = AppCampaignsRouteImport.update({
   path: '/campaigns',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppHomePreviewRoute = AppHomePreviewRouteImport.update({
+  id: '/home-preview',
+  path: '/home-preview',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppProfileRoute = AppProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -97,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/verify-email': typeof VerifyEmailRoute
   '/calendar': typeof AppCalendarRoute
   '/campaigns': typeof AppCampaignsRoute
+  '/home-preview': typeof AppHomePreviewRoute
   '/profile': typeof AppProfileRoute
   '/user-management': typeof AppUserManagementRoute
   '/reports/history': typeof AppReportsHistoryRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/verify-email': typeof VerifyEmailRoute
   '/calendar': typeof AppCalendarRoute
   '/campaigns': typeof AppCampaignsRoute
+  '/home-preview': typeof AppHomePreviewRoute
   '/profile': typeof AppProfileRoute
   '/user-management': typeof AppUserManagementRoute
   '/': typeof AppIndexRoute
@@ -126,6 +134,7 @@ export interface FileRoutesById {
   '/verify-email': typeof VerifyEmailRoute
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/campaigns': typeof AppCampaignsRoute
+  '/_app/home-preview': typeof AppHomePreviewRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/user-management': typeof AppUserManagementRoute
   '/_app/': typeof AppIndexRoute
@@ -143,6 +152,7 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/calendar'
     | '/campaigns'
+    | '/home-preview'
     | '/profile'
     | '/user-management'
     | '/reports/history'
@@ -156,6 +166,7 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/calendar'
     | '/campaigns'
+    | '/home-preview'
     | '/profile'
     | '/user-management'
     | '/'
@@ -171,6 +182,7 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/_app/calendar'
     | '/_app/campaigns'
+    | '/_app/home-preview'
     | '/_app/profile'
     | '/_app/user-management'
     | '/_app/'
@@ -252,6 +264,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCampaignsRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/home-preview': {
+      id: '/_app/home-preview'
+      path: '/home-preview'
+      fullPath: '/home-preview'
+      preLoaderRoute: typeof AppHomePreviewRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/profile': {
       id: '/_app/profile'
       path: '/profile'
@@ -286,6 +305,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteRouteChildren {
   AppCalendarRoute: typeof AppCalendarRoute
   AppCampaignsRoute: typeof AppCampaignsRoute
+  AppHomePreviewRoute: typeof AppHomePreviewRoute
   AppProfileRoute: typeof AppProfileRoute
   AppUserManagementRoute: typeof AppUserManagementRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -296,6 +316,7 @@ interface AppRouteRouteChildren {
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppCalendarRoute: AppCalendarRoute,
   AppCampaignsRoute: AppCampaignsRoute,
+  AppHomePreviewRoute: AppHomePreviewRoute,
   AppProfileRoute: AppProfileRoute,
   AppUserManagementRoute: AppUserManagementRoute,
   AppIndexRoute: AppIndexRoute,
