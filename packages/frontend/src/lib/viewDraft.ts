@@ -11,7 +11,7 @@ const MAX_NAME_LENGTH = 500;
  * Card names can repeat, so each draft card carries its own id for React keys
  * and for removing the right card. The id never leaves the client.
  */
-export type DraftCard = { id: string; name: string };
+export type DraftCard = { id: string; chart: ChartDefinition };
 
 export type ViewDraft = {
   name: string;
@@ -34,8 +34,8 @@ export function cleanName(raw: string): string | null {
   return name.length > 0 && name.length <= MAX_NAME_LENGTH ? name : null;
 }
 
-function newCard(name: string): DraftCard {
-  return { id: crypto.randomUUID(), name };
+function newCard(chart: ChartDefinition): DraftCard {
+  return { id: crypto.randomUUID(), chart };
 }
 
 const hasKeys = (obj: object) => Object.keys(obj).length > 0;
@@ -44,13 +44,13 @@ export function draftFromView(view: Baseline): ViewDraft {
   return {
     name: view.name,
     shareOption: view.shareOption,
-    cards: view.charts.map((c) => newCard(c.name)),
+    cards: view.charts.map(newCard),
   };
 }
 
 /** Pass a name that has been through `cleanName`. */
-export function addCard(draft: ViewDraft, name: string): ViewDraft {
-  return { ...draft, cards: [...draft.cards, newCard(name)] };
+export function addCard(draft: ViewDraft, chart: ChartDefinition): ViewDraft {
+  return { ...draft, cards: [...draft.cards, newCard(chart)] };
 }
 
 export function removeCard(draft: ViewDraft, id: string): ViewDraft {
@@ -62,7 +62,11 @@ function cardsChanged(
   cards: readonly DraftCard[],
 ): boolean {
   if (saved.length !== cards.length) return true;
-  return cards.some((card, i) => card.name !== saved[i]?.name);
+  // Compared by content, because after a partial save the baseline holds the
+  // server's copies rather than the objects the draft started from.
+  return cards.some(
+    (card, i) => JSON.stringify(card.chart) !== JSON.stringify(saved[i]),
+  );
 }
 
 /**
@@ -78,8 +82,11 @@ export function diffDraft(baseline: Baseline, draft: ViewDraft): DraftChanges {
 
   // Rebuilt as `{ name }` because the backend rejects any extra field,
   // including the draft's client-side id.
+
+  // Only the charts are sent. The backend rejects any extra field, including
+  // the draft's client-side id.
   if (cardsChanged(baseline.charts, draft.cards)) {
-    update.charts = draft.cards.map((c) => ({ name: c.name }));
+    update.charts = draft.cards.map((c) => c.chart);
   }
 
   const shareOption =

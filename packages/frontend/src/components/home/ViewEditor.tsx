@@ -1,15 +1,12 @@
-import { PlusCircleIcon } from "@phosphor-icons/react";
 import type { View, ViewShareOption } from "@repo/common";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { TRPCClientError } from "@trpc/client";
-import { Dialog } from "radix-ui";
 import { useState } from "react";
 import { ViewCard } from "@frontend/components/home/ViewCard.tsx";
 import { Button } from "@frontend/components/ui/button.tsx";
 import { trpc } from "@frontend/lib/trpc.ts";
 
 import {
-  addCard,
   cleanName,
   diffDraft,
   draftFromView,
@@ -192,17 +189,11 @@ export function ViewEditor({
         {draft.cards.map((card) => (
           <ViewCard
             key={card.id}
-            name={card.name}
+            name={card.chart.name}
             onRemove={() => setDraft(removeCard(draft, card.id))}
             disabled={saving}
           />
         ))}
-        <li>
-          <AddCardDialog
-            onAdd={(name) => setDraft(addCard(draft, name))}
-            disabled={saving}
-          />
-        </li>
       </ul>
     </section>
   );
@@ -217,85 +208,4 @@ function nameError(name: string): string | null {
 /** The tRPC error code, such as "NOT_FOUND", or undefined for other errors. */
 function errorCode(error: unknown): string | undefined {
   return error instanceof TRPCClientError ? error.data?.code : undefined;
-}
-
-function AddCardDialog({
-  onAdd,
-  disabled,
-}: {
-  onAdd: (name: string) => void;
-  disabled: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-
-  const cleaned = cleanName(name);
-  const tooLong = name.trim().length > 500;
-
-  function handleOpenChange(next: boolean) {
-    setOpen(next);
-    if (!next) setName("");
-  }
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!cleaned) return;
-    onAdd(cleaned);
-    handleOpenChange(false);
-  }
-
-  return (
-    <Dialog.Root open={open} onOpenChange={handleOpenChange}>
-      <Dialog.Trigger asChild>
-        <button
-          type="button"
-          disabled={disabled}
-          className="flex h-full min-h-48 w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-primary bg-[#F9F6F1] text-lg font-bold text-primary hover:brightness-95 disabled:opacity-50"
-        >
-          <PlusCircleIcon aria-hidden="true" size={48} />
-          Add analytic
-        </button>
-      </Dialog.Trigger>
-
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/40" />
-        <Dialog.Content
-          aria-describedby={undefined}
-          className="fixed top-1/2 left-1/2 w-[min(90vw,24rem)] -translate-x-1/2 -translate-y-1/2 rounded-lg bg-background p-6 shadow-lg"
-        >
-          <Dialog.Title className="text-lg font-semibold">
-            Add analytic
-          </Dialog.Title>
-
-          <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
-            <label className="flex flex-col gap-1 text-sm">
-              Name
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className={FIELD_CLASS}
-              />
-            </label>
-
-            {tooLong && (
-              <p className="text-sm text-destructive">
-                Name must be 500 characters or fewer.
-              </p>
-            )}
-
-            <div className="flex justify-end gap-2">
-              <Dialog.Close asChild>
-                <Button type="button" variant="ghost">
-                  Cancel
-                </Button>
-              </Dialog.Close>
-              <Button type="submit" disabled={!cleaned}>
-                Add
-              </Button>
-            </div>
-          </form>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
-  );
 }

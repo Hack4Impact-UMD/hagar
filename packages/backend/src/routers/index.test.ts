@@ -1,6 +1,7 @@
-import { TRPCError } from "@trpc/server";
+﻿import { TRPCError } from "@trpc/server";
 import type { Firestore } from "firebase-admin/firestore";
 import { describe, expect, it, vi } from "vitest";
+import { chart } from "@backend/testing/charts.ts";
 import type { Context } from "@backend/trpc/context.ts";
 import { createCaller } from "@backend/routers/index.ts";
 
@@ -347,7 +348,7 @@ describe("appRouter", () => {
     await expect(
       admin.views.create({
         name: "Q3 overview",
-        charts: [{ name: "Open rate", extra: true } as { name: string }],
+        charts: [{ ...chart("Open rate"), extra: true } as never],
       }),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });

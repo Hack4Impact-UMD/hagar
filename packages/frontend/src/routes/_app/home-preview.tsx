@@ -206,8 +206,20 @@ function sampleView(
     name,
     authorUid,
     shareOption,
-    charts: cards.map((card) => ({ name: card })),
+    charts: cards.map(sampleChart),
     updatedAt,
+  };
+}
+
+// The preview never draws charts, so every card can be the same kind.
+function sampleChart(name: string): ChartDefinition {
+  return {
+    name,
+    chartId: "EMAIL_LIST_SIZE",
+    params: {
+      emailListId: "sample",
+      pointInTime: { type: "RELATIVE", anchor: "NOW" },
+    },
   };
 }
 
