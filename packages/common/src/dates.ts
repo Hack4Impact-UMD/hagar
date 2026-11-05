@@ -43,3 +43,14 @@ export const pointInTime = type({
   },
 });
 export type PointInTime = typeof pointInTime.infer;
+
+/**
+ * The instant a point in time stands for. `now` is passed in, not read from
+ * the clock, so callers and tests agree on what "now" is.
+ */
+export function resolvePointInTime(
+  _point: PointInTime,
+  _now: Date,
+): UtcDateString {
+  throw new Error("resolvePointInTime is not implemented yet.");
+}
