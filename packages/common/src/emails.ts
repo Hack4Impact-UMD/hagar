@@ -39,7 +39,7 @@ export const StoredEmailCampaignRecord = type({
   platformCampaignID: "string >= 1",
   listIDs: "string[]",
   name: "string",
-  content: type("URL"),
+  content: "string >= 1",
   // Some platforms report neither of these.
   "sentAt?": utcDateString,
   "sent?": count,

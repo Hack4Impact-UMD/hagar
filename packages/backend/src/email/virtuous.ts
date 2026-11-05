@@ -148,7 +148,7 @@ export async function updateCampaign(
   await bucket
     .file(path)
     .save(email.html, { contentType: "text/html; charset=utf-8" });
-  const content = new URL(`gs://${bucket.name}/${path}`);
+  const content = `gs://${bucket.name}/${path}`;
   const lastFetchedAt = nowUtc();
 
   const campaigns = getFirestore().collection("email-campaigns");
@@ -160,11 +160,7 @@ export async function updateCampaign(
   const [doc] = existing.docs;
 
   if (doc) {
-    await doc.ref.update({
-      name: email.name,
-      content: content.href,
-      lastFetchedAt,
-    });
+    await doc.ref.update({ name: email.name, content, lastFetchedAt });
     return;
   }
   const record: StoredEmailCampaignRecord = {
@@ -178,5 +174,5 @@ export async function updateCampaign(
     notes: "",
     snapshots: [],
   };
-  await campaigns.doc().set({ ...record, content: content.href });
+  await campaigns.doc().set(record);
 }
