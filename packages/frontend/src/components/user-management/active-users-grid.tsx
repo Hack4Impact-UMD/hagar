@@ -58,7 +58,7 @@ export function ActiveUsersGrid({
     : null;
 
   return (
-    <div className="@container flex flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative">
           <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-black" />
@@ -91,7 +91,7 @@ export function ActiveUsersGrid({
       ) : (
         <ul
           data-testid="active-users-grid"
-          className="grid grid-cols-1 gap-x-5 gap-y-21.25 @xl:grid-cols-2 @3xl:grid-cols-3 @5xl:grid-cols-4"
+          className="grid grid-cols-[repeat(auto-fill,24em)] gap-x-5 gap-y-12"
         >
           {filtered
             ? filtered.map((user) => (
@@ -149,7 +149,7 @@ function ActiveUserCard({ me, user, reportError }: ActiveUserCardProps) {
     <>
       <UserAvatar user={user} className="size-20" />
       <div className="flex min-w-0 flex-col items-start gap-0.5 text-[1.125rem]">
-        <p className="truncate font-medium">
+        <p className="break-words font-medium">
           {name}
           {isSelf ? (
             <span className="font-normal text-muted-foreground"> (you)</span>
