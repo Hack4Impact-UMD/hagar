@@ -1,4 +1,5 @@
 import { type } from "arktype";
+import type { UtcDateString } from "@common/dates.ts";
 import { pointInTime } from "@common/dates.ts";
 import { EmailCampaignMetric } from "@common/emails.ts";
 
@@ -93,3 +94,18 @@ export function chartWidth(
   if (!kind) throw new Error(`Unknown chart kind ${chart.chartId}`);
   return kind.width;
 }
+
+// Takes the chart itself, not a view id, so a chart can be previewed before
+// it is saved.
+export const chartDataInput = type({
+  chart: chartDefinition.onUndeclaredKey("reject"),
+}).onUndeclaredKey("reject");
+export type ChartDataInput = typeof chartDataInput.infer;
+
+/**
+ * A point-in-time chart has one value, or `null` if its first snapshot is
+ * after that time. An over-time chart has its points oldest first.
+ */
+export type ChartData =
+  | { type: "VALUE"; value: number | null }
+  | { type: "SERIES"; points: { at: UtcDateString; value: number }[] };
