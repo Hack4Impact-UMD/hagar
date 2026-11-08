@@ -40,24 +40,24 @@ describe("resolvePointInTime", () => {
     return { type: "RELATIVE", anchor, ago: { amount, unit } };
   }
 
-  it.fails("returns a fixed point's date, whatever now is", () => {
+  it("returns a fixed point's date, whatever now is", () => {
     const date = "2023-07-04T12:00:00.000Z";
     expect(resolvePointInTime({ type: "STATIC", date }, now)).toBe(date);
   });
 
-  it.fails("resolves NOW to the moment passed in", () => {
+  it("resolves NOW to the moment passed in", () => {
     expect(resolvePointInTime({ type: "RELATIVE", anchor: "NOW" }, now)).toBe(
       "2024-03-15T10:30:00.000Z",
     );
   });
 
-  it.fails("resolves TODAY to midnight UTC on now's date", () => {
+  it("resolves TODAY to midnight UTC on now's date", () => {
     expect(resolvePointInTime({ type: "RELATIVE", anchor: "TODAY" }, now)).toBe(
       "2024-03-15T00:00:00.000Z",
     );
   });
 
-  it.fails("goes back each unit from NOW", () => {
+  it("goes back each unit from NOW", () => {
     expect(resolvePointInTime(ago("NOW", 1, "DAY"), now)).toBe(
       "2024-03-14T10:30:00.000Z",
     );
@@ -72,7 +72,7 @@ describe("resolvePointInTime", () => {
     );
   });
 
-  it.fails("goes back from midnight for TODAY", () => {
+  it("goes back from midnight for TODAY", () => {
     expect(resolvePointInTime(ago("TODAY", 1, "DAY"), now)).toBe(
       "2024-03-14T00:00:00.000Z",
     );
