@@ -135,8 +135,6 @@ function ids(reports: { reportId: string }[]) {
   return reports.map((r) => r.reportId);
 }
 
-// THE FOLLOWING TESTS ARE OUTDATED
-
 describe("toReport", () => {
   it("adds the id and drops stray fields", () => {
     expect(toReport(id(2), { ...storedOf(id(2)), legacy: "x" })).toEqual(
