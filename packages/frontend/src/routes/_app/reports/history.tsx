@@ -44,7 +44,7 @@ const takenAtFormat = new Intl.DateTimeFormat(undefined, {
 
 type ReportRowData = Pick<Report, "reportId" | "viewId" | "takenAt" | "path">;
 
-const UNKNOWN_AUTHOR_NAME = "Unknown user";
+const UNKNOWN_REQUESTER_NAME = "Unknown user";
 
 function chunks<T>(items: readonly T[], size: number): T[][] {
   const result: T[][] = [];
@@ -72,7 +72,7 @@ function ReportsHistory() {
     () => [...new Set(reports.data?.map((report) => report.requesterUid))],
     [reports.data],
   );
-  const authors = useQueries({
+  const requesters = useQueries({
     queries: chunks(requesterUids, MAX_USER_INFO).map((uids) =>
       trpc.users.info.queryOptions({ uids }),
     ),
@@ -100,7 +100,7 @@ function ReportsHistory() {
   );
 
   let content: React.ReactNode;
-  if (reports.isError || views.isError || authors.isError) {
+  if (reports.isError || views.isError || requesters.isError) {
     content = (
       <Message>
         <p role="alert">Reports could not be loaded.</p>
@@ -109,14 +109,14 @@ function ReportsHistory() {
           onClick={() => {
             if (reports.isError) void reports.refetch();
             if (views.isError) void views.refetch();
-            authors.retry();
+            requesters.retry();
           }}
         >
           Try again
         </Button>
       </Message>
     );
-  } else if (reports.isPending || views.isPending || authors.isPending) {
+  } else if (reports.isPending || views.isPending || requesters.isPending) {
     content = (
       <ReportTable busy>
         {Array.from({ length: 5 }, (_, index) => (
@@ -144,8 +144,9 @@ function ReportsHistory() {
             key={report.reportId}
             report={report}
             viewName={viewNameFor(viewNames, report.viewId)}
-            authorName={
-              authors.names.get(report.requesterUid) ?? UNKNOWN_AUTHOR_NAME
+            requesterName={
+              requesters.names.get(report.requesterUid) ??
+              UNKNOWN_REQUESTER_NAME
             }
           />
         ))}
@@ -154,9 +155,9 @@ function ReportsHistory() {
   }
 
   return (
-    // The layout's header is h-12 (3rem). Filling the rest of the screen lets
-    // the list scroll inside the card while everything above it stays put.
-    <main className="flex h-[calc(100svh-3rem)] flex-col gap-7.5 px-9 pb-6">
+    // Filling the screen lets the list scroll inside the card while everything
+    // above it stays put.
+    <main className="flex h-svh flex-col gap-7.5 px-6 pt-6 pb-6 md:px-10">
       <PageHeader />
       <section className="flex min-h-0 flex-1 flex-col gap-7.5 rounded-xl border bg-card p-7.5">
         <div className="relative w-63">
@@ -186,31 +187,30 @@ function PageHeader() {
   const canGoBack = useCanGoBack();
 
   return (
-    // The arrow hangs to the left of the card's edge, as in the design, and
-    // keeps its space when hidden so the title doesn't move.
-    <div className="-ml-3.5 flex items-start gap-1">
+    // The arrow keeps its space when hidden so the title doesn't move.
+    <header className="grid grid-cols-[auto_1fr] items-center gap-x-[9px]">
       {canGoBack ? (
         <Button
           variant="ghost"
-          size="icon-sm"
           aria-label="Back"
           onClick={() => router.history.back()}
-          className="mt-3.5 text-muted-foreground"
+          className="h-8 w-6 p-0 text-[#808080]"
         >
           <CaretLeftIcon className="size-6" />
         </Button>
       ) : (
-        <div aria-hidden className="size-8 shrink-0" />
+        <div aria-hidden className="h-8 w-6" />
       )}
-      <div className="flex flex-col gap-2.5">
-        <h1 data-testid="reports-history" className="text-4xl/[45px] font-bold">
-          Report History
-        </h1>
-        <p className="text-2xl/[29px] text-muted-foreground">
-          View and download past reports.
-        </p>
-      </div>
-    </div>
+      <h1
+        data-testid="reports-history"
+        className="text-[2.1875rem] leading-[normal] font-bold text-black"
+      >
+        Report History
+      </h1>
+      <p className="col-start-2 text-[1.5rem] leading-[normal] text-[#808080]">
+        View and download past reports.
+      </p>
+    </header>
   );
 }
 
@@ -230,7 +230,7 @@ function ReportTable({
               View name
             </th>
             <th className="sticky top-0 w-3/10 bg-card px-4 pb-3">Date</th>
-            <th className="sticky top-0 w-1/5 bg-card px-4 pb-3">Author</th>
+            <th className="sticky top-0 w-1/5 bg-card px-4 pb-3">Requester</th>
             <th className="sticky top-0 bg-card pb-3">
               <span className="sr-only">Actions</span>
             </th>
@@ -244,7 +244,7 @@ function ReportTable({
 
 function SkeletonRow() {
   return (
-    <tr aria-hidden className="h-23 border">
+    <tr aria-hidden className="h-23 border border-[#E5E5E5]">
       <td className="px-7.5">
         <Skeleton className="h-5 w-40" />
       </td>
@@ -264,20 +264,22 @@ function SkeletonRow() {
 function ReportRow({
   report,
   viewName,
-  authorName,
+  requesterName,
 }: {
   report: ReportRowData;
   viewName: string;
-  authorName: string;
+  requesterName: string;
 }) {
   // Screen readers announce only an action's label, so it names the report
   // fully: a view can have several reports, even on the same day.
   const reportLabel = `${viewName} report from ${takenAtFormat.format(new Date(report.takenAt))}`;
 
   return (
-    <tr className="h-23 border">
-      <td className="px-7.5 text-lg break-words">{viewName}</td>
-      <td className="px-4 text-lg text-muted-foreground">
+    <tr className="h-23 border border-[#E5E5E5]">
+      <td className="px-7.5 text-lg leading-[1.4375rem] break-words text-black">
+        {viewName}
+      </td>
+      <td className="px-4 text-lg leading-[1.4375rem] text-[#808080]">
         Created{" "}
         <time
           dateTime={report.takenAt}
@@ -286,11 +288,11 @@ function ReportRow({
           {takenOnFormat.format(new Date(report.takenAt))}
         </time>
       </td>
-      <td className="px-4 text-lg break-words text-muted-foreground">
-        {authorName}
+      <td className="px-4 text-lg leading-[1.4375rem] break-words text-[#808080]">
+        {requesterName}
       </td>
-      <td className="pr-8 pl-4">
-        <div className="flex items-center justify-end gap-4">
+      <td className="pr-7.5 pl-4">
+        <div className="flex items-center justify-end gap-7.5">
           <ViewLink path={report.path} reportLabel={reportLabel} />
           <DownloadButton
             report={report}
@@ -400,7 +402,7 @@ function DownloadButton({
         disabled={download.isPending}
         aria-busy={download.isPending}
         aria-label={`${download.isError ? "Retry downloading" : "Download"} ${reportLabel}`}
-        className="text-primary hover:text-primary"
+        className="size-6 text-primary hover:text-primary"
       >
         {download.isPending ? (
           <SpinnerGapIcon className="size-6 animate-spin" />
