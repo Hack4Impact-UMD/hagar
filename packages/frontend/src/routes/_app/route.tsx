@@ -3,7 +3,6 @@ import { AppSidebar } from "@frontend/components/app-sidebar.tsx";
 import {
   SidebarInset,
   SidebarProvider,
-  SidebarTrigger,
 } from "@frontend/components/ui/sidebar.tsx";
 
 /**
@@ -14,12 +13,12 @@ export const Route = createFileRoute("/_app")({ component: AppLayout });
 
 function AppLayout() {
   return (
-    <SidebarProvider>
+    // Capped to the viewport and non-scrolling so the sidebar's own height
+    // stays pinned to the screen instead of stretching to match a tall page;
+    // SidebarInset scrolls internally instead.
+    <SidebarProvider className="h-svh overflow-hidden">
       <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-12 items-center px-2">
-          <SidebarTrigger />
-        </header>
+      <SidebarInset className="overflow-y-auto">
         <Outlet />
       </SidebarInset>
     </SidebarProvider>

@@ -2,6 +2,7 @@ export * from "@common/dates.ts";
 export * from "@common/session.ts";
 export * from "@common/user.ts";
 export * from "@common/emails.ts";
+export * from "@common/charts.ts";
 export * from "@common/views.ts";
 export * from "@common/reports.ts";
 export * from "@common/campaigns.ts";

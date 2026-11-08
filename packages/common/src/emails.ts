@@ -26,6 +26,9 @@ export const EmailCampaignSnapshot = type({
   unsubscribers: count,
   complaints: count,
 });
+/** The counts a snapshot reports for a campaign, by name. */
+export const EmailCampaignMetric =
+  EmailCampaignSnapshot.omit("fetchedAt").keyof();
 /**
  * What we know about a campaign from its platform, and what is stored at
  * `email-campaigns/{emailCampaignId}`. Platforms do not know our id, so
@@ -57,5 +60,6 @@ export type EmailPlatform = typeof EmailPlatform.infer;
 export type EmailListCountSnapshot = typeof EmailListCountSnapshot.infer;
 export type EmailList = typeof EmailList.infer;
 export type EmailCampaignSnapshot = typeof EmailCampaignSnapshot.infer;
+export type EmailCampaignMetric = typeof EmailCampaignMetric.infer;
 export type StoredEmailCampaignRecord = typeof StoredEmailCampaignRecord.infer;
 export type EmailCampaignRecord = typeof EmailCampaignRecord.infer;

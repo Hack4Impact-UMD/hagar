@@ -1,5 +1,9 @@
 # CLAUDE.md
 
+## Tests
+
+- Don't write tests that only restate an ArkType schema (accepts X, rejects empty/missing/wrong value). Test logic instead: `.narrow` rules, conditional schemas, hand-written patterns, `onUndeclaredKey("reject")` on inputs, and pure functions.
+
 ## Comments
 
 - Comment on _why_, not _what_. Skip comments on code that already explains itself.
