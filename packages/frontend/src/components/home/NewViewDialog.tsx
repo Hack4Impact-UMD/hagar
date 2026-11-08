@@ -6,12 +6,16 @@ import { trpc } from "@frontend/lib/trpc.ts";
 import { cleanName } from "@frontend/lib/viewDraft.ts";
 
 type NewViewDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onCreated: (viewId: string) => Promise<void>;
-  disabled?: boolean;
 };
 
-export function NewViewDialog({ onCreated, disabled }: NewViewDialogProps) {
-  const [open, setOpen] = useState(false);
+export function NewViewDialog({
+  open,
+  onOpenChange,
+  onCreated,
+}: NewViewDialogProps) {
   const [name, setName] = useState("");
 
   const create = useMutation({
@@ -26,7 +30,7 @@ export function NewViewDialog({ onCreated, disabled }: NewViewDialogProps) {
   const tooLong = name.trim().length > 500;
 
   function handleOpenChange(next: boolean) {
-    setOpen(next);
+    onOpenChange(next);
     if (!next) {
       setName("");
       create.reset();
@@ -40,16 +44,6 @@ export function NewViewDialog({ onCreated, disabled }: NewViewDialogProps) {
 
   return (
     <Dialog.Root open={open} onOpenChange={handleOpenChange}>
-      <Dialog.Trigger asChild>
-        <Button
-          variant="outline"
-          disabled={disabled}
-          className="border-primary text-primary"
-        >
-          New view
-        </Button>
-      </Dialog.Trigger>
-
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/40" />
         <Dialog.Content
