@@ -8,8 +8,9 @@ import type {
 const MAX_NAME_LENGTH = 500;
 
 /**
- * Card names can repeat, so each draft card carries its own id for React keys
- * and for removing the right card. The id never leaves the client.
+ * A view can hold the same chart twice, so each draft card carries its own id
+ * for React keys and for removing the right card. The id never leaves the
+ * client.
  */
 export type DraftCard = { id: string; chart: ChartDefinition };
 
@@ -48,7 +49,6 @@ export function draftFromView(view: Baseline): ViewDraft {
   };
 }
 
-/** Pass a name that has been through `cleanName`. */
 export function addCard(draft: ViewDraft, chart: ChartDefinition): ViewDraft {
   return { ...draft, cards: [...draft.cards, newCard(chart)] };
 }
@@ -79,9 +79,6 @@ export function diffDraft(baseline: Baseline, draft: ViewDraft): DraftChanges {
 
   const name = draft.name.trim();
   if (name !== baseline.name) update.name = name;
-
-  // Rebuilt as `{ name }` because the backend rejects any extra field,
-  // including the draft's client-side id.
 
   // Only the charts are sent. The backend rejects any extra field, including
   // the draft's client-side id.

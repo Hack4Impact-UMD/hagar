@@ -6,8 +6,7 @@ import {
 import { chartWidth } from "@repo/common";
 import type { View, ViewShareOption } from "@repo/common";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { TRPCClientError } from "@trpc/client";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { ViewCard } from "@frontend/components/home/ViewCard.tsx";
 import { Button } from "@frontend/components/ui/button.tsx";
 import {
@@ -18,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@frontend/components/ui/dropdown-menu.tsx";
 import { Separator } from "@frontend/components/ui/separator.tsx";
-import { trpc } from "@frontend/lib/trpc.ts";
+import { errorCode, trpc } from "@frontend/lib/trpc.ts";
 
 import {
   cleanName,
@@ -58,6 +57,7 @@ export function ViewEditor({
     trpc.views.setShareOption.mutationOptions(),
   );
   const nameProblem = nameError(draft.name);
+  const nameErrorId = useId();
 
   // The page reads the view from the cache, so it shows the saved version
   // right away. The list is refetched because saving moves the view to the top.
@@ -141,32 +141,43 @@ export function ViewEditor({
           first column takes the subtitle's width: the label opts out of sizing it,
           so the name field grows with the text up to that width. */}
       <header className="-mt-[21px] grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-[11px]">
-        <label className="flex w-0 min-w-full flex-col gap-[5px]">
-          <span className="text-base leading-none">View name</span>
-          <span className="flex h-[52px] w-max max-w-full min-w-[290px] items-center gap-2 rounded-lg border border-neutral-400 bg-background px-2.5 py-2 has-aria-invalid:border-destructive">
-            {/* The hidden copy of the name sets the input's width. */}
-            <span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)] overflow-hidden text-[35px] leading-none font-semibold">
-              <span
-                aria-hidden="true"
-                className="invisible col-start-1 row-start-1 whitespace-pre"
-              >
-                {draft.name || " "}
+        <label className="flex w-0 min-w-full">
+          {/* Sized by the field, so the error lines up with its right edge. */}
+          <span className="flex w-max max-w-full min-w-[290px] flex-col gap-[5px]">
+            <span className="flex justify-between gap-4 text-base leading-none">
+              View name
+              {nameProblem && (
+                <span id={nameErrorId} className="text-destructive">
+                  {nameProblem}
+                </span>
+              )}
+            </span>
+            <span className="flex h-[52px] w-full items-center gap-2 rounded-lg border border-neutral-400 bg-background px-2.5 py-2 has-aria-invalid:border-destructive">
+              {/* The hidden copy of the name sets the input's width. */}
+              <span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)] overflow-hidden text-[35px] leading-none font-semibold">
+                <span
+                  aria-hidden="true"
+                  className="invisible col-start-1 row-start-1 whitespace-pre"
+                >
+                  {draft.name || " "}
+                </span>
+                <input
+                  value={draft.name}
+                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                  // Without this, the input's default width of about 20
+                  // characters would widen the field past the name.
+                  size={1}
+                  disabled={saving}
+                  aria-invalid={nameProblem !== null}
+                  aria-describedby={nameProblem ? nameErrorId : undefined}
+                  className="col-start-1 row-start-1 w-full min-w-0 bg-transparent outline-none disabled:opacity-50"
+                />
               </span>
-              <input
-                value={draft.name}
-                onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                // Without this, the input's default width of about 20
-                // characters would widen the field past the name.
-                size={1}
-                disabled={saving}
-                aria-invalid={nameProblem !== null}
-                className="col-start-1 row-start-1 w-full min-w-0 bg-transparent outline-none disabled:opacity-50"
+              <PencilSimpleIcon
+                aria-hidden="true"
+                className="size-[27px] shrink-0"
               />
             </span>
-            <PencilSimpleIcon
-              aria-hidden="true"
-              className="size-[27px] shrink-0"
-            />
           </span>
         </label>
         <p className="row-start-2 text-2xl leading-none font-medium text-[#808080]">
@@ -192,9 +203,6 @@ export function ViewEditor({
 
       <Separator className="mt-8" />
 
-      {nameProblem && (
-        <p className="mt-4 text-sm text-destructive">{nameProblem}</p>
-      )}
       {saveError && (
         <p role="alert" className="mt-4 text-sm text-destructive">
           {saveError}
@@ -298,11 +306,6 @@ function ShareMenu({
 
 function nameError(name: string): string | null {
   if (cleanName(name)) return null;
-  if (name.trim() === "") return "Name is required.";
-  return "Name must be 500 characters or fewer.";
-}
-
-/** The tRPC error code, such as "NOT_FOUND", or undefined for other errors. */
-function errorCode(error: unknown): string | undefined {
-  return error instanceof TRPCClientError ? error.data?.code : undefined;
+  if (name.trim() === "") return "Name required";
+  return "Name too long";
 }
