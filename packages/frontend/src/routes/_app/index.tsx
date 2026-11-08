@@ -2,7 +2,6 @@ import { canEditView, canShareView, chartWidth } from "@repo/common";
 import type { View } from "@repo/common";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { TRPCClientError } from "@trpc/client";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { NewViewDialog } from "@frontend/components/home/NewViewDialog.tsx";
@@ -12,7 +11,7 @@ import { ViewCard } from "@frontend/components/home/ViewCard.tsx";
 import { Button } from "@frontend/components/ui/button.tsx";
 import { Separator } from "@frontend/components/ui/separator.tsx";
 import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
-import { trpc } from "@frontend/lib/trpc.ts";
+import { errorCode, trpc } from "@frontend/lib/trpc.ts";
 
 export const Route = createFileRoute("/_app/")({
   validateSearch: (search: Record<string, unknown>): { view?: string } => ({
@@ -41,7 +40,7 @@ function HomeContent({
   onNotice,
 }: {
   notice: string | null;
-  onNotice: (message: string) => void;
+  onNotice: (message: string | null) => void;
 }) {
   const { view } = Route.useSearch();
   const navigate = Route.useNavigate();
@@ -53,7 +52,12 @@ function HomeContent({
   // The view being customized, as the server had it when Customize was pressed.
   const [editing, setEditing] = useState<View | null>(null);
   const [startingEdit, setStartingEdit] = useState(false);
-  const isEditing = editing !== null;
+  // Only the view in the URL can be customized. Back, or the view vanishing
+  // from the list, would otherwise leave the editor saving to a view the page
+  // no longer shows. The stale draft is dropped during render, so Forward
+  // can't bring it back.
+  if (editing && editing.viewId !== view) setEditing(null);
+  const isEditing = editing !== null && editing.viewId === view;
 
   const selected = views.data?.find((v) => v.viewId === view);
   const firstViewId = views.data?.[0]?.viewId;
@@ -66,6 +70,11 @@ function HomeContent({
     }
   }, [firstViewId, selected, navigate]);
 
+  function openNewView() {
+    onNotice(null);
+    setNewViewOpen(true);
+  }
+
   // The list must include the new view before it's selected. Otherwise the
   // effect above treats it as missing and jumps back to the first view.
   async function showNewView(viewId: string) {
@@ -76,6 +85,7 @@ function HomeContent({
   }
 
   async function startCustomizing(viewId: string) {
+    onNotice(null);
     setStartingEdit(true);
     try {
       // The draft starts from the server's latest copy, not the cached one.
@@ -128,7 +138,9 @@ function HomeContent({
 
   if (views.isPending) return page(<HomeSkeleton />);
 
-  if (views.isError) {
+  // A failed background refetch keeps the old list, so the page (and any open
+  // editor) stays put. The error page is only for a list that never loaded.
+  if (!views.data) {
     return page(
       <div className="flex flex-col items-start gap-3">
         <p>We couldn&apos;t load your views.</p>
@@ -143,7 +155,7 @@ function HomeContent({
     return page(
       <div className="flex flex-col items-start gap-3">
         <p>You don&apos;t have any views yet.</p>
-        <Button onClick={() => setNewViewOpen(true)}>New view</Button>
+        <Button onClick={openNewView}>New view</Button>
       </div>,
     );
   }
@@ -167,8 +179,11 @@ function HomeContent({
       <ViewPicker
         views={views.data}
         selectedId={selected.viewId}
-        onSelect={(viewId) => void navigate({ search: { view: viewId } })}
-        onNewView={() => setNewViewOpen(true)}
+        onSelect={(viewId) => {
+          onNotice(null);
+          void navigate({ search: { view: viewId } });
+        }}
+        onNewView={openNewView}
       />
       {canEdit && (
         <Button
@@ -237,7 +252,8 @@ function ViewDetails({
 
   if (view.isPending || notFound) return <HomeSkeleton />;
 
-  if (view.isError) {
+  // As with the list, keep showing the view if only a refetch failed.
+  if (!view.data) {
     return (
       <div className="flex flex-col items-start gap-3">
         <p>We couldn&apos;t load this view.</p>
@@ -282,9 +298,4 @@ function HomeSkeleton() {
       </div>
     </div>
   );
-}
-
-/** The tRPC error code, such as "NOT_FOUND", or undefined for other errors. */
-function errorCode(error: unknown): string | undefined {
-  return error instanceof TRPCClientError ? error.data?.code : undefined;
 }
