@@ -13,10 +13,11 @@ import type {
   LinkedItem,
   LinkedItemInput,
   SetCampaignNotesInput,
+  StoredCampaign,
   UtmCodeInput,
 } from "@repo/common";
 import { TRPCError } from "@trpc/server";
-import type { Firestore } from "firebase-admin/firestore";
+import type { Firestore, Transaction } from "firebase-admin/firestore";
 
 export const COLLECTION = "campaigns";
 /**
@@ -67,23 +68,47 @@ export async function getCampaign(
   return toCampaign(doc.id, doc.data());
 }
 
-/** Replaces a campaign's notes and bumps `updatedAt`. */
-export function setCampaignNotes(
+/**
+ * Runs `edit` on a campaign in one transaction and saves only `field`, plus a
+ * fresh `updatedAt`. When `edit` returns the campaign it was given, nothing is
+ * written. `edit` may read more documents through `tx`, since every write
+ * happens after it returns.
+ */
+function editCampaign<K extends keyof StoredCampaign>(
   db: Firestore,
-  _actor: ActiveUserProfile,
-  input: SetCampaignNotesInput,
+  campaignId: string,
+  field: K,
+  edit: (
+    current: StoredCampaign,
+    tx: Transaction,
+  ) => StoredCampaign | Promise<StoredCampaign>,
 ): Promise<Campaign> {
-  const ref = db.collection(COLLECTION).doc(input.campaignId);
+  const ref = db.collection(COLLECTION).doc(campaignId);
 
   return db.runTransaction(async (tx) => {
     const snapshot = await tx.get(ref);
     if (!snapshot.exists) throw campaignNotFound();
     const current = parseStoredCampaign.assert(snapshot.data());
 
-    const changes = { notes: input.notes, updatedAt: nowUtc() };
-    tx.update(ref, changes);
-    return toCampaign(ref.id, { ...current, ...changes });
+    const next = await edit(current, tx);
+    if (next === current) return { campaignId, ...current };
+
+    const updatedAt = nowUtc();
+    tx.update(ref, { [field]: next[field], updatedAt });
+    return { campaignId, ...next, updatedAt };
   });
+}
+
+/** Replaces a campaign's notes and bumps `updatedAt`. */
+export function setCampaignNotes(
+  db: Firestore,
+  _actor: ActiveUserProfile,
+  input: SetCampaignNotesInput,
+): Promise<Campaign> {
+  return editCampaign(db, input.campaignId, "notes", (current) => ({
+    ...current,
+    notes: input.notes,
+  }));
 }
 
 /**
@@ -96,29 +121,25 @@ export function addLinkedItem(
   _actor: ActiveUserProfile,
   input: LinkedItemInput,
 ): Promise<Campaign> {
-  const ref = db.collection(COLLECTION).doc(input.campaignId);
   const itemRef = db
     .collection(LINKED_ITEM_COLLECTIONS[input.item.type])
     .doc(input.item.id);
 
-  return db.runTransaction(async (tx) => {
-    const [snapshot, itemSnapshot] = await tx.getAll(ref, itemRef);
-    if (!snapshot?.exists) throw campaignNotFound();
-    if (!itemSnapshot?.exists) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "That linked item does not exist.",
-      });
-    }
-    const current = parseStoredCampaign.assert(snapshot.data());
-
-    const next = withLinkedItem(current, input.item);
-    if (next === current) return toCampaign(ref.id, current);
-
-    const changes = { linkedItems: next.linkedItems, updatedAt: nowUtc() };
-    tx.update(ref, changes);
-    return toCampaign(ref.id, { ...current, ...changes });
-  });
+  return editCampaign(
+    db,
+    input.campaignId,
+    "linkedItems",
+    async (current, tx) => {
+      const item = await tx.get(itemRef);
+      if (!item.exists) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "That linked item does not exist.",
+        });
+      }
+      return withLinkedItem(current, input.item);
+    },
+  );
 }
 
 /** Removes a link. Removing one the campaign does not have changes nothing. */
@@ -127,20 +148,9 @@ export function removeLinkedItem(
   _actor: ActiveUserProfile,
   input: LinkedItemInput,
 ): Promise<Campaign> {
-  const ref = db.collection(COLLECTION).doc(input.campaignId);
-
-  return db.runTransaction(async (tx) => {
-    const snapshot = await tx.get(ref);
-    if (!snapshot.exists) throw campaignNotFound();
-    const current = parseStoredCampaign.assert(snapshot.data());
-
-    const next = withoutLinkedItem(current, input.item);
-    if (next === current) return toCampaign(ref.id, current);
-
-    const changes = { linkedItems: next.linkedItems, updatedAt: nowUtc() };
-    tx.update(ref, changes);
-    return toCampaign(ref.id, { ...current, ...changes });
-  });
+  return editCampaign(db, input.campaignId, "linkedItems", (current) =>
+    withoutLinkedItem(current, input.item),
+  );
 }
 
 /**
@@ -152,20 +162,9 @@ export function addUtmCode(
   _actor: ActiveUserProfile,
   input: UtmCodeInput,
 ): Promise<Campaign> {
-  const ref = db.collection(COLLECTION).doc(input.campaignId);
-
-  return db.runTransaction(async (tx) => {
-    const snapshot = await tx.get(ref);
-    if (!snapshot.exists) throw campaignNotFound();
-    const current = parseStoredCampaign.assert(snapshot.data());
-
-    const next = withUtmCode(current, input.utmCode);
-    if (next === current) return toCampaign(ref.id, current);
-
-    const changes = { utmCodes: next.utmCodes, updatedAt: nowUtc() };
-    tx.update(ref, changes);
-    return toCampaign(ref.id, { ...current, ...changes });
-  });
+  return editCampaign(db, input.campaignId, "utmCodes", (current) =>
+    withUtmCode(current, input.utmCode),
+  );
 }
 
 /** Removes a UTM code. Removing one the campaign does not have changes nothing. */
@@ -174,18 +173,7 @@ export function removeUtmCode(
   _actor: ActiveUserProfile,
   input: UtmCodeInput,
 ): Promise<Campaign> {
-  const ref = db.collection(COLLECTION).doc(input.campaignId);
-
-  return db.runTransaction(async (tx) => {
-    const snapshot = await tx.get(ref);
-    if (!snapshot.exists) throw campaignNotFound();
-    const current = parseStoredCampaign.assert(snapshot.data());
-
-    const next = withoutUtmCode(current, input.utmCode);
-    if (next === current) return toCampaign(ref.id, current);
-
-    const changes = { utmCodes: next.utmCodes, updatedAt: nowUtc() };
-    tx.update(ref, changes);
-    return toCampaign(ref.id, { ...current, ...changes });
-  });
+  return editCampaign(db, input.campaignId, "utmCodes", (current) =>
+    withoutUtmCode(current, input.utmCode),
+  );
 }
