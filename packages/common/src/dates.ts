@@ -22,3 +22,24 @@ export type UtcDateString = typeof utcDateString.infer;
 export function nowUtc(): UtcDateString {
   return new Date().toISOString();
 }
+
+/**
+ * A moment that is either fixed or worked out from the current time when it is
+ * used. A fixed one is a `STATIC` UTC date string. A moving one is `RELATIVE`: it
+ * starts from `NOW` or from the start of `TODAY`, and optionally goes back
+ * `ago`, so "one month ago" is `{ anchor: "NOW", ago: { amount: 1, unit:
+ * "MONTH" } }`.
+ */
+export const pointInTime = type({
+  type: "'STATIC'",
+  date: utcDateString,
+}).or({
+  type: "'RELATIVE'",
+  anchor: "'NOW' | 'TODAY'",
+  "ago?": {
+    // The cap only bounds abuse. It sits far above any real offset.
+    amount: "1 <= number.integer <= 10000",
+    unit: "'DAY' | 'WEEK' | 'MONTH' | 'YEAR'",
+  },
+});
+export type PointInTime = typeof pointInTime.infer;

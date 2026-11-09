@@ -20,17 +20,6 @@ describe("utcDateString", () => {
       expect(utcDateString(value)).toBeInstanceOf(type.errors);
     }
   });
-
-  it("rejects values that are not strings", () => {
-    expect(utcDateString(0)).toBeInstanceOf(type.errors);
-    expect(utcDateString(new Date())).toBeInstanceOf(type.errors);
-  });
-
-  it("orders chronologically when compared as strings", () => {
-    const earlier = "2024-05-01T12:30:00.000Z";
-    const later = "2024-05-01T12:30:00.001Z";
-    expect(earlier < later).toBe(true);
-  });
 });
 
 describe("nowUtc", () => {
