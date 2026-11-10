@@ -4,9 +4,14 @@ import type {
   EmailCampaignMetric,
   PointInTime,
 } from "@repo/common";
+import type { SnapshotPoint } from "@backend/services/charts.ts";
 import { describe, expect, it } from "vitest";
 import { fakeFirestore } from "@backend/testing/fakeFirestore.ts";
-import { getChartData } from "@backend/services/charts.ts";
+import {
+  getChartData,
+  seriesBetween,
+  valueAt,
+} from "@backend/services/charts.ts";
 
 const JAN_1 = "2024-01-01T00:00:00.000Z";
 const JAN_15 = "2024-01-15T00:00:00.000Z";
@@ -114,7 +119,7 @@ function metricAt(
 }
 
 describe("getChartData", () => {
-  it.fails("gives the earlier snapshot for a time between two snapshots", async () => {
+  it("gives the earlier snapshot for a time between two snapshots", async () => {
     const { db } = seeded();
 
     await expect(
@@ -122,7 +127,7 @@ describe("getChartData", () => {
     ).resolves.toEqual({ type: "VALUE", value: 100 });
   });
 
-  it.fails("counts a snapshot taken at exactly the time", async () => {
+  it("counts a snapshot taken at exactly the time", async () => {
     const { db } = seeded();
 
     await expect(
@@ -130,7 +135,7 @@ describe("getChartData", () => {
     ).resolves.toEqual({ type: "VALUE", value: 200 });
   });
 
-  it.fails("gives null for a time before the first snapshot", async () => {
+  it("gives null for a time before the first snapshot", async () => {
     const { db } = seeded();
 
     await expect(
@@ -143,7 +148,7 @@ describe("getChartData", () => {
     ).resolves.toEqual({ type: "VALUE", value: null });
   });
 
-  it.fails("gives a series of the start, the snapshots in between and the end", async () => {
+  it("gives a series of the start, the snapshots in between and the end", async () => {
     const { db } = seeded();
 
     await expect(
@@ -163,7 +168,7 @@ describe("getChartData", () => {
     });
   });
 
-  it.fails("has no start point when the series starts before the first snapshot", async () => {
+  it("has no start point when the series starts before the first snapshot", async () => {
     const { db } = seeded();
 
     await expect(
@@ -184,7 +189,7 @@ describe("getChartData", () => {
     });
   });
 
-  it.fails("resolves relative dates from the now passed in", async () => {
+  it("resolves relative dates from the now passed in", async () => {
     const { db } = seeded();
     const oneMonthAgo: PointInTime = {
       type: "RELATIVE",
@@ -203,7 +208,7 @@ describe("getChartData", () => {
     ).resolves.toEqual({ type: "VALUE", value: 100 });
   });
 
-  it.fails("reads the snapshot field named by the metric", async () => {
+  it("reads the snapshot field named by the metric", async () => {
     const { db } = seeded();
     const expected: Record<EmailCampaignMetric, number> = {
       bounced: 1,
@@ -225,7 +230,7 @@ describe("getChartData", () => {
     }
   });
 
-  it.fails("throws NOT_FOUND for a missing email or list", async () => {
+  it("throws NOT_FOUND for a missing email or list", async () => {
     const { db } = seeded();
 
     await expect(
@@ -246,7 +251,88 @@ describe("getChartData", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
-  it.fails("throws BAD_REQUEST when the start is after the end", async () => {
+  it("reads a campaign metric across the range", async () => {
+    const { db } = fakeFirestore({
+      "email-campaigns": {
+        "email-1": {
+          ...EMAIL,
+          snapshots: [
+            { ...EMAIL.snapshots[0], fetchedAt: JAN_1, uniqOpens: 2 },
+            { ...EMAIL.snapshots[0], fetchedAt: JAN_31, uniqOpens: 9 },
+          ],
+        },
+      },
+    });
+
+    await expect(
+      getChartData(
+        db,
+        viewer,
+        {
+          chart: {
+            name: "Opens",
+            chartId: "EMAIL_CAMPAIGN_METRIC_OVER_TIME",
+            params: {
+              emailCampaignId: "email-1",
+              metric: "uniqOpens",
+              start: at(JAN_15),
+              end: at(FEB_15),
+            },
+          },
+        },
+        NOW,
+      ),
+    ).resolves.toEqual({
+      type: "SERIES",
+      points: [
+        { at: JAN_15, value: 2 },
+        { at: JAN_31, value: 9 },
+        { at: FEB_15, value: 9 },
+      ],
+    });
+  });
+
+  it("sorts snapshots that were stored out of order", async () => {
+    const { db } = fakeFirestore({
+      "email-lists": {
+        "list-1": {
+          ...LIST,
+          snapshots: [
+            { count: 200, fetchedAt: JAN_31 },
+            { count: 100, fetchedAt: JAN_1 },
+          ],
+        },
+      },
+    });
+
+    await expect(
+      getChartData(db, viewer, { chart: listSizeAt(at(JAN_15)) }, NOW),
+    ).resolves.toEqual({ type: "VALUE", value: 100 });
+  });
+
+  it("throws BAD_REQUEST before reading when relative dates invert the range", async () => {
+    const { db } = fakeFirestore({});
+
+    await expect(
+      getChartData(
+        db,
+        viewer,
+        {
+          chart: listSizeBetween(
+            { type: "RELATIVE", anchor: "NOW" },
+            {
+              type: "RELATIVE",
+              anchor: "NOW",
+              ago: { amount: 1, unit: "DAY" },
+            },
+          ),
+        },
+        NOW,
+      ),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("throws BAD_REQUEST when the start is after the end", async () => {
     const { db } = seeded();
 
     await expect(
@@ -257,5 +343,58 @@ describe("getChartData", () => {
         NOW,
       ),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+});
+
+// The step function's edges are easier to see without the database in between.
+describe("seriesBetween", () => {
+  const points: SnapshotPoint[] = [
+    { at: JAN_1, value: 100 },
+    { at: JAN_15, value: 150 },
+    { at: JAN_31, value: 200 },
+  ];
+
+  it("emits a snapshot that falls exactly on the start or the end only once", () => {
+    expect(seriesBetween(points, JAN_1, JAN_31)).toEqual(points);
+  });
+
+  it("emits one point when the start and the end are the same instant", () => {
+    expect(seriesBetween(points, JAN_15, JAN_15)).toEqual([
+      { at: JAN_15, value: 150 },
+    ]);
+  });
+
+  it("carries the same value to both ends when nothing changed inside the range", () => {
+    const JAN_20 = "2024-01-20T00:00:00.000Z";
+    const JAN_25 = "2024-01-25T00:00:00.000Z";
+
+    // No snapshot falls inside the range, so both points are the value still
+    // holding from the earlier snapshot, at two different instants.
+    expect(seriesBetween(points, JAN_20, JAN_25)).toEqual([
+      { at: JAN_20, value: 150 },
+      { at: JAN_25, value: 150 },
+    ]);
+  });
+
+  it("is empty when the range ends before the first snapshot", () => {
+    expect(
+      seriesBetween(
+        points,
+        "2023-11-01T00:00:00.000Z",
+        "2023-12-01T00:00:00.000Z",
+      ),
+    ).toEqual([]);
+  });
+
+  it("keeps every snapshot that shares a timestamp, and reads the later one", () => {
+    // The later value is the smaller one, so this is order, not the maximum.
+    const tied: SnapshotPoint[] = [
+      { at: JAN_15, value: 150 },
+      { at: JAN_15, value: 50 },
+    ];
+
+    expect(valueAt(tied, FEB_15)).toBe(50);
+    // The tie sits strictly inside the range, so both snapshots are kept.
+    expect(seriesBetween(tied, JAN_1, JAN_15)).toEqual(tied);
   });
 });
