@@ -1,4 +1,5 @@
 import { type } from "arktype";
+import type { UtcDateString } from "@common/dates.ts";
 import { utcDateString } from "@common/dates.ts";
 import { userRegion } from "@common/user.ts";
 
@@ -62,3 +63,22 @@ export type EmailCampaignSnapshot = typeof EmailCampaignSnapshot.infer;
 export type EmailCampaignMetric = typeof EmailCampaignMetric.infer;
 export type StoredEmailCampaignRecord = typeof StoredEmailCampaignRecord.infer;
 export type EmailCampaignRecord = typeof EmailCampaignRecord.infer;
+
+// Procedure inputs reject undeclared keys, as in `campaigns.ts`.
+export const listEmailCampaignsInput = type({
+  "sentFrom?": utcDateString,
+  sentTo: utcDateString,
+}).onUndeclaredKey("reject");
+export type ListEmailCampaignsInput = typeof listEmailCampaignsInput.infer;
+
+/** What `emails.campaigns` returns for each email: only emails with a `sentAt`. */
+export type EmailCampaignSummary = Pick<
+  EmailCampaignRecord,
+  "emailCampaignId" | "name" | "region" | "platform"
+> & { sentAt: UtcDateString };
+
+/** What `emails.lists` returns for each list. */
+export type EmailListSummary = { emailListId: string } & Pick<
+  EmailList,
+  "name" | "platform"
+>;

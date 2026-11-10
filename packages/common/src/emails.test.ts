@@ -1,6 +1,9 @@
 import { type } from "arktype";
 import { describe, expect, it } from "vitest";
-import { StoredEmailCampaignRecord } from "@common/emails.ts";
+import {
+  listEmailCampaignsInput,
+  StoredEmailCampaignRecord,
+} from "@common/emails.ts";
 
 // This package's TypeScript lib has no DOM or Node types, so `URL` is not
 // declared here, although the runtime provides it.
@@ -46,6 +49,14 @@ describe("StoredEmailCampaignRecord", () => {
     );
     expect(
       StoredEmailCampaignRecord({ ...stored, sentAt: undefined }),
+    ).toBeInstanceOf(type.errors);
+  });
+});
+
+describe("listEmailCampaignsInput", () => {
+  it("rejects undeclared keys", () => {
+    expect(
+      listEmailCampaignsInput({ sentTo: fetchedAt, region: "US" }),
     ).toBeInstanceOf(type.errors);
   });
 });
