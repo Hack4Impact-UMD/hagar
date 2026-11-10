@@ -5,11 +5,6 @@ import {
   StoredEmailCampaignRecord,
 } from "@common/emails.ts";
 
-// This package's TypeScript lib has no DOM or Node types, so `URL` is not
-// declared here, although the runtime provides it.
-const URL = (globalThis as unknown as { URL: new (href: string) => unknown })
-  .URL;
-
 const fetchedAt = "2024-05-01T12:30:00.000Z";
 const stored = {
   platform: "Klaviyo",
@@ -17,7 +12,7 @@ const stored = {
   platformCampaignID: "k-1",
   listIDs: ["list-1"],
   name: "Spring launch",
-  content: new URL("https://example.com/campaign"),
+  content: "https://example.com/campaign",
   sentAt: "2024-04-30T09:00:00.000Z",
   sent: 1200,
   lastFetchedAt: fetchedAt,
