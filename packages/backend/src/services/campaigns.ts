@@ -1,4 +1,11 @@
-import { storedCampaign } from "@repo/common";
+import {
+  storedCampaign,
+  nowUtc,
+  withLinkedItem,
+  withoutLinkedItem,
+  withUtmCode,
+  withoutUtmCode,
+} from "@repo/common";
 import type {
   ActiveUserProfile,
   Campaign,
@@ -7,10 +14,11 @@ import type {
   LinkedItem,
   LinkedItemInput,
   SetCampaignNotesInput,
+  StoredCampaign,
   UtmCodeInput,
 } from "@repo/common";
 import { TRPCError } from "@trpc/server";
-import type { Firestore } from "firebase-admin/firestore";
+import type { Firestore, Transaction } from "firebase-admin/firestore";
 
 export const COLLECTION = "campaigns";
 /**
@@ -39,14 +47,15 @@ export function campaignNotFound(): TRPCError {
 }
 
 /** Lists every campaign, most recently updated first. */
-export function listCampaigns(
-  _db: Firestore,
+export async function listCampaigns(
+  db: Firestore,
   _actor: ActiveUserProfile,
 ): Promise<Campaign[]> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "campaigns.list is not implemented yet.",
-  });
+  const snapshot = await db
+    .collection(COLLECTION)
+    .orderBy("updatedAt", "desc")
+    .get();
+  return snapshot.docs.map((doc) => toCampaign(doc.id, doc.data()));
 }
 
 /** Creates an empty campaign with an auto-generated id. */
@@ -77,27 +86,57 @@ export function deleteCampaign(
 }
 
 /** Returns one campaign, or throws `NOT_FOUND`. */
-export function getCampaign(
-  _db: Firestore,
+export async function getCampaign(
+  db: Firestore,
   _actor: ActiveUserProfile,
-  _input: GetCampaignInput,
+  input: GetCampaignInput,
 ): Promise<Campaign> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "campaigns.get is not implemented yet.",
+  const doc = await db.collection(COLLECTION).doc(input.campaignId).get();
+  if (!doc.exists) throw campaignNotFound();
+  return toCampaign(doc.id, doc.data());
+}
+
+/**
+ * Runs `edit` on a campaign in one transaction and saves only `field`, plus a
+ * fresh `updatedAt`. When `edit` returns the campaign it was given, nothing is
+ * written. `edit` may read more documents through `tx`, since every write
+ * happens after it returns.
+ */
+function editCampaign<K extends keyof StoredCampaign>(
+  db: Firestore,
+  campaignId: string,
+  field: K,
+  edit: (
+    current: StoredCampaign,
+    tx: Transaction,
+  ) => StoredCampaign | Promise<StoredCampaign>,
+): Promise<Campaign> {
+  const ref = db.collection(COLLECTION).doc(campaignId);
+
+  return db.runTransaction(async (tx) => {
+    const snapshot = await tx.get(ref);
+    if (!snapshot.exists) throw campaignNotFound();
+    const current = parseStoredCampaign.assert(snapshot.data());
+
+    const next = await edit(current, tx);
+    if (next === current) return { campaignId, ...current };
+
+    const updatedAt = nowUtc();
+    tx.update(ref, { [field]: next[field], updatedAt });
+    return { campaignId, ...next, updatedAt };
   });
 }
 
 /** Replaces a campaign's notes and bumps `updatedAt`. */
 export function setCampaignNotes(
-  _db: Firestore,
+  db: Firestore,
   _actor: ActiveUserProfile,
-  _input: SetCampaignNotesInput,
+  input: SetCampaignNotesInput,
 ): Promise<Campaign> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "campaigns.setNotes is not implemented yet.",
-  });
+  return editCampaign(db, input.campaignId, "notes", (current) => ({
+    ...current,
+    notes: input.notes,
+  }));
 }
 
 /**
@@ -106,26 +145,40 @@ export function setCampaignNotes(
  * not exist.
  */
 export function addLinkedItem(
-  _db: Firestore,
+  db: Firestore,
   _actor: ActiveUserProfile,
-  _input: LinkedItemInput,
+  input: LinkedItemInput,
 ): Promise<Campaign> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "campaigns.addLinkedItem is not implemented yet.",
-  });
+  const itemRef = db
+    .collection(LINKED_ITEM_COLLECTIONS[input.item.type])
+    .doc(input.item.id);
+
+  return editCampaign(
+    db,
+    input.campaignId,
+    "linkedItems",
+    async (current, tx) => {
+      const item = await tx.get(itemRef);
+      if (!item.exists) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "That linked item does not exist.",
+        });
+      }
+      return withLinkedItem(current, input.item);
+    },
+  );
 }
 
 /** Removes a link. Removing one the campaign does not have changes nothing. */
 export function removeLinkedItem(
-  _db: Firestore,
+  db: Firestore,
   _actor: ActiveUserProfile,
-  _input: LinkedItemInput,
+  input: LinkedItemInput,
 ): Promise<Campaign> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "campaigns.removeLinkedItem is not implemented yet.",
-  });
+  return editCampaign(db, input.campaignId, "linkedItems", (current) =>
+    withoutLinkedItem(current, input.item),
+  );
 }
 
 /**
@@ -133,24 +186,22 @@ export function removeLinkedItem(
  * are compared exactly, so differing only in case makes a different code.
  */
 export function addUtmCode(
-  _db: Firestore,
+  db: Firestore,
   _actor: ActiveUserProfile,
-  _input: UtmCodeInput,
+  input: UtmCodeInput,
 ): Promise<Campaign> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "campaigns.addUtmCode is not implemented yet.",
-  });
+  return editCampaign(db, input.campaignId, "utmCodes", (current) =>
+    withUtmCode(current, input.utmCode),
+  );
 }
 
 /** Removes a UTM code. Removing one the campaign does not have changes nothing. */
 export function removeUtmCode(
-  _db: Firestore,
+  db: Firestore,
   _actor: ActiveUserProfile,
-  _input: UtmCodeInput,
+  input: UtmCodeInput,
 ): Promise<Campaign> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "campaigns.removeUtmCode is not implemented yet.",
-  });
+  return editCampaign(db, input.campaignId, "utmCodes", (current) =>
+    withoutUtmCode(current, input.utmCode),
+  );
 }
