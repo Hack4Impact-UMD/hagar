@@ -43,3 +43,27 @@ export const pointInTime = type({
   },
 });
 export type PointInTime = typeof pointInTime.infer;
+
+/**
+ * The instant a point in time stands for. `now` is passed in, not read from
+ * the clock, so callers and tests agree on what "now" is.
+ */
+export function resolvePointInTime(
+  point: PointInTime,
+  now: Date,
+): UtcDateString {
+  if (point.type === "STATIC") return point.date;
+
+  const date = new Date(now);
+  if (point.anchor === "TODAY") date.setUTCHours(0, 0, 0, 0);
+  if (point.ago) {
+    const { amount, unit } = point.ago;
+    // Month and year steps keep the day of the month, so Mar 31 minus a month
+    // rolls over to early March rather than clamping to the end of February.
+    if (unit === "DAY") date.setUTCDate(date.getUTCDate() - amount);
+    if (unit === "WEEK") date.setUTCDate(date.getUTCDate() - amount * 7);
+    if (unit === "MONTH") date.setUTCMonth(date.getUTCMonth() - amount);
+    if (unit === "YEAR") date.setUTCFullYear(date.getUTCFullYear() - amount);
+  }
+  return date.toISOString();
+}
