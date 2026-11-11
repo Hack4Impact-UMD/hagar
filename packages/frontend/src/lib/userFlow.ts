@@ -27,17 +27,24 @@ export function homeFor(profile: UserProfile | null): FlowPage {
   return profile ? STAGE_PAGES[profile.stage] : "/login";
 }
 
+// Where links in Firebase's emails land.
+const ACTION_PAGE = "/auth-action";
+
 /**
  * Where to send a user who asked for `pathname`, or `null` to let them
- * through. Signed-out users may only sign in, sign up or request a password
- * reset, users in onboarding
- * are pinned to their stage's page, and active users may go anywhere except
- * the sign-in and onboarding pages.
+ * through. Anyone may open an email link. Otherwise signed-out users may only
+ * sign in, sign up or request a password reset, users in onboarding are pinned
+ * to their stage's page, and active users may go anywhere except the sign-in
+ * and onboarding pages.
  */
 export function redirectFor(
   profile: UserProfile | null,
   pathname: string,
 ): FlowPage | null {
+  // A user mid-signup opens the verify link while pinned to /verify-email.
+  // Redirecting them there would leave the link's code unapplied.
+  if (pathname === ACTION_PAGE) return null;
+
   if (!profile) {
     return (SIGNED_OUT_PAGES as readonly string[]).includes(pathname)
       ? null

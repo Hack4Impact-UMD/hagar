@@ -1,6 +1,11 @@
 import type { Icon } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 
+/** Styles for the message and main button under a notice's title. */
+export const NOTICE_TEXT = "mt-6 max-w-122.5 text-base/5 text-[#1c1917]";
+export const NOTICE_BUTTON =
+  "mt-8 h-17.5 w-full max-w-82.25 rounded-[10px] text-base font-semibold";
+
 type NoticeLayoutProps = {
   icon: Icon;
   title: string;

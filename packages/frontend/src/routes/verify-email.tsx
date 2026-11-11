@@ -3,7 +3,11 @@ import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { sendEmailVerification } from "firebase/auth";
 import { useEffect, useRef } from "react";
-import { NoticeLayout } from "@frontend/components/auth/NoticeLayout.tsx";
+import {
+  NOTICE_BUTTON,
+  NOTICE_TEXT,
+  NoticeLayout,
+} from "@frontend/components/auth/NoticeLayout.tsx";
 import { Button } from "@frontend/components/ui/button.tsx";
 import {
   RESEND_COOLDOWN_SECONDS,
@@ -74,10 +78,7 @@ function VerifyEmail() {
 
   return (
     <NoticeLayout icon={EnvelopeIcon} title="Verify your email address">
-      <p
-        data-testid="verify-email-status"
-        className="mt-6 max-w-122.5 text-base/5 text-[#1c1917]"
-      >
+      <p data-testid="verify-email-status" className={NOTICE_TEXT}>
         {send.isSuccess ? (
           <>
             We sent a verification link to{" "}
@@ -94,7 +95,7 @@ function VerifyEmail() {
         data-testid="resend-verification"
         disabled={send.isPending || cooldown.secondsLeft > 0}
         onClick={() => send.mutate()}
-        className="mt-8 h-17.5 w-full max-w-82.25 rounded-[10px] text-base font-semibold"
+        className={NOTICE_BUTTON}
       >
         {cooldown.secondsLeft > 0
           ? `Resend in ${cooldown.secondsLeft}s`

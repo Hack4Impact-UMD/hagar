@@ -14,6 +14,8 @@ const MESSAGES: Record<string, string> = {
     "Couldn't reach the server. Check your connection and try again.",
   "auth/email-already-in-use": "An account with this email already exists.",
   "auth/weak-password": "Password must be at least 8 characters.",
+  "auth/expired-action-code": "This link has expired.",
+  "auth/invalid-action-code": "This link is invalid or has already been used.",
 };
 
 const BAD_CREDENTIAL_CODES = [

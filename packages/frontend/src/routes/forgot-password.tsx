@@ -5,7 +5,11 @@ import { FirebaseError } from "firebase/app";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { useState } from "react";
 import { AuthLayout } from "@frontend/components/auth/AuthLayout.tsx";
-import { NoticeLayout } from "@frontend/components/auth/NoticeLayout.tsx";
+import {
+  NOTICE_BUTTON,
+  NOTICE_TEXT,
+  NoticeLayout,
+} from "@frontend/components/auth/NoticeLayout.tsx";
 import { FormField } from "@frontend/components/form/FormField.tsx";
 import { SubmitButton } from "@frontend/components/form/SubmitButton.tsx";
 import { Button } from "@frontend/components/ui/button.tsx";
@@ -55,10 +59,7 @@ function ForgotPassword() {
   if (sentTo !== null) {
     return (
       <NoticeLayout icon={EnvelopeIcon} title="Check your email">
-        <p
-          data-testid="reset-email-status"
-          className="mt-6 max-w-122.5 text-base/5 text-[#1c1917]"
-        >
+        <p data-testid="reset-email-status" className={NOTICE_TEXT}>
           If an account exists for{" "}
           <span className="font-semibold">{sentTo}</span>, we sent it a link to
           reset the password. If you don’t see it, you may need to check your
@@ -69,7 +70,7 @@ function ForgotPassword() {
           data-testid="resend-reset"
           disabled={send.isPending || cooldown.secondsLeft > 0}
           onClick={() => send.mutate(sentTo)}
-          className="mt-8 h-17.5 w-full max-w-82.25 rounded-[10px] text-base font-semibold"
+          className={NOTICE_BUTTON}
         >
           {cooldown.secondsLeft > 0
             ? `Resend in ${cooldown.secondsLeft}s`

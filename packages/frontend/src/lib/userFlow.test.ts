@@ -57,4 +57,14 @@ describe("redirectFor", () => {
       });
     }
   });
+
+  it.each([
+    ["signed out", null],
+    ["in profile setup", profileIn("PROFILE SETUP")],
+    ["verifying email", profileIn("EMAIL VERIFICATION")],
+    ["awaiting approval", profileIn("AWAITING APPROVAL")],
+    ["active", profileIn("ACTIVE")],
+  ])("lets a user who is %s open email links", (_, profile) => {
+    expect(redirectFor(profile, "/auth-action")).toBeNull();
+  });
 });
