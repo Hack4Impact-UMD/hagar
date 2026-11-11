@@ -144,7 +144,7 @@ describe("listCampaigns", () => {
 });
 
 describe("createCampaign", () => {
-  it.fails("stores an empty campaign under a fresh id and returns it", async () => {
+  it("stores an empty campaign under a fresh id and returns it", async () => {
     freezeTime();
     const { db, doc } = fakeFirestore();
 
@@ -165,7 +165,7 @@ describe("createCampaign", () => {
     expect(doc("campaigns", created.campaignId)).toEqual(expected);
   });
 
-  it.fails("gives each new campaign its own id", async () => {
+  it("gives each new campaign its own id", async () => {
     const { db } = fakeFirestore();
     const input = { name: "Autumn appeal", region: "US" } as const;
 
@@ -177,7 +177,7 @@ describe("createCampaign", () => {
 });
 
 describe("deleteCampaign", () => {
-  it.fails("removes the campaign and leaves its linked emails", async () => {
+  it("removes the campaign and leaves its linked emails", async () => {
     const { db, doc } = seeded();
 
     await deleteCampaign(db, admin, { campaignId: "newest" });
@@ -187,7 +187,7 @@ describe("deleteCampaign", () => {
     expect(doc("email-campaigns", "email-2")).toEqual({});
   });
 
-  it.fails("leaves every other campaign untouched", async () => {
+  it("leaves every other campaign untouched", async () => {
     const { db, doc } = seeded();
 
     await deleteCampaign(db, admin, { campaignId: "newest" });
@@ -196,7 +196,7 @@ describe("deleteCampaign", () => {
     expect(doc("campaigns", "oldest")).toEqual(CAMPAIGNS.oldest);
   });
 
-  it.fails("throws NOT_FOUND for an unknown campaign", async () => {
+  it("throws NOT_FOUND for an unknown campaign", async () => {
     const { db } = seeded();
 
     await expect(

@@ -59,30 +59,39 @@ export async function listCampaigns(
 }
 
 /** Creates an empty campaign with an auto-generated id. */
-export function createCampaign(
-  _db: Firestore,
+export async function createCampaign(
+  db: Firestore,
   _actor: ActiveUserProfile,
-  _input: CreateCampaignInput,
+  input: CreateCampaignInput,
 ): Promise<Campaign> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "campaigns.create is not implemented yet.",
-  });
+  const ref = db.collection(COLLECTION).doc();
+  const stored: StoredCampaign = {
+    name: input.name,
+    region: input.region,
+    notes: "",
+    utmCodes: [],
+    linkedItems: [],
+    updatedAt: nowUtc(),
+  };
+  // create fails rather than overwriting if the generated id were ever taken
+  await ref.create(stored);
+  return { campaignId: ref.id, ...stored };
 }
 
 /**
  * Deletes a campaign, or throws `NOT_FOUND`. Its linked items are left alone,
  * since the campaign only links to them.
  */
-export function deleteCampaign(
-  _db: Firestore,
+export async function deleteCampaign(
+  db: Firestore,
   _actor: ActiveUserProfile,
-  _input: GetCampaignInput,
+  input: GetCampaignInput,
 ): Promise<void> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "campaigns.delete is not implemented yet.",
-  });
+  const ref = db.collection(COLLECTION).doc(input.campaignId);
+  // Firestore's delete succeeds on a missing document, so check first to report NOT_FOUND to the caller
+  const doc = await ref.get();
+  if (!doc.exists) throw campaignNotFound();
+  await ref.delete();
 }
 
 /** Returns one campaign, or throws `NOT_FOUND`. */
