@@ -7,7 +7,7 @@ const STAGE_PAGES = {
   ACTIVE: "/",
 } as const satisfies Record<UserStage, string>;
 
-const SIGNED_OUT_PAGES = ["/login", "/signup"] as const;
+const SIGNED_OUT_PAGES = ["/login", "/signup", "/forgot-password"] as const;
 
 type FlowPage =
   | (typeof STAGE_PAGES)[UserStage]
@@ -29,7 +29,8 @@ export function homeFor(profile: UserProfile | null): FlowPage {
 
 /**
  * Where to send a user who asked for `pathname`, or `null` to let them
- * through. Signed-out users may only sign in or sign up, users in onboarding
+ * through. Signed-out users may only sign in, sign up or request a password
+ * reset, users in onboarding
  * are pinned to their stage's page, and active users may go anywhere except
  * the sign-in and onboarding pages.
  */

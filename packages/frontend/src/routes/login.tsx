@@ -63,10 +63,12 @@ function Login() {
         data-testid="password"
         onChange={(event) => setPassword(event.target.value)}
       />
-      {/* oxlint-disable-next-line jsx-a11y/anchor-is-valid */}
-      <a href="" className="underline flex justify-end pb-7.5 text-[#808080]">
+      <Link
+        to="/forgot-password"
+        className="underline flex justify-end pb-7.5 text-[#808080]"
+      >
         Forgot Password?
-      </a>
+      </Link>
       <SubmitButton pending={busy} data-testid="log-in">
         Login
       </SubmitButton>
