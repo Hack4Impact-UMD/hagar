@@ -4,6 +4,10 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { sendEmailVerification } from "firebase/auth";
 import { useEffect, useRef } from "react";
 import { Button } from "@frontend/components/ui/button.tsx";
+import {
+  RESEND_COOLDOWN_SECONDS,
+  useCooldown,
+} from "@frontend/hooks/use-cooldown.ts";
 import { auth } from "@frontend/lib/firebase.ts";
 import { queryClient, trpc } from "@frontend/lib/trpc.ts";
 import { useAuth } from "@frontend/lib/useAuth.ts";
@@ -18,11 +22,15 @@ function VerifyEmail() {
   const { user } = useAuth();
   const router = useRouter();
 
+  const cooldown = useCooldown(RESEND_COOLDOWN_SECONDS);
+
   const send = useMutation({
     mutationFn: async () => {
       if (!auth.currentUser) throw new Error("Sign in again to continue.");
       await sendEmailVerification(auth.currentUser);
     },
+    // A failed send doesn't start the cooldown, so the user can retry right away.
+    onSuccess: () => cooldown.start(),
   });
 
   // StrictMode mounts effects twice in development. The ref survives that,
@@ -92,11 +100,13 @@ function VerifyEmail() {
         <Button
           type="button"
           data-testid="resend-verification"
-          disabled={send.isPending}
+          disabled={send.isPending || cooldown.secondsLeft > 0}
           onClick={() => send.mutate()}
           className="mt-8 h-17.5 w-full max-w-82.25 rounded-[10px] text-base font-semibold"
         >
-          Resend verification email
+          {cooldown.secondsLeft > 0
+            ? `Resend in ${cooldown.secondsLeft}s`
+            : "Resend verification email"}
         </Button>
         {send.error ? <p role="alert">{send.error.message}</p> : null}
         <Button
