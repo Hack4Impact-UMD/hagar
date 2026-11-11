@@ -5,6 +5,8 @@ import {
   addLinkedItem,
   addUtmCode,
   campaignNotFound,
+  createCampaign,
+  deleteCampaign,
   getCampaign,
   listCampaigns,
   removeLinkedItem,
@@ -138,6 +140,68 @@ describe("listCampaigns", () => {
     const { db } = fakeFirestore();
 
     await expect(listCampaigns(db, admin)).resolves.toEqual([]);
+  });
+});
+
+describe("createCampaign", () => {
+  it.fails("stores an empty campaign under a fresh id and returns it", async () => {
+    freezeTime();
+    const { db, doc } = fakeFirestore();
+
+    const created = await createCampaign(db, admin, {
+      name: "Autumn appeal",
+      region: "Canada",
+    });
+
+    const expected: StoredCampaign = {
+      name: "Autumn appeal",
+      region: "Canada",
+      notes: "",
+      utmCodes: [],
+      linkedItems: [],
+      updatedAt: NOW,
+    };
+    expect(created).toEqual({ campaignId: created.campaignId, ...expected });
+    expect(doc("campaigns", created.campaignId)).toEqual(expected);
+  });
+
+  it.fails("gives each new campaign its own id", async () => {
+    const { db } = fakeFirestore();
+    const input = { name: "Autumn appeal", region: "US" } as const;
+
+    const first = await createCampaign(db, admin, input);
+    const second = await createCampaign(db, admin, input);
+
+    expect(first.campaignId).not.toBe(second.campaignId);
+  });
+});
+
+describe("deleteCampaign", () => {
+  it.fails("removes the campaign and leaves its linked emails", async () => {
+    const { db, doc } = seeded();
+
+    await deleteCampaign(db, admin, { campaignId: "newest" });
+
+    expect(doc("campaigns", "newest")).toBeUndefined();
+    expect(doc("email-campaigns", "email-1")).toEqual({});
+    expect(doc("email-campaigns", "email-2")).toEqual({});
+  });
+
+  it.fails("leaves every other campaign untouched", async () => {
+    const { db, doc } = seeded();
+
+    await deleteCampaign(db, admin, { campaignId: "newest" });
+
+    expect(doc("campaigns", "middle")).toEqual(CAMPAIGNS.middle);
+    expect(doc("campaigns", "oldest")).toEqual(CAMPAIGNS.oldest);
+  });
+
+  it.fails("throws NOT_FOUND for an unknown campaign", async () => {
+    const { db } = seeded();
+
+    await expect(
+      deleteCampaign(db, admin, { campaignId: "missing" }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 });
 

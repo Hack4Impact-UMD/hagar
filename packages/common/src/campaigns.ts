@@ -1,5 +1,7 @@
 import { type } from "arktype";
+import type { UtcDateString } from "@common/dates.ts";
 import { utcDateString } from "@common/dates.ts";
+import type { EmailCampaignSummary } from "@common/emails.ts";
 import { userRegion } from "@common/user.ts";
 
 /**
@@ -107,3 +109,26 @@ export const utmCodeInput = type({ campaignId, utmCode }).onUndeclaredKey(
   "reject",
 );
 export type UtmCodeInput = typeof utmCodeInput.infer;
+
+export const createCampaignInput = storedCampaign
+  .pick("name", "region")
+  .onUndeclaredKey("reject");
+export type CreateCampaignInput = typeof createCampaignInput.infer;
+
+export type CampaignDateRange = {
+  campaignId: string;
+  startDate: UtcDateString;
+  endDate: UtcDateString;
+};
+
+/**
+ * Each campaign runs from its earliest linked email's `sentAt` to its latest.
+ * The dates are worked out on read, not stored, since email syncs can change
+ * `sentAt`. Campaigns with no dated emails are left out.
+ */
+export function campaignDateRanges(
+  _campaigns: readonly Campaign[],
+  _emails: readonly Pick<EmailCampaignSummary, "emailCampaignId" | "sentAt">[],
+): CampaignDateRange[] {
+  throw new Error("campaignDateRanges is not implemented yet.");
+}

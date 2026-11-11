@@ -1,4 +1,5 @@
 import {
+  createCampaignInput,
   getCampaignInput,
   linkedItemInput,
   setCampaignNotesInput,
@@ -12,6 +13,8 @@ import {
 import {
   addLinkedItem,
   addUtmCode,
+  createCampaign,
+  deleteCampaign,
   getCampaign,
   listCampaigns,
   removeLinkedItem,
@@ -26,6 +29,14 @@ export const campaignsRouter = router({
   get: activeProcedure
     .input(getCampaignInput)
     .query(({ ctx, input }) => getCampaign(ctx.db, ctx.profile, input)),
+
+  create: editorProcedure
+    .input(createCampaignInput)
+    .mutation(({ ctx, input }) => createCampaign(ctx.db, ctx.profile, input)),
+
+  delete: editorProcedure
+    .input(getCampaignInput)
+    .mutation(({ ctx, input }) => deleteCampaign(ctx.db, ctx.profile, input)),
 
   setNotes: editorProcedure
     .input(setCampaignNotesInput)

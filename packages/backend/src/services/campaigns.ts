@@ -2,6 +2,7 @@ import { storedCampaign } from "@repo/common";
 import type {
   ActiveUserProfile,
   Campaign,
+  CreateCampaignInput,
   GetCampaignInput,
   LinkedItem,
   LinkedItemInput,
@@ -45,6 +46,33 @@ export function listCampaigns(
   throw new TRPCError({
     code: "NOT_IMPLEMENTED",
     message: "campaigns.list is not implemented yet.",
+  });
+}
+
+/** Creates an empty campaign with an auto-generated id. */
+export function createCampaign(
+  _db: Firestore,
+  _actor: ActiveUserProfile,
+  _input: CreateCampaignInput,
+): Promise<Campaign> {
+  throw new TRPCError({
+    code: "NOT_IMPLEMENTED",
+    message: "campaigns.create is not implemented yet.",
+  });
+}
+
+/**
+ * Deletes a campaign, or throws `NOT_FOUND`. Its linked items are left alone,
+ * since the campaign only links to them.
+ */
+export function deleteCampaign(
+  _db: Firestore,
+  _actor: ActiveUserProfile,
+  _input: GetCampaignInput,
+): Promise<void> {
+  throw new TRPCError({
+    code: "NOT_IMPLEMENTED",
+    message: "campaigns.delete is not implemented yet.",
   });
 }
 
