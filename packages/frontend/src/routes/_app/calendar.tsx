@@ -208,8 +208,8 @@ function CalendarPage() {
   }, [campaignsQuery.data, emailsQuery.data, region]);
 
   const isLoading = campaignsQuery.isLoading || emailsQuery.isLoading;
-  // const isError = campaignsQuery.isError || emailsQuery.isError;
-  const isError = false;
+  const isError = campaignsQuery.isError || emailsQuery.isError;
+  // const isError = false;
   return (
     <TooltipProvider>
       <main className="flex flex-1 flex-col px-6 pt-16 pb-10 md:px-10">
