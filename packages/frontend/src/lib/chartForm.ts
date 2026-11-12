@@ -1,12 +1,15 @@
-import { chartDefinition, resolvePointInTime } from "@repo/common";
+import { chartDefinition, pointInTime, resolvePointInTime } from "@repo/common";
 import type {
   ChartDefinition,
   ChartId,
   EmailCampaignMetric,
   PointInTime,
+  UtcDateString,
 } from "@repo/common";
 
-type Ago = NonNullable<Extract<PointInTime, { type: "RELATIVE" }>["ago"]>;
+export type Ago = NonNullable<
+  Extract<PointInTime, { type: "RELATIVE" }>["ago"]
+>;
 
 /* One date control in the editor. A relative one with no `ago` is "Now". */
 export type DateControl =
@@ -186,10 +189,23 @@ export function chartToForm(chart: ChartDefinition): ChartForm {
   }
 }
 
+// the amount box can be empty or out of range while typing, and resolving that
+// would throw, so it gives undefined instead
+export function resolveControl(
+  control: DateControl,
+  edge: "START" | "END",
+  now: Date,
+): UtcDateString | undefined {
+  const point = controlToPoint(control, edge);
+  return point && pointInTime.allows(point)
+    ? resolvePointInTime(point, now)
+    : undefined;
+}
+
 export function startIsBeforeEnd(form: ChartForm, now: Date): boolean {
   if (CHART_TYPES[form.chartId].dates !== "RANGE") return true;
-  const start = controlToPoint(form.start, "START");
-  const end = controlToPoint(form.end, "END");
+  const start = resolveControl(form.start, "START", now);
+  const end = resolveControl(form.end, "END", now);
   if (!start || !end) return true;
-  return resolvePointInTime(start, now) < resolvePointInTime(end, now);
+  return start < end;
 }
