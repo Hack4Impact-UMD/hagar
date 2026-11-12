@@ -17,12 +17,12 @@ export type DateControl =
 export type ChartForm = {
   title: string;
   chartId: ChartId;
-  // Only email charts use it, but it is kept across type changes.
+  // only email charts use this, kept across type changes
   metric: EmailCampaignMetric | undefined;
   asOf: DateControl;
   start: DateControl;
   end: DateControl;
-  // An email or a list, depending on `chartId`.
+  // email or list id, depending on chartId
   selectedId: string | undefined;
 };
 
@@ -73,11 +73,8 @@ export function changeChartType(form: ChartForm, chartId: ChartId): ChartForm {
   };
 }
 
-/**
- * The point in time a control saves, or `undefined` if no day is picked yet.
- * A fixed date means a whole day to the user, so a start takes the day's first
- * moment and an end its last, which keeps the picked day in the range.
- */
+// fixed start saves the start of the day and fixed end saves the end of the
+// day, so the picked day is included. undefined if no day is picked yet
 export function controlToPoint(
   control: DateControl,
   edge: "START" | "END",
