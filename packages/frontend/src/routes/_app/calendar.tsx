@@ -1,11 +1,17 @@
-import type { CalendarRef, DayCellInfo, EventInput } from "@fullcalendar/react";
+import type {
+  CalendarRef,
+  DayCellInfo,
+  EventDisplayInfo,
+  EventInput,
+} from "@fullcalendar/react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/react/daygrid";
+import classicThemePlugin from "@fullcalendar/react/themes/classic";
 import type { UserRegion } from "@repo/common";
 import { campaignDateRanges, nowUtc, userRegions } from "@repo/common";
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@frontend/components/ui/button.tsx";
 import {
@@ -16,11 +22,24 @@ import {
   SelectValue,
 } from "@frontend/components/ui/select.tsx";
 import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@frontend/components/ui/tooltip.tsx";
 import { trpc } from "@frontend/lib/trpc.ts";
 
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 const ALL_REGIONS = "all";
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+
+const EVENT_BAR_COLORS = [
+  "#F59E0B",
+  "#3B9EDB",
+  "#C095E4",
+  "#C75C3B",
+] as const;
 
 function currentYearMonth(now = new Date()): string {
   const year = now.getFullYear();
@@ -28,7 +47,10 @@ function currentYearMonth(now = new Date()): string {
   return `${year}-${month}`;
 }
 
-function parseMonthParam(raw: unknown, fallback = currentYearMonth()): string {
+function parseMonthParam(
+  raw: unknown,
+  fallback = currentYearMonth(),
+): string {
   if (typeof raw === "string" && MONTH_PATTERN.test(raw)) {
     return raw;
   }
@@ -98,6 +120,32 @@ function renderDayCell(arg: DayCellInfo) {
   );
 }
 
+function renderCampaignEvent(arg: EventDisplayInfo) {
+  const campaignId = String(arg.event.extendedProps.campaignId ?? arg.event.id);
+  const region = String(arg.event.extendedProps.region ?? "");
+  const title = arg.event.title;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Link
+          to={`/campaigns/${campaignId}` as "/campaigns"}
+          data-testid={`campaign-event-${campaignId}`}
+          className="flex h-6.5 w-full items-center truncate rounded-full px-3 text-sm leading-none font-semibold text-white transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        >
+          <span className="truncate">{title}</span>
+        </Link>
+      </TooltipTrigger>
+      <TooltipContent side="top" sideOffset={6}>
+        <span>
+          {title}
+          {region ? ` (${region})` : ""}
+        </span>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 export const Route = createFileRoute("/_app/calendar")({
   validateSearch: (search: Record<string, unknown>) => ({
     month: parseMonthParam(search.month),
@@ -142,9 +190,10 @@ function CalendarPage() {
     );
 
     return campaignDateRanges(filteredCampaigns, emailsQuery.data).flatMap(
-      (range) => {
+      (range, index) => {
         const campaign = campaignsById.get(range.campaignId);
         if (!campaign) return [];
+        const color = EVENT_BAR_COLORS[index % EVENT_BAR_COLORS.length];
         return [
           {
             id: campaign.campaignId,
@@ -152,6 +201,8 @@ function CalendarPage() {
             start: toLocalDateString(new Date(range.startDate)),
             end: exclusiveLocalEndDate(range.endDate),
             allDay: true,
+            backgroundColor: color,
+            borderColor: color,
             extendedProps: {
               campaignId: campaign.campaignId,
               region: campaign.region,
@@ -166,126 +217,134 @@ function CalendarPage() {
   const isError = campaignsQuery.isError || emailsQuery.isError;
 
   return (
-    <main className="flex flex-1 flex-col px-6 pt-16 pb-10 md:px-10">
-      <header className="mb-6">
-        <h1
-          data-testid="calendar"
-          className="text-[2.1875rem] leading-[normal] font-bold text-foreground"
+    <TooltipProvider>
+      <main className="flex flex-1 flex-col px-6 pt-16 pb-10 md:px-10">
+        <header className="mb-6">
+          <h1
+            data-testid="calendar"
+            className="text-[2.1875rem] leading-[normal] font-bold text-foreground"
+          >
+            Calendar
+          </h1>
+        </header>
+
+        <section
+          aria-label="Calendar controls"
+          className="mb-4 flex flex-wrap items-center justify-between gap-4"
         >
-          Calendar
-        </h1>
-      </header>
-
-      <section
-        aria-label="Calendar controls"
-        className="mb-4 flex flex-wrap items-center justify-between gap-4"
-      >
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label="Previous month"
-            data-testid="prev-month"
-            className="-ml-2.5"
-            onClick={() => setMonth(shiftMonth(month, -1))}
-          >
-            <CaretLeftIcon className="size-4" aria-hidden />
-          </Button>
-          <h2
-            data-testid="calendar-month"
-            className="text-xl font-semibold text-foreground"
-          >
-            {formatMonthHeading(month)}
-          </h2>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label="Next month"
-            data-testid="next-month"
-            onClick={() => setMonth(shiftMonth(month, 1))}
-          >
-            <CaretRightIcon className="size-4" aria-hidden />
-          </Button>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <Button
-            type="button"
-            variant="outline"
-            data-testid="today-button"
-            className="h-10 border-primary text-primary hover:bg-primary/5 hover:text-primary"
-            disabled={month === todayMonth}
-            onClick={() => setMonth(todayMonth)}
-          >
-            Today
-          </Button>
-
-          <Select
-            value={region ?? ALL_REGIONS}
-            onValueChange={(next) =>
-              setRegion(next === ALL_REGIONS ? undefined : (next as UserRegion))
-            }
-          >
-            <SelectTrigger
-              aria-label="Filter by region"
-              data-testid="calendar-region-filter"
-              className="data-[size=default]:h-10 min-w-40 border-primary bg-background text-primary shadow-none [&_svg]:text-primary!"
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Previous month"
+              data-testid="prev-month"
+              className="-ml-2.5"
+              onClick={() => setMonth(shiftMonth(month, -1))}
             >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent position="popper">
-              <SelectItem value={ALL_REGIONS}>All regions</SelectItem>
-              {userRegions.map((item) => (
-                <SelectItem key={item} value={item}>
-                  {item}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </section>
+              <CaretLeftIcon className="size-4" aria-hidden />
+            </Button>
+            <h2
+              data-testid="calendar-month"
+              className="text-xl font-semibold text-foreground"
+            >
+              {formatMonthHeading(month)}
+            </h2>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Next month"
+              data-testid="next-month"
+              onClick={() => setMonth(shiftMonth(month, 1))}
+            >
+              <CaretRightIcon className="size-4" aria-hidden />
+            </Button>
+          </div>
 
-      {isLoading ? (
-        <CalendarLoadingGrid />
-      ) : isError ? (
-        <div
-          role="alert"
-          data-testid="calendar-error"
-          className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-border py-20 text-center"
-        >
-          <p className="text-sm text-destructive">
-            PLACEHOLDER TEXT -- BACKEND STUBS NOT IMPLEMENTED YET.
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            data-testid="calendar-retry"
-            onClick={handleRetry}
+          <div className="flex items-center gap-2.5">
+            <Button
+              type="button"
+              variant="outline"
+              data-testid="today-button"
+              className="h-10 border-primary text-primary hover:bg-primary/5 hover:text-primary"
+              disabled={month === todayMonth}
+              onClick={() => setMonth(todayMonth)}
+            >
+              Today
+            </Button>
+
+            <Select
+              value={region ?? ALL_REGIONS}
+              onValueChange={(next) =>
+                setRegion(next === ALL_REGIONS ? undefined : (next as UserRegion))
+              }
+            >
+              <SelectTrigger
+                aria-label="Filter by region"
+                data-testid="calendar-region-filter"
+                className="data-[size=default]:h-10 min-w-40 border-primary bg-background text-primary shadow-none [&_svg]:text-primary!"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                <SelectItem value={ALL_REGIONS}>All regions</SelectItem>
+                {userRegions.map((item) => (
+                  <SelectItem key={item} value={item}>
+                    {item}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </section>
+
+        {isLoading ? (
+          <CalendarLoadingGrid />
+        ) : isError ? (
+          <div
+            role="alert"
+            data-testid="calendar-error"
+            className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-border py-20 text-center"
           >
-            Retry
-          </Button>
-        </div>
-      ) : (
-        <div
-          data-testid="calendar-grid"
-          data-count={events.length}
-          className="hagar-calendar overflow-hidden rounded-2xl border border-border bg-background"
-        >
-          <FullCalendar
-            ref={calendarRef}
-            plugins={[dayGridPlugin]}
-            initialView="dayGridMonth"
-            initialDate={monthStartDate(month)}
-            headerToolbar={false}
-            height="auto"
-            dayCellTopContent={renderDayCell}
-            events={events}
-          />
-        </div>
-      )}
-    </main>
+            <p className="text-sm text-destructive">
+              PLACEHOLDER TEXT -- BACKEND STUBS NOT IMPLEMENTED YET.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              data-testid="calendar-retry"
+              onClick={handleRetry}
+            >
+              Retry
+            </Button>
+          </div>
+        ) : (
+          <div
+            data-testid="calendar-grid"
+            data-count={events.length}
+            className="hagar-calendar overflow-hidden rounded-2xl border border-border bg-background"
+          >
+            <FullCalendar
+              ref={calendarRef}
+              plugins={[classicThemePlugin, dayGridPlugin]}
+              initialView="dayGridMonth"
+              initialDate={monthStartDate(month)}
+              headerToolbar={false}
+              height="auto"
+              dayMaxEvents={true}
+              fixedWeekCount={false}
+              dayHeaderClass="py-2.5 text-sm font-semibold text-foreground"
+              dayCellClass="min-h-32"
+              blockEventClass="rounded-full border-0"
+              dayCellTopContent={renderDayCell}
+              eventContent={renderCampaignEvent}
+              events={events}
+            />
+          </div>
+        )}
+      </main>
+    </TooltipProvider>
   );
 }
 
