@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { userRegions } from "@repo/common";
 import type {
   ChartDefinition,
@@ -56,6 +57,7 @@ import {
 } from "@frontend/lib/chartForm.ts";
 import type {
   Ago,
+  Channel,
   ChartForm,
   DateControl,
   Field,
@@ -85,9 +87,169 @@ export function ChartEditorDialog({
         className="max-h-[calc(100dvh-2rem)] gap-0 overflow-y-auto p-0 sm:max-w-180"
       >
         {/* content unmounts on close so each open starts fresh */}
-        <ChartEditorForm initial={initial} onSave={onSave} />
+        <ChartEditor initial={initial} onSave={onSave} />
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ChartEditor({
+  initial,
+  onSave,
+}: Pick<ChartEditorDialogProps, "initial" | "onSave">) {
+  // editing skips the add step and goes straight to customize
+  const [channel, setChannel] = useState<Channel | undefined>(
+    initial && CHART_TYPES[initial.chartId].channel,
+  );
+
+  return channel ? (
+    <ChartEditorForm initial={initial} channel={channel} onSave={onSave} />
+  ) : (
+    <AddAnalyticStep onNext={setChannel} />
+  );
+}
+
+function EditorHeader({ title }: { title: string }) {
+  return (
+    <DialogHeader className="flex-row items-center justify-between border-b px-11 py-7">
+      <DialogTitle className="text-2xl font-medium">{title}</DialogTitle>
+      <DialogClose asChild>
+        <Button type="button" variant="ghost" size="icon-lg">
+          <XIcon className="size-8" weight="light" />
+          <span className="sr-only">Close</span>
+        </Button>
+      </DialogClose>
+    </DialogHeader>
+  );
+}
+
+function CancelButton() {
+  return (
+    <DialogClose asChild>
+      <Button
+        type="button"
+        variant="outline"
+        className="w-18 border-primary text-primary hover:bg-primary/10 hover:text-primary"
+      >
+        Cancel
+      </Button>
+    </DialogClose>
+  );
+}
+
+const CHANNELS: Record<Channel, { name: string; pill: string }> = {
+  INSTAGRAM: { name: "Instagram Views", pill: "Instagram" },
+  WEBSITE: { name: "Website Views", pill: "Website" },
+  EMAIL: { name: "Email Views", pill: "Email" },
+  LINKEDIN: { name: "Linkedin Views", pill: "Linkedin" },
+};
+
+const chartIdsOf = (channel: Channel) =>
+  (Object.keys(CHART_TYPES) as ChartId[]).filter(
+    (chartId) => CHART_TYPES[chartId].channel === channel,
+  );
+
+// figma's radio is an orange ring with an orange dot, not a filled circle
+const RADIO =
+  "border-primary data-checked:bg-transparent [&_[data-slot=radio-group-indicator]>span]:bg-primary";
+
+function AddAnalyticStep({ onNext }: { onNext: (channel: Channel) => void }) {
+  const [picked, setPicked] = useState<Channel>();
+  const [search, setSearch] = useState("");
+  const [channels, setChannels] = useState<Channel[]>([]);
+  const rows = (Object.keys(CHANNELS) as Channel[]).filter(
+    (channel) =>
+      (channels.length === 0 || channels.includes(channel)) &&
+      CHANNELS[channel].name
+        .toLowerCase()
+        .includes(search.trim().toLowerCase()),
+  );
+
+  return (
+    <>
+      <EditorHeader title="Add New Analytic" />
+      <div className="flex flex-col gap-6 px-11 py-6">
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search analytics"
+              aria-label="Search analytics"
+              className="h-10 pl-9 text-base shadow-none md:text-base"
+            />
+          </div>
+          <CheckboxFilter
+            label="Channel"
+            options={(Object.keys(CHANNELS) as Channel[]).map((channel) => ({
+              value: channel,
+              label: CHANNELS[channel].pill,
+            }))}
+            value={channels}
+            onChange={setChannels}
+          />
+        </div>
+
+        {rows.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No analytics match your filters
+          </p>
+        ) : (
+          <RadioGroup
+            aria-label="Analytic"
+            value={picked ?? ""}
+            onValueChange={(next) => setPicked(next as Channel)}
+            className="flex flex-col gap-0 rounded-md border"
+          >
+            {rows.map((channel) => {
+              // a channel can only be picked once it has chart types
+              const enabled = chartIdsOf(channel).length > 0;
+              return (
+                <label
+                  key={channel}
+                  className={cn(
+                    "flex items-center gap-5 border-b px-6 py-5 last:border-b-0",
+                    enabled
+                      ? "cursor-pointer"
+                      : "cursor-not-allowed opacity-50",
+                  )}
+                >
+                  <RadioGroupItem
+                    value={channel}
+                    disabled={!enabled}
+                    className={RADIO}
+                  />
+                  <span className="flex flex-1 flex-col gap-1">
+                    <span className="text-base">{CHANNELS[channel].name}</span>
+                    <span className="text-sm text-muted-foreground">
+                      Description
+                    </span>
+                  </span>
+                  <span className="rounded-full border px-2 py-0.5 text-sm">
+                    {CHANNELS[channel].pill}
+                  </span>
+                </label>
+              );
+            })}
+          </RadioGroup>
+        )}
+
+        <DialogFooter>
+          <CancelButton />
+          <Button
+            type="button"
+            disabled={!picked}
+            className="w-34"
+            onClick={() => {
+              if (picked) onNext(picked);
+            }}
+          >
+            Next
+          </Button>
+        </DialogFooter>
+      </div>
+    </>
   );
 }
 
@@ -97,10 +259,11 @@ const SELECT_TRIGGER = "w-75 data-[size=default]:h-10 text-base shadow-none";
 
 function ChartEditorForm({
   initial,
+  channel,
   onSave,
-}: Pick<ChartEditorDialogProps, "initial" | "onSave">) {
+}: Pick<ChartEditorDialogProps, "initial" | "onSave"> & { channel: Channel }) {
   const [form, setForm] = useState<ChartForm>(() =>
-    initial ? chartToForm(initial) : newChartForm(),
+    initial ? chartToForm(initial) : newChartForm(chartIdsOf(channel)[0]),
   );
   // frozen when the editor opens, otherwise "now" changes every render and the
   // email query never settles
@@ -125,17 +288,7 @@ function ChartEditorForm({
         if (chart && canSave) onSave(chart);
       }}
     >
-      <DialogHeader className="flex-row items-center justify-between border-b px-11 py-7">
-        <DialogTitle className="text-2xl font-medium">
-          {initial ? "Customize Analytic" : "Add New Analytic"}
-        </DialogTitle>
-        <DialogClose asChild>
-          <Button type="button" variant="ghost" size="icon-lg">
-            <XIcon className="size-8" weight="light" />
-            <span className="sr-only">Close</span>
-          </Button>
-        </DialogClose>
-      </DialogHeader>
+      <EditorHeader title="Customize Analytic" />
 
       <div className="flex flex-col gap-6 px-11 py-8">
         <div className={FIELD}>
@@ -169,9 +322,9 @@ function ChartEditorForm({
               <SelectValue />
             </SelectTrigger>
             <SelectContent position="popper">
-              {Object.entries(CHART_TYPES).map(([chartId, { label }]) => (
+              {chartIdsOf(channel).map((chartId) => (
                 <SelectItem key={chartId} value={chartId}>
-                  {label}
+                  {CHART_TYPES[chartId].label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -248,15 +401,7 @@ function ChartEditorForm({
         ))}
 
         <DialogFooter>
-          <DialogClose asChild>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-18 border-primary text-primary hover:bg-primary/10 hover:text-primary"
-            >
-              Cancel
-            </Button>
-          </DialogClose>
+          <CancelButton />
           <Button type="submit" disabled={!canSave} className="w-34">
             Save
           </Button>
@@ -454,7 +599,15 @@ function EmailPicker({
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-4">
         <span className="text-base">{heading}</span>
-        <RegionFilter value={regions} onChange={setRegions} />
+        <CheckboxFilter
+          label="Region"
+          options={userRegions.map((region) => ({
+            value: region,
+            label: region,
+          }))}
+          value={regions}
+          onChange={setRegions}
+        />
       </div>
       <div className="relative">
         <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground" />
@@ -577,11 +730,7 @@ function PickerList({
           key={item.id}
           className="flex cursor-pointer items-center gap-3 border-b px-3 py-2 text-sm last:border-b-0"
         >
-          {/* figma's radio is an orange ring with an orange dot, not a filled circle */}
-          <RadioGroupItem
-            value={item.id}
-            className="border-primary data-checked:bg-transparent [&_[data-slot=radio-group-indicator]>span]:bg-primary"
-          />
+          <RadioGroupItem value={item.id} className={RADIO} />
           {item.name}
         </label>
       ))}
@@ -589,12 +738,17 @@ function PickerList({
   );
 }
 
-function RegionFilter({
+// an empty value means no filter
+function CheckboxFilter<T extends string>({
+  label,
+  options,
   value,
   onChange,
 }: {
-  value: UserRegion[];
-  onChange: (next: UserRegion[]) => void;
+  label: string;
+  options: { value: T; label: string }[];
+  value: T[];
+  onChange: (next: T[]) => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -602,31 +756,31 @@ function RegionFilter({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button type="button" variant="outline" size="sm">
-          Region
+          {label}
           <CaretDownIcon />
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-60 gap-0 p-0">
         <p className="px-4 pt-4 pb-3 text-sm font-medium text-muted-foreground uppercase">
-          Region
+          {label}
         </p>
         <div className="flex flex-col gap-3 px-4 pb-4">
-          {userRegions.map((region) => (
+          {options.map((option) => (
             <label
-              key={region}
+              key={option.value}
               className="flex cursor-pointer items-center gap-3 text-sm"
             >
               <Checkbox
-                checked={value.includes(region)}
+                checked={value.includes(option.value)}
                 onCheckedChange={(checked) =>
                   onChange(
                     checked
-                      ? [...value, region]
-                      : value.filter((r) => r !== region),
+                      ? [...value, option.value]
+                      : value.filter((v) => v !== option.value),
                   )
                 }
               />
-              {region}
+              {option.label}
             </label>
           ))}
         </div>
