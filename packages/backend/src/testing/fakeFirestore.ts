@@ -5,7 +5,9 @@ type Data = Record<string, unknown>;
 type Store = Map<string, Map<string, Data>>;
 
 type DocRef = { kind: "doc"; collection: string; id: string };
-type Filter = { field: string; op: "==" | "in"; value: unknown };
+const FILTER_OPS = ["==", "in", "<=", ">="] as const;
+type FilterOp = (typeof FILTER_OPS)[number];
+type Filter = { field: string; op: FilterOp; value: unknown };
 type QueryState = {
   kind: "query";
   collection: string;
@@ -53,11 +55,7 @@ export function fakeFirestore(seed: Record<string, Record<string, Data>> = {}) {
   const runQuery = (query: QueryState) => {
     let ids = [...docsIn(query.collection).entries()]
       .filter(([, data]) =>
-        query.filters.every(({ field, op, value }) =>
-          op === "=="
-            ? data[field] === value
-            : (value as unknown[]).includes(data[field]),
-        ),
+        query.filters.every((filter) => matches(data[filter.field], filter)),
       )
       .map(([id]) => id);
     for (const { field, direction } of query.order.toReversed()) {
@@ -123,7 +121,7 @@ export function fakeFirestore(seed: Record<string, Record<string, Data>> = {}) {
     return {
       ...state,
       where: (field: string, op: string, value: unknown) => {
-        if (op !== "==" && op !== "in") {
+        if (!isFilterOp(op)) {
           throw new Error(`fakeFirestore does not support the ${op} filter.`);
         }
         return queryRef({
@@ -188,6 +186,27 @@ export function fakeFirestore(seed: Record<string, Record<string, Data>> = {}) {
       return data === undefined ? undefined : clone(data);
     },
   };
+}
+
+function isFilterOp(op: string): op is FilterOp {
+  return (FILTER_OPS as readonly string[]).includes(op);
+}
+
+function matches(actual: unknown, { op, value }: Filter): boolean {
+  if (op === "==") return actual === value;
+  if (op === "in") return (value as unknown[]).includes(actual);
+  // like firestore, range filters only compare values of the same type
+  // so a missing field never matches
+  if (typeof actual !== typeof value) return false;
+  const [left, right] = [actual, value] as [number | string, number | string];
+  // no default on purpose.
+  // a new FILTER_OPS entry without a case here won't compile
+  switch (op) {
+    case "<=":
+      return left <= right;
+    case ">=":
+      return left >= right;
+  }
 }
 
 function clone<T>(value: T): T {
