@@ -1,8 +1,19 @@
+import type { UserRegion } from "@repo/common";
+import { userRegions } from "@repo/common";
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { Button } from "@frontend/components/ui/button.tsx";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@frontend/components/ui/select.tsx";
 
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
+const ALL_REGIONS = "all";
 
 export function currentYearMonth(now = new Date()): string {
   const year = now.getFullYear();
@@ -58,6 +69,7 @@ function CalendarPage() {
   const { month } = Route.useSearch();
   const navigate = Route.useNavigate();
   const todayMonth = currentYearMonth();
+  const [region, setRegion] = useState<UserRegion | undefined>();
 
   const setMonth = (nextMonth: string) => {
     void navigate({
@@ -114,11 +126,35 @@ function CalendarPage() {
             type="button"
             variant="outline"
             data-testid="today-button"
+            className="h-10 border-primary text-primary hover:bg-primary/5 hover:text-primary"
             disabled={month === todayMonth}
             onClick={() => setMonth(todayMonth)}
           >
             Today
           </Button>
+
+          <Select
+            value={region ?? ALL_REGIONS}
+            onValueChange={(next) =>
+              setRegion(next === ALL_REGIONS ? undefined : (next as UserRegion))
+            }
+          >
+            <SelectTrigger
+              aria-label="Filter by region"
+              data-testid="calendar-region-filter"
+              className="data-[size=default]:h-10 min-w-40 border-primary bg-background text-primary shadow-none [&_svg]:text-primary!"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper">
+              <SelectItem value={ALL_REGIONS}>All regions</SelectItem>
+              {userRegions.map((item) => (
+                <SelectItem key={item} value={item}>
+                  {item}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </section>
     </main>
