@@ -243,7 +243,7 @@ export function CampaignTableSkeleton({ sort }: { sort?: SortDirection }) {
 /** List is the only view for now */
 export function CampaignViewToggle() {
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center">
       <button
         type="button"
         aria-pressed="true"

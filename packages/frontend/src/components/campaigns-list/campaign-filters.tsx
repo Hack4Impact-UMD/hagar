@@ -41,7 +41,7 @@ function orUndefined<T>(list: T[]): T[] | undefined {
 const TRIGGER =
   "inline-flex h-[2.125rem] cursor-pointer items-center gap-1.5 rounded-md border px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
 const TRIGGER_IDLE = "border-[#D9D4CE] bg-white text-[#1F1F1F]";
-const TRIGGER_ACTIVE = "border-primary bg-[#F6E6DC] text-[#9A3F22]";
+const TRIGGER_ACTIVE = "border-primary bg-[#F6E6DC] text-[#8A3F20]";
 const PANEL =
   "min-w-56 rounded-xl border-[#D9D4CE] bg-white p-0 shadow-[0_12px_32px_0_rgba(0,0,0,0.12)]";
 const PANEL_LABEL =
@@ -94,7 +94,7 @@ function SearchBox({
   }, [value]);
 
   return (
-    <div className="relative w-[13.5rem]">
+    <div className="relative w-54">
       <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[#6B6B6B]" />
       <Input
         ref={input}
@@ -107,7 +107,7 @@ function SearchBox({
           setText(event.target.value);
           onChange(event.target.value);
         }}
-        className="h-[2.125rem] rounded-md border-[#D9D4CE] bg-white pl-9 text-sm shadow-none"
+        className="h-8.5 rounded-md border-[#D9D4CE] bg-white pl-9 text-sm shadow-none"
       />
     </div>
   );
@@ -142,7 +142,7 @@ function DateFilter({
                 date: preset === "ALL_TIME" ? undefined : preset,
               }))
             }
-            className="mx-2 cursor-pointer rounded-md px-2 py-2 text-[0.9375rem] text-[#1F1F1F] focus:bg-[#F9F7F4] data-selected:bg-[#F6E6DC] data-selected:text-[#9A3F22]"
+            className="mx-2 cursor-pointer rounded-md px-2 py-2 text-[0.9375rem] text-[#1F1F1F] focus:bg-[#F9F7F4] data-selected:bg-[#F6E6DC] data-selected:text-[#8A3F20]"
           >
             {DATE_PRESET_LABELS[preset]}
           </DropdownMenuItem>
@@ -195,11 +195,11 @@ function MultiSelectFilter<T extends string>({
             onSelect={(event) => event.preventDefault()}
             // The built-in check mark sits on the right; the design puts a
             // filled box on the left instead.
-            className="group mx-2 cursor-pointer gap-3 rounded-md px-2 py-2 text-[0.9375rem] text-[#1F1F1F] focus:bg-[#F9F7F4] [&>[data-slot=dropdown-menu-checkbox-item-indicator]]:hidden"
+            className="group mx-2 cursor-pointer gap-3 rounded-md px-2 py-2 text-[0.9375rem] text-[#1F1F1F] focus:bg-[#F9F7F4] *:data-[slot=dropdown-menu-checkbox-item-indicator]:hidden"
           >
             <span
               aria-hidden="true"
-              className="flex size-4 items-center justify-center rounded-[0.25rem] border border-[#BCB4AB] group-data-[state=checked]:border-primary group-data-[state=checked]:bg-primary"
+              className="flex size-4 items-center justify-center rounded-lg border border-[#BCB4AB] group-data-[state=checked]:border-primary group-data-[state=checked]:bg-primary"
             >
               <CheckIcon
                 weight="bold"
@@ -369,7 +369,7 @@ export function CampaignFilterChips({
       {chips.map((chip) => (
         <span
           key={chip.key}
-          className="inline-flex items-center gap-2 rounded-full bg-[#F1DED2] py-1 pr-2.5 pl-3 text-[0.8125rem] font-medium text-[#8A3B1F]"
+          className="inline-flex items-center gap-2 rounded-full bg-[#F1DED2] py-1 pr-2.5 pl-3 text-[0.8125rem] font-medium text-[#8A3F20]"
         >
           {chip.label}
           <button
@@ -378,7 +378,7 @@ export function CampaignFilterChips({
             onClick={() => setSearch(chip.remove)}
             className="cursor-pointer rounded-sm"
           >
-            <XIcon weight="bold" className="size-2.5 text-[#8A3B1F]/80" />
+            <XIcon weight="bold" className="size-2.5 text-[#8A3F20]/80" />
           </button>
         </span>
       ))}
