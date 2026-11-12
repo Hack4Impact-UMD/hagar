@@ -1,27 +1,25 @@
 import { userRegions } from "@repo/common";
-import type { LinkedItem, UserRegion } from "@repo/common";
-
-// Typed against `LinkedItem` so a new kind of linked item fails to compile
-// until it is given a label here.
-export const CHANNEL_LABELS: Record<LinkedItem["type"], string> = {
-  EMAIL: "Email",
-};
-export type CampaignChannel = LinkedItem["type"];
-export const campaignChannels = Object.keys(
+import type { UserRegion } from "@repo/common";
+import {
   CHANNEL_LABELS,
-) as CampaignChannel[];
+  NO_FILTERS,
+  campaignStatuses,
+  datePresets,
+} from "@frontend/components/campaigns-list/campaign-list.ts";
+import type {
+  CampaignFilters,
+  CampaignStatus,
+  Channel,
+  DatePreset,
+  SortDirection,
+} from "@frontend/components/campaigns-list/campaign-list.ts";
 
-export const campaignStatuses = ["Draft", "Active", "Ended"] as const;
-export type CampaignStatus = (typeof campaignStatuses)[number];
-
-// "All time" is the default, so it has no key and keeps the URL clean.
-export const DATE_PRESET_LABELS = {
-  "30d": "Last 30 days",
-  "90d": "Last 90 days",
-  year: "This year",
-} as const;
-export type DatePreset = keyof typeof DATE_PRESET_LABELS;
-const datePresets = Object.keys(DATE_PRESET_LABELS) as DatePreset[];
+type UrlDatePreset = Exclude<DatePreset, "ALL_TIME">;
+const allChannels = Object.keys(CHANNEL_LABELS) as Channel[];
+// "All time" is the default, so it never appears in the URL.
+const urlDatePresets = datePresets.filter(
+  (preset): preset is UrlDatePreset => preset !== "ALL_TIME",
+);
 
 /**
  * The campaign list's search, filters and sort, kept in the URL so a filtered
@@ -29,12 +27,12 @@ const datePresets = Object.keys(DATE_PRESET_LABELS) as DatePreset[];
  */
 export type CampaignSearch = {
   q?: string;
-  date?: DatePreset;
+  date?: UrlDatePreset;
   status?: CampaignStatus[];
   region?: UserRegion[];
-  channel?: CampaignChannel[];
-  // Newest first is the default.
-  sort?: "oldest";
+  channel?: Channel[];
+  // Newest first ("desc") is the default.
+  sort?: "asc";
 };
 
 function oneOf<T extends string>(
@@ -69,10 +67,24 @@ export function parseCampaignSearch(
     typeof raw.q === "string" || typeof raw.q === "number" ? String(raw.q) : "";
   return {
     q: q === "" ? undefined : q,
-    date: oneOf(datePresets, raw.date),
+    date: oneOf(urlDatePresets, raw.date),
     status: someOf(campaignStatuses, raw.status),
     region: someOf(userRegions, raw.region),
-    channel: someOf(campaignChannels, raw.channel),
-    sort: raw.sort === "oldest" ? "oldest" : undefined,
+    channel: someOf(allChannels, raw.channel),
+    sort: raw.sort === "asc" ? "asc" : undefined,
   };
+}
+
+export function toFilters(search: CampaignSearch): CampaignFilters {
+  return {
+    search: search.q ?? NO_FILTERS.search,
+    date: search.date ?? NO_FILTERS.date,
+    statuses: search.status ?? NO_FILTERS.statuses,
+    regions: search.region ?? NO_FILTERS.regions,
+    channels: search.channel ?? NO_FILTERS.channels,
+  };
+}
+
+export function toSortDirection(search: CampaignSearch): SortDirection {
+  return search.sort ?? "desc";
 }
