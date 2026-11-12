@@ -64,9 +64,15 @@ function ResetPassword({ oobCode }: { oobCode: string }) {
 
   const reset = useMutation({
     mutationFn: () => confirmPasswordReset(auth, oobCode, password),
-    // The login page picks its message from the flag. Passing the text itself
-    // in the URL would let anyone's link put their words on our page.
-    onSuccess: () => navigate({ to: "/login", search: { reset: 1 } }),
+    onSuccess: async () => {
+      // A signed-in user would be redirected away from /login by the guards
+      // and never see the message. Their session is stale anyway: changing the
+      // password revokes its refresh token.
+      await auth.signOut();
+      // The login page picks its message from the flag. Passing the text
+      // itself in the URL would let anyone's link put their words on our page.
+      await navigate({ to: "/login", search: { reset: 1 } });
+    },
   });
   // Stays busy through the navigation so the form doesn't flash back to idle.
   const busy = account.isPending || reset.isPending || reset.isSuccess;
