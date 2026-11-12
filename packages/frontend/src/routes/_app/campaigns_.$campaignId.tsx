@@ -1,11 +1,15 @@
+import { nowUtc } from "@repo/common";
 import { CaretLeftIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { useMemo } from "react";
+import { CampaignTimeline } from "@frontend/components/campaigns/campaign-timeline.tsx";
 import { EmailAnalytics } from "@frontend/components/campaigns/email-analytics.tsx";
 import type { EmailAnalyticsDay } from "@frontend/components/campaigns/email-analytics.tsx";
 import { Button } from "@frontend/components/ui/button.tsx";
 import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
+import { linkedEmails } from "@frontend/lib/campaignDetails.ts";
 import { trpc } from "@frontend/lib/trpc.ts";
 
 /**
@@ -43,7 +47,12 @@ const TEMPLATE_EMAIL_DATA: EmailAnalyticsDay[] = Array.from(
 
 function CampaignDetails() {
   const { campaignId } = Route.useParams();
+  // Fixed per visit so the query key, and with it the cache entry, stays put.
+  const sentTo = useMemo(() => nowUtc(), []);
+
   const campaign = useQuery(trpc.campaigns.get.queryOptions({ campaignId }));
+  // Every email sent so far; the campaign's own are picked out below.
+  const emails = useQuery(trpc.emails.campaigns.queryOptions({ sentTo }));
 
   if (campaign.isPending) return <CampaignDetailsSkeleton />;
 
@@ -98,6 +107,33 @@ function CampaignDetails() {
         </h2>
         <EmailAnalytics data={TEMPLATE_EMAIL_DATA} />
       </section>
+
+      <hr className="border-border" />
+
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        {emails.isPending ? (
+          <TimelineSkeleton />
+        ) : emails.isError ? (
+          <div
+            role="alert"
+            data-testid="timeline-error"
+            className="flex items-center gap-3 self-start"
+          >
+            <p className="text-muted-foreground">
+              Couldn&apos;t load this campaign&apos;s emails.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void emails.refetch()}
+            >
+              Try again
+            </Button>
+          </div>
+        ) : (
+          <CampaignTimeline emails={linkedEmails(campaign.data, emails.data)} />
+        )}
+      </div>
     </main>
   );
 }
@@ -155,6 +191,24 @@ function CampaignDetailsSkeleton() {
         <Skeleton className="h-7 w-48" />
         <Skeleton className="h-[22rem] w-full rounded-[1.25rem]" />
       </div>
+      <hr className="border-border" />
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <TimelineSkeleton />
+      </div>
     </main>
+  );
+}
+
+function TimelineSkeleton() {
+  return (
+    <div aria-hidden className="flex flex-col gap-10 pt-14">
+      {[0, 1, 2].map((row) => (
+        <div key={row} className="flex items-center gap-6">
+          <Skeleton className="h-11 w-16" />
+          <Skeleton className="size-6 rounded-full" />
+          <Skeleton className="h-[3.1875rem] flex-1" />
+        </div>
+      ))}
+    </div>
   );
 }
