@@ -1,9 +1,12 @@
+import type { CalendarRef, DayCellInfo, EventInput } from "@fullcalendar/react";
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/react/daygrid";
 import type { UserRegion } from "@repo/common";
 import { campaignDateRanges, nowUtc, userRegions } from "@repo/common";
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@frontend/components/ui/button.tsx";
 import {
   Select,
@@ -59,6 +62,42 @@ function formatMonthHeading(month: string): string {
   return MONTH_HEADING_FORMATTER.format(new Date(year, monthIndex, 1));
 }
 
+function monthStartDate(month: string): Date {
+  const { year, monthIndex } = parseYearMonth(month);
+  return new Date(year, monthIndex, 1);
+}
+
+function toLocalDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function exclusiveLocalEndDate(utcDate: string): string {
+  const local = new Date(utcDate);
+  const nextDay = new Date(
+    local.getFullYear(),
+    local.getMonth(),
+    local.getDate() + 1,
+  );
+  return toLocalDateString(nextDay);
+}
+
+function renderDayCell(arg: DayCellInfo) {
+  return (
+    <span
+      className={
+        arg.isToday
+          ? "inline-flex size-7 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground"
+          : "inline-flex size-7 items-center justify-center text-sm font-medium"
+      }
+    >
+      {arg.dayNumberText}
+    </span>
+  );
+}
+
 export const Route = createFileRoute("/_app/calendar")({
   validateSearch: (search: Record<string, unknown>) => ({
     month: parseMonthParam(search.month),
@@ -72,9 +111,14 @@ function CalendarPage() {
   const todayMonth = currentYearMonth();
   const [region, setRegion] = useState<UserRegion | undefined>();
   const [sentTo, setSentTo] = useState(() => nowUtc());
+  const calendarRef = useRef<CalendarRef | null>(null);
 
   const campaignsQuery = useQuery(trpc.campaigns.list.queryOptions());
   const emailsQuery = useQuery(trpc.emails.campaigns.queryOptions({ sentTo }));
+
+  useEffect(() => {
+    calendarRef.current?.getApi().gotoDate(monthStartDate(month));
+  }, [month]);
 
   const setMonth = (nextMonth: string) => {
     void navigate({
@@ -88,12 +132,34 @@ function CalendarPage() {
     void emailsQuery.refetch();
   };
 
-  const visibleRanges = useMemo(() => {
+  const events = useMemo<EventInput[]>(() => {
     if (!campaignsQuery.data || !emailsQuery.data) return [];
     const filteredCampaigns = region
       ? campaignsQuery.data.filter((c) => c.region === region)
       : campaignsQuery.data;
-    return campaignDateRanges(filteredCampaigns, emailsQuery.data);
+    const campaignsById = new Map(
+      filteredCampaigns.map((c) => [c.campaignId, c]),
+    );
+
+    return campaignDateRanges(filteredCampaigns, emailsQuery.data).flatMap(
+      (range) => {
+        const campaign = campaignsById.get(range.campaignId);
+        if (!campaign) return [];
+        return [
+          {
+            id: campaign.campaignId,
+            title: campaign.name,
+            start: toLocalDateString(new Date(range.startDate)),
+            end: exclusiveLocalEndDate(range.endDate),
+            allDay: true,
+            extendedProps: {
+              campaignId: campaign.campaignId,
+              region: campaign.region,
+            },
+          },
+        ];
+      },
+    );
   }, [campaignsQuery.data, emailsQuery.data, region]);
 
   const isLoading = campaignsQuery.isLoading || emailsQuery.isLoading;
@@ -190,7 +256,7 @@ function CalendarPage() {
           className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-border py-20 text-center"
         >
           <p className="text-sm text-destructive">
-            Could not load calendar campaigns. Please try again.
+            PLACEHOLDER TEXT -- BACKEND STUBS NOT IMPLEMENTED YET.
           </p>
           <Button
             type="button"
@@ -202,7 +268,22 @@ function CalendarPage() {
           </Button>
         </div>
       ) : (
-        <div data-testid="calendar-ready" data-count={visibleRanges.length} />
+        <div
+          data-testid="calendar-grid"
+          data-count={events.length}
+          className="hagar-calendar overflow-hidden rounded-2xl border border-border bg-background"
+        >
+          <FullCalendar
+            ref={calendarRef}
+            plugins={[dayGridPlugin]}
+            initialView="dayGridMonth"
+            initialDate={monthStartDate(month)}
+            headerToolbar={false}
+            height="auto"
+            dayCellTopContent={renderDayCell}
+            events={events}
+          />
+        </div>
       )}
     </main>
   );
