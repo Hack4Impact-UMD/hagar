@@ -1,13 +1,22 @@
+import { userRegions } from "@repo/common";
 import type {
   ChartDefinition,
   ChartId,
-  EmailCampaignMetric,
+  UserRegion,
+  UtcDateString,
 } from "@repo/common";
-import { CalendarBlankIcon, XIcon } from "@phosphor-icons/react";
+import {
+  CalendarBlankIcon,
+  CaretDownIcon,
+  MagnifyingGlassIcon,
+  XIcon,
+} from "@phosphor-icons/react";
+import { skipToken, useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { useId, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { Button } from "@frontend/components/ui/button.tsx";
 import { Calendar } from "@frontend/components/ui/calendar.tsx";
+import { Checkbox } from "@frontend/components/ui/checkbox.tsx";
 import {
   Dialog,
   DialogClose,
@@ -24,22 +33,36 @@ import {
   PopoverTrigger,
 } from "@frontend/components/ui/popover.tsx";
 import {
+  RadioGroup,
+  RadioGroupItem,
+} from "@frontend/components/ui/radio-group.tsx";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@frontend/components/ui/select.tsx";
+import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
 import {
   CHART_TYPES,
+  FIELDS,
   changeChartType,
   chartToForm,
   formToChart,
   newChartForm,
-  startIsBeforeEnd,
+  paramsOf,
+  resolveDates,
 } from "@frontend/lib/chartForm.ts";
-import type { Ago, ChartForm, DateControl } from "@frontend/lib/chartForm.ts";
+import type {
+  Ago,
+  ChartForm,
+  DateControl,
+  Field,
+  ParamKey,
+} from "@frontend/lib/chartForm.ts";
 import { EMAIL_CAMPAIGN_METRIC_LABELS } from "@frontend/lib/emailMetrics.ts";
+import { trpc } from "@frontend/lib/trpc.ts";
 
 interface ChartEditorDialogProps {
   open: boolean;
@@ -79,11 +102,21 @@ function ChartEditorForm({
   const [form, setForm] = useState<ChartForm>(() =>
     initial ? chartToForm(initial) : newChartForm(),
   );
+  // frozen when the editor opens, otherwise "now" changes every render and the
+  // email query never settles
+  const now = useMemo(() => new Date(), []);
   const id = useId();
   const chart = formToChart(form);
-  const isEmailChart = CHART_TYPES[form.chartId].picks === "EMAIL";
-  const inOrder = startIsBeforeEnd(form, new Date());
-  const canSave = chart !== undefined && inOrder;
+  const dates = resolveDates(form, now);
+  const canSave = chart !== undefined && dates.inOrder;
+  const params = paramsOf(form.chartId);
+  const keysOf = (kind: Field["kind"]) =>
+    params.filter((key) => FIELDS[key].kind === kind);
+  const setValue = (key: ParamKey, value: unknown) =>
+    setForm((current) => ({
+      ...current,
+      values: { ...current.values, [key]: value },
+    }));
 
   return (
     <form
@@ -145,19 +178,17 @@ function ChartEditorForm({
           </Select>
         </div>
 
-        {isEmailChart ? (
-          <div className={FIELD}>
-            <span id={`${id}-metric`} className={FIELD_LABEL}>
+        {keysOf("METRIC").map((key) => (
+          <div key={key} className={FIELD}>
+            <span id={`${id}-${key}`} className={FIELD_LABEL}>
               Metric
             </span>
             <Select
-              value={form.metric ?? ""}
-              onValueChange={(next) =>
-                setForm({ ...form, metric: next as EmailCampaignMetric })
-              }
+              value={(form.values[key] as string | undefined) ?? ""}
+              onValueChange={(next) => setValue(key, next)}
             >
               <SelectTrigger
-                aria-labelledby={`${id}-metric`}
+                aria-labelledby={`${id}-${key}`}
                 className={SELECT_TRIGGER}
               >
                 <SelectValue placeholder="Choose a metric" />
@@ -173,37 +204,48 @@ function ChartEditorForm({
               </SelectContent>
             </Select>
           </div>
-        ) : null}
+        ))}
 
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-wrap gap-4">
-            {CHART_TYPES[form.chartId].dates === "AS_OF" ? (
-              <DateField
-                label="As of"
-                value={form.asOf}
-                onChange={(asOf) => setForm({ ...form, asOf })}
-              />
-            ) : (
-              <>
-                <DateField
-                  label="Start"
-                  value={form.start}
-                  onChange={(start) => setForm({ ...form, start })}
-                />
-                <DateField
-                  label="End"
-                  value={form.end}
-                  onChange={(end) => setForm({ ...form, end })}
-                />
-              </>
+        {keysOf("DATE").length > 0 ? (
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap gap-4">
+              {keysOf("DATE").map((key) => {
+                const field = FIELDS[key];
+                return field.kind === "DATE" ? (
+                  <DateField
+                    key={key}
+                    label={field.label}
+                    value={form.values[key] as DateControl}
+                    onChange={(next) => setValue(key, next)}
+                  />
+                ) : null;
+              })}
+            </div>
+            {dates.inOrder ? null : (
+              <p role="alert" className="text-sm text-destructive">
+                Start must be before End.
+              </p>
             )}
           </div>
-          {inOrder ? null : (
-            <p role="alert" className="text-sm text-destructive">
-              Start must be before End.
-            </p>
-          )}
-        </div>
+        ) : null}
+
+        {keysOf("EMAIL").map((key) => (
+          <EmailPicker
+            key={key}
+            sentFrom={dates.from}
+            sentTo={dates.to}
+            ready={dates.complete && dates.inOrder}
+            selectedId={form.values[key] as string | undefined}
+            onSelect={(next) => setValue(key, next)}
+          />
+        ))}
+        {keysOf("LIST").map((key) => (
+          <ListPicker
+            key={key}
+            selectedId={form.values[key] as string | undefined}
+            onSelect={(next) => setValue(key, next)}
+          />
+        ))}
 
         <DialogFooter>
           <DialogClose asChild>
@@ -359,6 +401,248 @@ function FixedDatePicker({
             setOpen(false);
           }}
         />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+const showDate = (date: UtcDateString) => format(new Date(date), "MMM d, yyyy");
+
+function EmailPicker({
+  sentFrom,
+  sentTo,
+  ready,
+  selectedId,
+  onSelect,
+}: {
+  sentFrom: UtcDateString | undefined;
+  sentTo: UtcDateString | undefined;
+  ready: boolean;
+  selectedId: string | undefined;
+  onSelect: (id?: string) => void;
+}) {
+  const [regions, setRegions] = useState<UserRegion[]>([]);
+  const [search, setSearch] = useState("");
+  const query = useQuery(
+    trpc.emails.campaigns.queryOptions(
+      ready && sentTo ? { ...(sentFrom && { sentFrom }), sentTo } : skipToken,
+    ),
+  );
+  const inRegion = (query.data ?? []).filter(
+    (email) => regions.length === 0 || regions.includes(email.region),
+  );
+  const shown = inRegion.filter((email) =>
+    email.name.toLowerCase().includes(search.trim().toLowerCase()),
+  );
+  // search only hides rows while typing, so only dates and region clear the pick
+  const pickGone =
+    query.data !== undefined &&
+    selectedId !== undefined &&
+    !inRegion.some((email) => email.emailCampaignId === selectedId);
+  useEffect(() => {
+    if (pickGone) onSelect();
+  }, [pickGone, onSelect]);
+
+  let heading = "Emails";
+  if (sentTo) {
+    heading = sentFrom
+      ? `Emails during ${showDate(sentFrom)} – ${showDate(sentTo)}`
+      : `Emails sent by ${showDate(sentTo)}`;
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-4">
+        <span className="text-base">{heading}</span>
+        <RegionFilter value={regions} onChange={setRegions} />
+      </div>
+      <div className="relative">
+        <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search"
+          aria-label="Search emails"
+          className="h-10 pl-9 text-base shadow-none md:text-base"
+        />
+      </div>
+      {ready ? (
+        <PickerList
+          label={heading}
+          query={query}
+          items={shown.map((email) => ({
+            id: email.emailCampaignId,
+            name: email.name,
+          }))}
+          emptyMessage={
+            query.data?.length === 0
+              ? "No emails in this range"
+              : "No emails match your filters"
+          }
+          errorMessage="Couldn't load emails."
+          selectedId={selectedId}
+          onSelect={onSelect}
+        />
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          Choose valid dates to see emails.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ListPicker({
+  selectedId,
+  onSelect,
+}: {
+  selectedId: string | undefined;
+  onSelect: (id?: string) => void;
+}) {
+  const query = useQuery(trpc.emails.lists.queryOptions());
+
+  return (
+    <div className="flex flex-col gap-3">
+      <span className="text-base">Email lists</span>
+      <PickerList
+        label="Email lists"
+        query={query}
+        items={(query.data ?? []).map((list) => ({
+          id: list.emailListId,
+          name: list.name,
+        }))}
+        emptyMessage="No email lists"
+        errorMessage="Couldn't load email lists."
+        selectedId={selectedId}
+        onSelect={onSelect}
+      />
+    </div>
+  );
+}
+
+function PickerList({
+  label,
+  query,
+  items,
+  emptyMessage,
+  errorMessage,
+  selectedId,
+  onSelect,
+}: {
+  label: string;
+  query: { isPending: boolean; isError: boolean; refetch: () => unknown };
+  items: { id: string; name: string }[];
+  emptyMessage: string;
+  errorMessage: string;
+  selectedId: string | undefined;
+  onSelect: (id: string) => void;
+}) {
+  if (query.isPending) {
+    return (
+      <div className="flex flex-col gap-1" aria-busy="true">
+        {[0, 1, 2].map((row) => (
+          <Skeleton key={row} className="h-9" />
+        ))}
+      </div>
+    );
+  }
+  if (query.isError) {
+    return (
+      <div role="alert" className="flex items-center gap-3 text-sm">
+        <span className="text-destructive">{errorMessage}</span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => void query.refetch()}
+        >
+          Retry
+        </Button>
+      </div>
+    );
+  }
+  if (items.length === 0) {
+    return <p className="text-sm text-muted-foreground">{emptyMessage}</p>;
+  }
+
+  return (
+    <RadioGroup
+      aria-label={label}
+      value={selectedId ?? ""}
+      onValueChange={onSelect}
+      className="flex max-h-60 flex-col gap-0 overflow-y-auto rounded-md border"
+    >
+      {items.map((item) => (
+        <label
+          key={item.id}
+          className="flex cursor-pointer items-center gap-3 border-b px-3 py-2 text-sm last:border-b-0"
+        >
+          {/* figma's radio is an orange ring with an orange dot, not a filled circle */}
+          <RadioGroupItem
+            value={item.id}
+            className="border-primary data-checked:bg-transparent [&_[data-slot=radio-group-indicator]>span]:bg-primary"
+          />
+          {item.name}
+        </label>
+      ))}
+    </RadioGroup>
+  );
+}
+
+function RegionFilter({
+  value,
+  onChange,
+}: {
+  value: UserRegion[];
+  onChange: (next: UserRegion[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button type="button" variant="outline" size="sm">
+          Region
+          <CaretDownIcon />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-60 gap-0 p-0">
+        <p className="px-4 pt-4 pb-3 text-sm font-medium text-muted-foreground uppercase">
+          Region
+        </p>
+        <div className="flex flex-col gap-3 px-4 pb-4">
+          {userRegions.map((region) => (
+            <label
+              key={region}
+              className="flex cursor-pointer items-center gap-3 text-sm"
+            >
+              <Checkbox
+                checked={value.includes(region)}
+                onCheckedChange={(checked) =>
+                  onChange(
+                    checked
+                      ? [...value, region]
+                      : value.filter((r) => r !== region),
+                  )
+                }
+              />
+              {region}
+            </label>
+          ))}
+        </div>
+        <div className="flex items-center justify-between border-t px-4 py-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => onChange([])}
+          >
+            Clear
+          </Button>
+          <Button type="button" size="sm" onClick={() => setOpen(false)}>
+            Done
+          </Button>
+        </div>
       </PopoverContent>
     </Popover>
   );

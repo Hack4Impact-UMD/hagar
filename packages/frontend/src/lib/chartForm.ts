@@ -1,8 +1,15 @@
-import { chartDefinition, pointInTime, resolvePointInTime } from "@repo/common";
+import {
+  chartDefinition,
+  emailCampaignMetricChart,
+  emailCampaignMetricOverTimeChart,
+  emailListSizeChart,
+  emailListSizeOverTimeChart,
+  pointInTime,
+  resolvePointInTime,
+} from "@repo/common";
 import type {
   ChartDefinition,
   ChartId,
-  EmailCampaignMetric,
   PointInTime,
   UtcDateString,
 } from "@repo/common";
@@ -16,64 +23,119 @@ export type DateControl =
   | { mode: "FIXED"; date: Date | undefined }
   | { mode: "RELATIVE"; ago: Ago | undefined };
 
+type ChartParams = ChartDefinition["params"];
+type KeysOf<T> = T extends unknown ? keyof T : never;
+/** Every param any chart type takes, like `metric` or `start`. */
+export type ParamKey = KeysOf<ChartParams>;
+type ParamValue<K extends ParamKey> = Extract<
+  ChartParams,
+  Record<K, unknown>
+>[K];
+
+// what the form holds for each param. dates are controls until saved
+export type FieldValues = {
+  [K in ParamKey]?: ParamValue<K> extends PointInTime
+    ? DateControl
+    : ParamValue<K>;
+};
+
 /* Everything the chart editor holds while the user fills it in. */
 export type ChartForm = {
   title: string;
   chartId: ChartId;
-  // only email charts use this, kept across type changes
-  metric: EmailCampaignMetric | undefined;
-  asOf: DateControl;
-  start: DateControl;
-  end: DateControl;
-  // email or list id, depending on chartId
-  selectedId: string | undefined;
+  values: FieldValues;
 };
 
-export const CHART_TYPES: Record<
-  ChartId,
-  { label: string; dates: "AS_OF" | "RANGE"; picks: "EMAIL" | "LIST" }
-> = {
-  EMAIL_LIST_SIZE: { label: "Email list size", dates: "AS_OF", picks: "LIST" },
-  EMAIL_LIST_SIZE_OVER_TIME: {
-    label: "Email list size over time",
-    dates: "RANGE",
-    picks: "LIST",
-  },
-  EMAIL_CAMPAIGN_METRIC: {
-    label: "Email metric",
-    dates: "AS_OF",
-    picks: "EMAIL",
-  },
-  EMAIL_CAMPAIGN_METRIC_OVER_TIME: {
-    label: "Email metric over time",
-    dates: "RANGE",
-    picks: "EMAIL",
-  },
-};
+export type Field =
+  | { kind: "LIST" | "EMAIL" | "METRIC" }
+  | {
+      kind: "DATE";
+      label: string;
+      edge: "START" | "END";
+      initial: DateControl;
+    };
 
 const NOW: DateControl = { mode: "RELATIVE", ago: undefined };
 
-export function newChartForm(): ChartForm {
-  return {
-    title: "",
-    chartId: "EMAIL_LIST_SIZE",
-    metric: undefined,
-    asOf: NOW,
-    start: { mode: "RELATIVE", ago: { amount: 1, unit: "MONTH" } },
-    end: NOW,
-    selectedId: undefined,
-  };
+// the input for each param. a Record so a new param fails to compile until it
+// gets an input here
+export const FIELDS: Record<ParamKey, Field> = {
+  emailListId: { kind: "LIST" },
+  emailCampaignId: { kind: "EMAIL" },
+  metric: { kind: "METRIC" },
+  pointInTime: { kind: "DATE", label: "As of", edge: "END", initial: NOW },
+  start: {
+    kind: "DATE",
+    label: "Start",
+    edge: "START",
+    initial: { mode: "RELATIVE", ago: { amount: 1, unit: "MONTH" } },
+  },
+  end: { kind: "DATE", label: "End", edge: "END", initial: NOW },
+};
+
+export type Channel = "INSTAGRAM" | "WEBSITE" | "EMAIL" | "LINKEDIN";
+
+// the params come from each chart's schema, so only the label and channel are
+// written by hand
+export const CHART_TYPES: Record<
+  ChartId,
+  { label: string; channel: Channel; params: readonly ParamKey[] }
+> = {
+  EMAIL_LIST_SIZE: {
+    label: "Email list size",
+    channel: "EMAIL",
+    params: emailListSizeChart.definition.get("params").props.map((p) => p.key),
+  },
+  EMAIL_LIST_SIZE_OVER_TIME: {
+    label: "Email list size over time",
+    channel: "EMAIL",
+    params: emailListSizeOverTimeChart.definition
+      .get("params")
+      .props.map((p) => p.key),
+  },
+  EMAIL_CAMPAIGN_METRIC: {
+    label: "Email metric",
+    channel: "EMAIL",
+    params: emailCampaignMetricChart.definition
+      .get("params")
+      .props.map((p) => p.key),
+  },
+  EMAIL_CAMPAIGN_METRIC_OVER_TIME: {
+    label: "Email metric over time",
+    channel: "EMAIL",
+    params: emailCampaignMetricOverTimeChart.definition
+      .get("params")
+      .props.map((p) => p.key),
+  },
+};
+
+/** The params of a chart type, in the order `FIELDS` lists them. */
+export function paramsOf(chartId: ChartId): ParamKey[] {
+  const params = CHART_TYPES[chartId].params;
+  return (Object.keys(FIELDS) as ParamKey[]).filter((key) =>
+    params.includes(key),
+  );
 }
 
-// keeps the title and dates, and drops a pick of the wrong kind
+// keeps only the values the type takes, filling in starting dates
+function valuesFor(chartId: ChartId, current: FieldValues): FieldValues {
+  const values: Record<string, unknown> = {};
+  for (const key of paramsOf(chartId)) {
+    const field = FIELDS[key];
+    values[key] =
+      current[key] ?? (field.kind === "DATE" ? field.initial : undefined);
+  }
+  return values as FieldValues;
+}
+
+export function newChartForm(chartId: ChartId = "EMAIL_LIST_SIZE"): ChartForm {
+  return { title: "", chartId, values: valuesFor(chartId, {}) };
+}
+
+// keeps the title and any value the new type also takes, so dates carry over
+// and a pick of the other kind is dropped
 export function changeChartType(form: ChartForm, chartId: ChartId): ChartForm {
-  const samePick =
-    CHART_TYPES[form.chartId].picks === CHART_TYPES[chartId].picks;
-  return {
-    ...form,
-    chartId,
-    selectedId: samePick ? form.selectedId : undefined,
-  };
+  return { ...form, chartId, values: valuesFor(chartId, form.values) };
 }
 
 // fixed start saves the start of the day and fixed end saves the end of the
@@ -103,109 +165,64 @@ function pointToControl(point: PointInTime): DateControl {
 
 /* The chart the form describes, or `undefined` until the form is complete. */
 export function formToChart(form: ChartForm): ChartDefinition | undefined {
-  const candidate = candidateFor(form);
+  const params: Record<string, unknown> = {};
+  for (const key of paramsOf(form.chartId)) {
+    const field = FIELDS[key];
+    const value = form.values[key];
+    params[key] =
+      field.kind === "DATE" && value
+        ? controlToPoint(value as DateControl, field.edge)
+        : value;
+  }
+  const candidate = { name: form.title.trim(), chartId: form.chartId, params };
+  // Unfinished fields are `undefined` which `chartDefinition` then rejects.
   return chartDefinition.allows(candidate) ? candidate : undefined;
 }
 
-// Unfinished fields are `undefined` which `chartDefinition` then rejects.
-function candidateFor(form: ChartForm): unknown {
-  const name = form.title.trim();
-  const { chartId, selectedId, metric } = form;
-  switch (chartId) {
-    case "EMAIL_LIST_SIZE":
-      return {
-        name,
-        chartId,
-        params: {
-          emailListId: selectedId,
-          pointInTime: controlToPoint(form.asOf, "END"),
-        },
-      };
-    case "EMAIL_LIST_SIZE_OVER_TIME":
-      return {
-        name,
-        chartId,
-        params: {
-          emailListId: selectedId,
-          start: controlToPoint(form.start, "START"),
-          end: controlToPoint(form.end, "END"),
-        },
-      };
-    case "EMAIL_CAMPAIGN_METRIC":
-      return {
-        name,
-        chartId,
-        params: {
-          emailCampaignId: selectedId,
-          metric,
-          pointInTime: controlToPoint(form.asOf, "END"),
-        },
-      };
-    case "EMAIL_CAMPAIGN_METRIC_OVER_TIME":
-      return {
-        name,
-        chartId,
-        params: {
-          emailCampaignId: selectedId,
-          metric,
-          start: controlToPoint(form.start, "START"),
-          end: controlToPoint(form.end, "END"),
-        },
-      };
-  }
-}
-
 export function chartToForm(chart: ChartDefinition): ChartForm {
-  const form = { ...newChartForm(), title: chart.name, chartId: chart.chartId };
-  switch (chart.chartId) {
-    case "EMAIL_LIST_SIZE":
-      return {
-        ...form,
-        selectedId: chart.params.emailListId,
-        asOf: pointToControl(chart.params.pointInTime),
-      };
-    case "EMAIL_LIST_SIZE_OVER_TIME":
-      return {
-        ...form,
-        selectedId: chart.params.emailListId,
-        start: pointToControl(chart.params.start),
-        end: pointToControl(chart.params.end),
-      };
-    case "EMAIL_CAMPAIGN_METRIC":
-      return {
-        ...form,
-        selectedId: chart.params.emailCampaignId,
-        metric: chart.params.metric,
-        asOf: pointToControl(chart.params.pointInTime),
-      };
-    case "EMAIL_CAMPAIGN_METRIC_OVER_TIME":
-      return {
-        ...form,
-        selectedId: chart.params.emailCampaignId,
-        metric: chart.params.metric,
-        start: pointToControl(chart.params.start),
-        end: pointToControl(chart.params.end),
-      };
+  const params: Partial<Record<ParamKey, unknown>> = chart.params;
+  const values: Record<string, unknown> = {};
+  for (const key of paramsOf(chart.chartId)) {
+    values[key] =
+      FIELDS[key].kind === "DATE"
+        ? pointToControl(params[key] as PointInTime)
+        : params[key];
   }
+  return { title: chart.name, chartId: chart.chartId, values };
 }
 
 // the amount box can be empty or out of range while typing, and resolving that
 // would throw, so it gives undefined instead
-export function resolveControl(
-  control: DateControl,
+function resolveControl(
+  control: DateControl | undefined,
   edge: "START" | "END",
   now: Date,
 ): UtcDateString | undefined {
-  const point = controlToPoint(control, edge);
+  const point = control && controlToPoint(control, edge);
   return point && pointInTime.allows(point)
     ? resolvePointInTime(point, now)
     : undefined;
 }
 
-export function startIsBeforeEnd(form: ChartForm, now: Date): boolean {
-  if (CHART_TYPES[form.chartId].dates !== "RANGE") return true;
-  const start = resolveControl(form.start, "START", now);
-  const end = resolveControl(form.end, "END", now);
-  if (!start || !end) return true;
-  return start < end;
+/**
+ * The type's dates as instants. `from` is only set for a type with a start
+ * date. An unfinished date makes `complete` false but still counts as in order.
+ */
+export function resolveDates(form: ChartForm, now: Date) {
+  let from: UtcDateString | undefined;
+  let to: UtcDateString | undefined;
+  let complete = true;
+  for (const key of paramsOf(form.chartId)) {
+    const field = FIELDS[key];
+    if (field.kind !== "DATE") continue;
+    const resolved = resolveControl(
+      form.values[key] as DateControl | undefined,
+      field.edge,
+      now,
+    );
+    if (!resolved) complete = false;
+    if (field.edge === "START") from = resolved;
+    else to = resolved;
+  }
+  return { from, to, complete, inOrder: !from || !to || from < to };
 }
