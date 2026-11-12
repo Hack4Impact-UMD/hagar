@@ -70,9 +70,9 @@ export function formatDateRange(
   if (startYear === endYear) {
     const from = monthDay.format(start);
     const to = monthDay.format(end);
-    return from === to ? `${to}, ${endYear}` : `${from} – ${to}, ${endYear}`;
+    return from === to ? `${to}, ${endYear}` : `${from} - ${to}, ${endYear}`;
   }
-  return `${monthDay.format(start)}, ${startYear} – ${monthDay.format(end)}, ${endYear}`;
+  return `${monthDay.format(start)}, ${startYear} - ${monthDay.format(end)}, ${endYear}`;
 }
 
 /** One entry per kind of linked item, in the order each first appears. */

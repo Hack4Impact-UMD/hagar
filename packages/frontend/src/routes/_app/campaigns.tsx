@@ -1,7 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { parseCampaignSearch } from "@frontend/lib/campaignSearch.ts";
 
 export const Route = createFileRoute("/_app/campaigns")({
   component: Campaigns,
+  validateSearch: parseCampaignSearch,
 });
 
 function Campaigns() {
