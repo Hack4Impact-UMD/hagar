@@ -25,7 +25,7 @@ export type DateControl =
 
 type ChartParams = ChartDefinition["params"];
 type KeysOf<T> = T extends unknown ? keyof T : never;
-/** Every param any chart type takes, like `metric` or `start`. */
+// every param any chart type takes, like metric or start
 export type ParamKey = KeysOf<ChartParams>;
 type ParamValue<K extends ParamKey> = Extract<
   ChartParams,
@@ -109,7 +109,7 @@ export const CHART_TYPES: Record<
   },
 };
 
-/** The params of a chart type, in the order `FIELDS` lists them. */
+// in FIELDS order, so inputs always render in the same order
 export function paramsOf(chartId: ChartId): ParamKey[] {
   const params = CHART_TYPES[chartId].params;
   return (Object.keys(FIELDS) as ParamKey[]).filter((key) =>
@@ -140,7 +140,7 @@ export function changeChartType(form: ChartForm, chartId: ChartId): ChartForm {
 
 // fixed start saves the start of the day and fixed end saves the end of the
 // day, so the picked day is included. undefined if no day is picked yet
-export function controlToPoint(
+function controlToPoint(
   control: DateControl,
   edge: "START" | "END",
 ): PointInTime | undefined {
@@ -204,10 +204,8 @@ function resolveControl(
     : undefined;
 }
 
-/**
- * The type's dates as instants. `from` is only set for a type with a start
- * date. An unfinished date makes `complete` false but still counts as in order.
- */
+// from is only set for types with a start date. an unfinished date makes
+// complete false but still counts as in order
 export function resolveDates(form: ChartForm, now: Date) {
   let from: UtcDateString | undefined;
   let to: UtcDateString | undefined;

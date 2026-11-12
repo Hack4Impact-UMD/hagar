@@ -7,8 +7,8 @@ import type {
 } from "@repo/common";
 import type { Firestore } from "firebase-admin/firestore";
 
-export const CAMPAIGNS_COLLECTION = "email-campaigns";
-export const LISTS_COLLECTION = "email-lists";
+const CAMPAIGNS_COLLECTION = "email-campaigns";
+const LISTS_COLLECTION = "email-lists";
 
 // trimming down to only the summary fields
 const parseCampaignSummary = StoredEmailCampaignRecord.pick(
