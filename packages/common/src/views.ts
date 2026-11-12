@@ -4,7 +4,8 @@ import { utcDateString } from "@common/dates.ts";
 import type { UserProfile } from "@common/user.ts";
 
 // Length caps exist only to bound abuse. They sit far above any real value.
-const name = type("1 <= string <= 500");
+export const MAX_VIEW_NAME_LENGTH = 500;
+const name = type(`1 <= string <= ${MAX_VIEW_NAME_LENGTH}`);
 
 /**
  * Who besides the author can open a view. `ANYONE_EDIT` includes viewing.
