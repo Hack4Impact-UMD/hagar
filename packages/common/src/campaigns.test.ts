@@ -99,15 +99,15 @@ describe("campaignDateRanges", () => {
     { emailCampaignId: "may", sentAt: "2024-05-01T09:00:00.000Z" },
   ];
 
-  it.fails("returns nothing when there are no campaigns", () => {
+  it("returns nothing when there are no campaigns", () => {
     expect(campaignDateRanges([], emails)).toEqual([]);
   });
 
-  it.fails("leaves out a campaign with no dated emails", () => {
+  it("leaves out a campaign with no dated emails", () => {
     expect(campaignDateRanges([campaignWith("c-1", [])], emails)).toEqual([]);
   });
 
-  it.fails("skips a linked email that is not in the list", () => {
+  it("skips a linked email that is not in the list", () => {
     expect(
       campaignDateRanges([campaignWith("c-1", ["deleted", "april"])], emails),
     ).toEqual([
@@ -119,7 +119,7 @@ describe("campaignDateRanges", () => {
     ]);
   });
 
-  it.fails("starts and ends on the same date for one email", () => {
+  it("starts and ends on the same date for one email", () => {
     expect(campaignDateRanges([campaignWith("c-1", ["may"])], emails)).toEqual([
       {
         campaignId: "c-1",
@@ -129,7 +129,7 @@ describe("campaignDateRanges", () => {
     ]);
   });
 
-  it.fails("runs from the earliest email to the latest, whatever the link order", () => {
+  it("runs from the earliest email to the latest, whatever the link order", () => {
     expect(
       campaignDateRanges(
         [campaignWith("c-1", ["april", "may", "march"])],
@@ -144,7 +144,7 @@ describe("campaignDateRanges", () => {
     ]);
   });
 
-  it.fails("counts an email linked by two campaigns in both", () => {
+  it("counts an email linked by two campaigns in both", () => {
     expect(
       campaignDateRanges(
         [

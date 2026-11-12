@@ -2,6 +2,8 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/inter";
+@import "@fullcalendar/react/skeleton.css";
+@import "@fullcalendar/react/themes/classic/theme.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -136,4 +138,29 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* FullCalendar v7 theme overrides matching Hagar design tokens */
+.hagar-calendar {
+  --fc-classic-border: var(--border);
+  --fc-classic-strong-border: var(--border);
+  --fc-classic-background: var(--background);
+  --fc-classic-foreground: var(--foreground);
+  --fc-classic-muted: var(--muted);
+  --fc-classic-muted-foreground: var(--muted-foreground);
+  --fc-classic-faint: transparent;
+  --fc-classic-faint-foreground: var(--muted-foreground);
+  --fc-classic-today: transparent;
+  --fc-classic-primary: var(--primary);
+}
+
+.hagar-calendar th,
+.hagar-calendar [role="columnheader"] {
+  border-inline: 0 !important;
+}
+
+.hagar-calendar [role="columnheader"] > * {
+  justify-content: flex-start;
+  padding-inline: 0.75rem;
+  padding-block: 0.805rem;
 }
