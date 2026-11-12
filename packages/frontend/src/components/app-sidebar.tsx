@@ -113,11 +113,17 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
               </div>
             </Link>
             <DropdownMenu>
-              <DropdownMenuTrigger className="shrink-0 cursor-pointer rounded p-1 text-black/50 hover:text-black">
+              <DropdownMenuTrigger
+                aria-label="Account menu"
+                className="shrink-0 cursor-pointer rounded p-1 text-black/50 hover:text-black"
+              >
                 <DotsThreeVerticalIcon className="size-4" weight="bold" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" side="top">
-                <DropdownMenuItem onClick={() => void auth.signOut()}>
+                <DropdownMenuItem
+                  data-testid="sign-out"
+                  onClick={() => void auth.signOut()}
+                >
                   <SignOutIcon /> Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
