@@ -1,19 +1,26 @@
+import { SignpostIcon } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
+import {
+  NOTICE_BUTTON,
+  NOTICE_TEXT,
+  NoticeLayout,
+} from "@frontend/components/auth/NoticeLayout.tsx";
+import { Button } from "@frontend/components/ui/button.tsx";
 
-/** Shown for any URL with no page. */
+/**
+ * Shown for any URL with no page, signed in or out. Full page rather than
+ * inside the app layout, which signed-out users don't get. The guards send a
+ * signed-out user from `/` on to login.
+ */
 export function NotFound() {
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center gap-4 p-6 text-center">
-      <p className="text-muted-foreground text-sm">404</p>
-      <h1 data-testid="not-found" className="text-2xl font-semibold">
-        Page not found
-      </h1>
-      <p className="text-muted-foreground">
-        The page you are looking for does not exist.
+    <NoticeLayout icon={SignpostIcon} title="Page not found">
+      <p data-testid="not-found" className={NOTICE_TEXT}>
+        The page you’re looking for doesn’t exist or may have moved.
       </p>
-      <Link to="/" className="underline">
-        Back to homepage
-      </Link>
-    </main>
+      <Button asChild className={NOTICE_BUTTON}>
+        <Link to="/">Back to homepage</Link>
+      </Button>
+    </NoticeLayout>
   );
 }

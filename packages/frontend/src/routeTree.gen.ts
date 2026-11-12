@@ -10,7 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteRouteImport } from './routes/_app/route'
+import { Route as AuthActionRouteImport } from './routes/auth-action'
 import { Route as AwaitingApprovalRouteImport } from './routes/awaiting-approval'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ProfileSetupRouteImport } from './routes/profile-setup'
 import { Route as SignupRouteImport } from './routes/signup'
@@ -27,9 +29,19 @@ const AppRouteRoute = AppRouteRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthActionRoute = AuthActionRouteImport.update({
+  id: '/auth-action',
+  path: '/auth-action',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AwaitingApprovalRoute = AwaitingApprovalRouteImport.update({
   id: '/awaiting-approval',
   path: '/awaiting-approval',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -90,7 +102,9 @@ const AppReportsPreviewViewIdRoute = AppReportsPreviewViewIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/auth-action': typeof AuthActionRoute
   '/awaiting-approval': typeof AwaitingApprovalRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/profile-setup': typeof ProfileSetupRoute
   '/signup': typeof SignupRoute
@@ -103,7 +117,9 @@ export interface FileRoutesByFullPath {
   '/reports/preview/$viewId': typeof AppReportsPreviewViewIdRoute
 }
 export interface FileRoutesByTo {
+  '/auth-action': typeof AuthActionRoute
   '/awaiting-approval': typeof AwaitingApprovalRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/profile-setup': typeof ProfileSetupRoute
   '/signup': typeof SignupRoute
@@ -119,7 +135,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteRouteWithChildren
+  '/auth-action': typeof AuthActionRoute
   '/awaiting-approval': typeof AwaitingApprovalRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/profile-setup': typeof ProfileSetupRoute
   '/signup': typeof SignupRoute
@@ -136,7 +154,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth-action'
     | '/awaiting-approval'
+    | '/forgot-password'
     | '/login'
     | '/profile-setup'
     | '/signup'
@@ -149,7 +169,9 @@ export interface FileRouteTypes {
     | '/reports/preview/$viewId'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/auth-action'
     | '/awaiting-approval'
+    | '/forgot-password'
     | '/login'
     | '/profile-setup'
     | '/signup'
@@ -164,7 +186,9 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_app'
+    | '/auth-action'
     | '/awaiting-approval'
+    | '/forgot-password'
     | '/login'
     | '/profile-setup'
     | '/signup'
@@ -180,7 +204,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AppRouteRoute: typeof AppRouteRouteWithChildren
+  AuthActionRoute: typeof AuthActionRoute
   AwaitingApprovalRoute: typeof AwaitingApprovalRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   ProfileSetupRoute: typeof ProfileSetupRoute
   SignupRoute: typeof SignupRoute
@@ -196,11 +222,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth-action': {
+      id: '/auth-action'
+      path: '/auth-action'
+      fullPath: '/auth-action'
+      preLoaderRoute: typeof AuthActionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/awaiting-approval': {
       id: '/awaiting-approval'
       path: '/awaiting-approval'
       fullPath: '/awaiting-approval'
       preLoaderRoute: typeof AwaitingApprovalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -309,7 +349,9 @@ const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   AppRouteRoute: AppRouteRouteWithChildren,
+  AuthActionRoute: AuthActionRoute,
   AwaitingApprovalRoute: AwaitingApprovalRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   ProfileSetupRoute: ProfileSetupRoute,
   SignupRoute: SignupRoute,
