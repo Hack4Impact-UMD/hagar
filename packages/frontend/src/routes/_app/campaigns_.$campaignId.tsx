@@ -2,6 +2,8 @@ import { CaretLeftIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { EmailAnalytics } from "@frontend/components/campaigns/email-analytics.tsx";
+import type { EmailAnalyticsDay } from "@frontend/components/campaigns/email-analytics.tsx";
 import { Button } from "@frontend/components/ui/button.tsx";
 import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
 import { trpc } from "@frontend/lib/trpc.ts";
@@ -15,6 +17,29 @@ import { trpc } from "@frontend/lib/trpc.ts";
 export const Route = createFileRoute("/_app/campaigns_/$campaignId")({
   component: CampaignDetails,
 });
+
+/**
+ * Sample engagement until the real figures are decided: 90 days with a weekly
+ * rhythm. Its keys match `EmailCampaignMetric`, so daily totals built from
+ * snapshots can replace it without changing the chart.
+ */
+const TEMPLATE_EMAIL_DATA: EmailAnalyticsDay[] = Array.from(
+  { length: 90 },
+  (_, day) => {
+    const date = new Date(Date.UTC(2026, 7, 1 + day));
+    const uniqOpens = Math.round(
+      140 +
+        60 * Math.sin(day / 3.5) +
+        25 * Math.sin(day / 11) +
+        ((day * 37) % 23),
+    );
+    return {
+      date: date.toISOString().slice(0, 10),
+      uniqOpens,
+      uniqClicks: Math.round(uniqOpens * 0.22 + ((day * 13) % 9)),
+    };
+  },
+);
 
 function CampaignDetails() {
   const { campaignId } = Route.useParams();
@@ -63,6 +88,16 @@ function CampaignDetails() {
           </p>
         </div>
       </header>
+
+      <section
+        aria-labelledby="traffic-overview"
+        className="flex flex-col gap-6 md:ml-8"
+      >
+        <h2 id="traffic-overview" className="text-2xl font-bold">
+          Traffic Overview
+        </h2>
+        <EmailAnalytics data={TEMPLATE_EMAIL_DATA} />
+      </section>
     </main>
   );
 }
@@ -115,6 +150,10 @@ function CampaignDetailsSkeleton() {
       <div className="flex flex-col gap-3 md:ml-8">
         <Skeleton className="h-11 w-80 max-w-full" />
         <Skeleton className="h-7 w-40" />
+      </div>
+      <div className="flex flex-col gap-6 md:ml-8">
+        <Skeleton className="h-7 w-48" />
+        <Skeleton className="h-[22rem] w-full rounded-[1.25rem]" />
       </div>
     </main>
   );
