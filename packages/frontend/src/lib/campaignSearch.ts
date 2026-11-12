@@ -1,9 +1,9 @@
 import { userRegions } from "@repo/common";
 import type { UserRegion } from "@repo/common";
 import {
-  CHANNEL_LABELS,
   NO_FILTERS,
   campaignStatuses,
+  channels,
   datePresets,
 } from "@frontend/components/campaigns-list/campaign-list.ts";
 import type {
@@ -15,7 +15,6 @@ import type {
 } from "@frontend/components/campaigns-list/campaign-list.ts";
 
 type UrlDatePreset = Exclude<DatePreset, "ALL_TIME">;
-const allChannels = Object.keys(CHANNEL_LABELS) as Channel[];
 // "All time" is the default, so it never appears in the URL.
 const urlDatePresets = datePresets.filter(
   (preset): preset is UrlDatePreset => preset !== "ALL_TIME",
@@ -70,7 +69,7 @@ export function parseCampaignSearch(
     date: oneOf(urlDatePresets, raw.date),
     status: someOf(campaignStatuses, raw.status),
     region: someOf(userRegions, raw.region),
-    channel: someOf(allChannels, raw.channel),
+    channel: someOf(channels, raw.channel),
     sort: raw.sort === "asc" ? "asc" : undefined,
   };
 }

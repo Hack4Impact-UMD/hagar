@@ -89,7 +89,7 @@ function Campaigns() {
       </CampaignTableMessage>
     );
   } else if (!rows || !visible) {
-    body = <CampaignTableSkeleton />;
+    body = <CampaignTableSkeleton sort={sort} />;
   } else if (rows.length === 0) {
     body = (
       <CampaignTableMessage {...sortProps}>

@@ -16,15 +16,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@frontend/components/ui/dropdown-menu.tsx";
-import type {
-  CampaignStatus,
-  Channel,
-} from "@frontend/components/campaigns-list/campaign-list.ts";
+import type { CampaignStatus } from "@frontend/components/campaigns-list/campaign-list.ts";
 import {
   CHANNEL_LABELS,
   DATE_PRESET_LABELS,
   STATUS_DOT_CLASS,
   campaignStatuses,
+  channels,
   datePresets,
 } from "@frontend/components/campaigns-list/campaign-list.ts";
 import type { CampaignSearch } from "@frontend/lib/campaignSearch.ts";
@@ -34,8 +32,6 @@ export type UpdateSearch = (
   update: (prev: CampaignSearch) => CampaignSearch,
   options?: { replace?: boolean },
 ) => void;
-
-const allChannels = Object.keys(CHANNEL_LABELS) as Channel[];
 
 // A filter list with nothing picked is left out of the URL entirely.
 function orUndefined<T>(list: T[]): T[] | undefined {
@@ -288,7 +284,7 @@ export function CampaignFilterBar({
       <MultiSelectFilter
         label="Channel"
         testId="campaign-filter-channel"
-        options={allChannels}
+        options={channels}
         selected={search.channel ?? []}
         onChange={(next) =>
           setSearch((prev) => ({ ...prev, channel: orUndefined(next) }))

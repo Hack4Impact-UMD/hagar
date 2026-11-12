@@ -21,6 +21,7 @@ export type Channel = LinkedItem["type"];
 export const CHANNEL_LABELS: Record<Channel, string> = {
   EMAIL: "Email",
 };
+export const channels = Object.keys(CHANNEL_LABELS) as Channel[];
 
 export const datePresets = [
   "LAST_30_DAYS",

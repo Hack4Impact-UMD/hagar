@@ -1,14 +1,17 @@
 import type { ReactNode } from "react";
 import { Button } from "@frontend/components/ui/button.tsx";
 
+/** A centred title, optional explanation and optional button filling the table body. */
 function StateMessage({
   testId,
-  message,
+  title,
+  description,
   alert = false,
   children,
 }: {
   testId: string;
-  message: string;
+  title: string;
+  description?: string;
   alert?: boolean;
   children?: ReactNode;
 }) {
@@ -16,13 +19,34 @@ function StateMessage({
     <div
       role={alert ? "alert" : undefined}
       data-testid={testId}
-      className="flex flex-col items-center gap-3 py-12 text-center"
+      className="flex flex-col items-center px-6 pt-16 pb-24 text-center"
     >
-      <p className={alert ? "text-destructive" : "text-muted-foreground"}>
-        {message}
+      <p className="text-[1.25rem] leading-normal font-semibold text-[#1F1F1F]">
+        {title}
       </p>
-      {children}
+      {description ? (
+        <p className="mt-2 text-[0.9375rem] text-[#6B6B6B]">{description}</p>
+      ) : null}
+      {children ? <div className="mt-5">{children}</div> : null}
     </div>
+  );
+}
+
+function OutlineButton({
+  onClick,
+  children,
+}: {
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <Button
+      variant="outline"
+      onClick={onClick}
+      className="h-9 cursor-pointer rounded-lg border-[#D9D4CE] bg-white px-4 text-[0.8125rem] font-normal text-[#1F1F1F]"
+    >
+      {children}
+    </Button>
   );
 }
 
@@ -30,12 +54,11 @@ export function CampaignListError({ onRetry }: { onRetry: () => void }) {
   return (
     <StateMessage
       testId="campaign-list-error"
-      message="Couldn't load campaigns."
+      title="Couldn't load campaigns"
+      description="Something went wrong. Please try again."
       alert
     >
-      <Button variant="outline" onClick={onRetry}>
-        Try again
-      </Button>
+      <OutlineButton onClick={onRetry}>Try again</OutlineButton>
     </StateMessage>
   );
 }
@@ -43,7 +66,11 @@ export function CampaignListError({ onRetry }: { onRetry: () => void }) {
 /** `action` is the Add Campaign button, left out for Viewers. */
 export function CampaignListEmpty({ action }: { action?: ReactNode }) {
   return (
-    <StateMessage testId="campaign-list-empty" message="No campaigns yet">
+    <StateMessage
+      testId="campaign-list-empty"
+      title="No campaigns yet"
+      description="Campaigns you add will show up here."
+    >
       {action}
     </StateMessage>
   );
@@ -51,23 +78,12 @@ export function CampaignListEmpty({ action }: { action?: ReactNode }) {
 
 export function CampaignListNoMatches({ onClear }: { onClear: () => void }) {
   return (
-    <div
-      data-testid="campaign-list-no-matches"
-      className="flex flex-col items-center px-6 pt-16 pb-24 text-center"
+    <StateMessage
+      testId="campaign-list-no-matches"
+      title="No campaigns match these filters"
+      description="Try removing a filter or widening the date range."
     >
-      <p className="text-[1.25rem] leading-normal font-semibold text-[#1F1F1F]">
-        No campaigns match these filters
-      </p>
-      <p className="mt-2 text-[0.9375rem] text-[#6B6B6B]">
-        Try removing a filter or widening the date range.
-      </p>
-      <Button
-        variant="outline"
-        onClick={onClear}
-        className="mt-5 h-9 cursor-pointer rounded-lg border-[#D9D4CE] bg-white px-4 text-[0.8125rem] font-normal text-[#1F1F1F]"
-      >
-        Clear all filters
-      </Button>
-    </div>
+      <OutlineButton onClick={onClear}>Clear all filters</OutlineButton>
+    </StateMessage>
   );
 }
