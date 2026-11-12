@@ -17,7 +17,7 @@ function StateMessage({
 }) {
   return (
     <div
-      role={alert ? "alert" : undefined}
+      role={alert ? "alert" : "status"}
       data-testid={testId}
       className="flex flex-col items-center px-6 pt-16 pb-24 text-center"
     >

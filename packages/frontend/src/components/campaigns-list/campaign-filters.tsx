@@ -84,28 +84,38 @@ function SearchBox({
   value: string;
   onChange: (text: string) => void;
 }) {
-  const input = useRef<HTMLInputElement>(null);
-  // Typed text lives here so the cursor doesn't jump while the URL catches
-  // up. The URL only wins when it changes from elsewhere, such as "Clear all",
-  // which can't happen while someone is typing in the box.
   const [text, setText] = useState(value);
+  // Values this box sent to the URL that haven't come back yet. The router
+  // updates the URL after a short delay, so `value` can trail the typing.
+  const pending = useRef<string[]>([]);
   useEffect(() => {
-    if (document.activeElement !== input.current) setText(value);
+    const index = pending.current.indexOf(value);
+    if (index === -1) {
+      pending.current = [];
+      setText(value);
+    } else {
+      // Our own update arrived; anything sent before it is out of date.
+      pending.current = pending.current.slice(index + 1);
+    }
   }, [value]);
 
   return (
     <div className="relative w-54">
       <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[#6B6B6B]" />
       <Input
-        ref={input}
         type="search"
         aria-label="Search campaigns by name"
         placeholder="Search"
         data-testid="campaign-search"
         value={text}
         onChange={(event) => {
+          pending.current.push(event.target.value);
           setText(event.target.value);
           onChange(event.target.value);
+        }}
+        // Typing has stopped, so any value still on the list is out of date.
+        onBlur={() => {
+          pending.current = [];
         }}
         className="h-8.5 rounded-md border-[#D9D4CE] bg-white pl-9 text-sm shadow-none"
       />
@@ -210,20 +220,19 @@ function MultiSelectFilter<T extends string>({
           </DropdownMenuCheckboxItem>
         ))}
         <div className="mt-2 flex items-center justify-between border-t border-[#ECE8E3] px-4 py-3">
-          <button
-            type="button"
-            onClick={() => onChange([])}
-            className="cursor-pointer text-sm text-[#6B6B6B]"
+          <DropdownMenuItem
+            // Keeps the panel open after clearing, like the checkboxes above.
+            onSelect={(event) => {
+              event.preventDefault();
+              onChange([]);
+            }}
+            className="-ml-2 cursor-pointer rounded-md px-2 py-1 text-sm text-[#6B6B6B] focus:bg-[#F9F7F4] focus:text-[#1F1F1F]"
           >
             Clear
-          </button>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            className="h-8 cursor-pointer rounded-md bg-primary px-4 text-sm text-primary-foreground hover:bg-primary/90"
-          >
+          </DropdownMenuItem>
+          <DropdownMenuItem className="h-8 cursor-pointer rounded-md bg-primary px-4 py-0 text-sm text-primary-foreground hover:bg-primary/90 focus:bg-primary/90 focus:text-primary-foreground">
             Done
-          </button>
+          </DropdownMenuItem>
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -360,7 +369,7 @@ export function CampaignFilterChips({
       data-testid="campaign-filter-chips"
       className="flex flex-wrap items-center gap-2 text-sm"
     >
-      <span className="text-[#6B6B6B]">
+      <span role="status" className="text-[#6B6B6B]">
         Showing {shown} of {total} {total === 1 ? "campaign" : "campaigns"}
       </span>
       {filtered ? (
