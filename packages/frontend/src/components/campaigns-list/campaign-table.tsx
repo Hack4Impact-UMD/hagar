@@ -58,6 +58,7 @@ function CampaignTableFrame({
   className?: string;
   children: ReactNode;
 }) {
+  const dateSort = sort === "asc" ? "ascending" : "descending";
   return (
     <div
       data-testid={testId}
@@ -70,13 +71,7 @@ function CampaignTableFrame({
             {COLUMNS.map(({ label, width }) => (
               <TableHead
                 key={label}
-                aria-sort={
-                  label === "Date"
-                    ? sort === "asc"
-                      ? "ascending"
-                      : "descending"
-                    : undefined
-                }
+                aria-sort={label === "Date" ? dateSort : undefined}
                 className={`${width} h-13 ${CELL_PADDING} text-sm font-semibold text-[#6B6B6B]`}
               >
                 {label === "Date" ? (

@@ -23,8 +23,7 @@ import {
 } from "@frontend/components/ui/select.tsx";
 import { queryClient, trpc } from "@frontend/lib/trpc.ts";
 
-// Matches the cap on `name` in `storedCampaign`, so the backend never has to
-// reject a name the form let through.
+// Matches the cap on `name` in `storedCampaign`, so the backend never has to reject a name the form let through.
 const NAME_MAX_LENGTH = 500;
 
 const FIELD_LABEL = "flex flex-col gap-1.5 text-sm text-[#464646]";
@@ -42,10 +41,6 @@ function describeCreateError(error: { data?: { code?: string } | null }) {
   }
 }
 
-/**
- * The orange "Add Campaign" button and the dialog it opens. Only render it for
- * people who can edit; the backend refuses Viewers either way.
- */
 export function AddCampaignButton() {
   const [open, setOpen] = useState(false);
   const create = useMutation(
@@ -63,12 +58,10 @@ export function AddCampaignButton() {
       onOpenChange={(next) => {
         // Escape and the overlay would otherwise close it mid-request.
         if (create.isPending) return;
-        // Each opening starts without the last attempt's error.
         if (next) create.reset();
         setOpen(next);
       }}
     >
-      {/* A trigger, so focus returns to the button when the dialog closes. */}
       <DialogTrigger asChild>
         <Button
           type="button"
