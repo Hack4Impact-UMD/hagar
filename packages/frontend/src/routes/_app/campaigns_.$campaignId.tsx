@@ -1,9 +1,10 @@
-import { nowUtc } from "@repo/common";
+import { isActive, nowUtc } from "@repo/common";
 import { CaretLeftIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
+import { CampaignNotes } from "@frontend/components/campaigns/campaign-notes.tsx";
 import { CampaignTimeline } from "@frontend/components/campaigns/campaign-timeline.tsx";
 import { EmailAnalytics } from "@frontend/components/campaigns/email-analytics.tsx";
 import type { EmailAnalyticsDay } from "@frontend/components/campaigns/email-analytics.tsx";
@@ -53,6 +54,11 @@ function CampaignDetails() {
   const campaign = useQuery(trpc.campaigns.get.queryOptions({ campaignId }));
   // Every email sent so far; the campaign's own are picked out below.
   const emails = useQuery(trpc.emails.campaigns.queryOptions({ sentTo }));
+  // Already cached by the root route's guard, so this resolves immediately.
+  const { data: me } = useQuery({
+    ...trpc.me.queryOptions(),
+    staleTime: "static",
+  });
 
   if (campaign.isPending) return <CampaignDetailsSkeleton />;
 
@@ -77,6 +83,10 @@ function CampaignDetails() {
       </PageMessage>
     );
   }
+
+  // The backend also refuses Viewers' saves; hiding the controls keeps the UI
+  // from offering something that would fail.
+  const canEdit = me !== undefined && isActive(me) && me.role !== "Viewer";
 
   return (
     <main className="flex flex-1 flex-col gap-10 px-6 py-10 md:px-10 xl:px-16">
@@ -133,6 +143,11 @@ function CampaignDetails() {
         ) : (
           <CampaignTimeline emails={linkedEmails(campaign.data, emails.data)} />
         )}
+        <CampaignNotes
+          key={campaign.data.campaignId}
+          campaign={campaign.data}
+          canEdit={canEdit}
+        />
       </div>
     </main>
   );
@@ -194,6 +209,7 @@ function CampaignDetailsSkeleton() {
       <hr className="border-border" />
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <TimelineSkeleton />
+        <Skeleton className="h-[34rem] w-full" />
       </div>
     </main>
   );
