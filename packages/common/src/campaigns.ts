@@ -126,9 +126,41 @@ export type CampaignDateRange = {
  * The dates are worked out on read, not stored, since email syncs can change
  * `sentAt`. Campaigns with no dated emails are left out.
  */
+
 export function campaignDateRanges(
   _campaigns: readonly Campaign[],
   _emails: readonly Pick<EmailCampaignSummary, "emailCampaignId" | "sentAt">[],
 ): CampaignDateRange[] {
-  throw new Error("campaignDateRanges is not implemented yet.");
+  const sentAtById = new Map(
+    _emails.map((email) => [email.emailCampaignId, email.sentAt]),
+  );
+
+  const ranges: CampaignDateRange[] = [];
+  for (const campaign of _campaigns) {
+    let startDate: UtcDateString | undefined;
+    let endDate: UtcDateString | undefined;
+
+    for (const item of campaign.linkedItems) {
+      // this only reads EMAILS for now, other linked item types will be added later
+      if (item.type !== "EMAIL") continue;
+      const sentAt = sentAtById.get(item.id);
+      if (!sentAt) continue;
+
+      if (startDate === undefined || sentAt < startDate) {
+        startDate = sentAt;
+      }
+      if (endDate === undefined || sentAt > endDate) {
+        endDate = sentAt;
+      }
+    }
+
+    if (startDate !== undefined && endDate !== undefined) {
+      ranges.push({
+        campaignId: campaign.campaignId,
+        startDate,
+        endDate,
+      });
+    }
+  }
+  return ranges;
 }
