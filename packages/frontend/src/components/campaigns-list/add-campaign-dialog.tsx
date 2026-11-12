@@ -73,7 +73,7 @@ export function AddCampaignButton() {
         <Button
           type="button"
           data-testid="add-campaign-button"
-          className="h-[2.375rem] cursor-pointer gap-2 rounded-md bg-primary px-3.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          className="h-9.5 cursor-pointer gap-2 rounded-md bg-primary px-3.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           <PlusCircleIcon className="size-5" />
           Add Campaign

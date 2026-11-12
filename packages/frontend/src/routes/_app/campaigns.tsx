@@ -113,7 +113,7 @@ function Campaigns() {
       </CampaignTableMessage>
     );
   } else {
-    body = <CampaignTable rows={visible} {...sortProps} />;
+    body = <CampaignTable rows={visible} canEdit={canEdit} {...sortProps} />;
   }
   return (
     <main className="flex flex-1 flex-col gap-6 px-6 pt-6 pb-10 md:px-10">

@@ -5,6 +5,7 @@ import {
   ListIcon,
   SquaresFourIcon,
 } from "@phosphor-icons/react";
+import { CampaignRowMenu } from "@frontend/components/campaigns-list/campaign-row-menu.tsx";
 import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
 import {
   Table,
@@ -109,7 +110,13 @@ function CampaignTableFrame({
   );
 }
 
-function CampaignTableRow({ row }: { row: CampaignRow }) {
+function CampaignTableRow({
+  row,
+  canEdit,
+}: {
+  row: CampaignRow;
+  canEdit: boolean;
+}) {
   const { campaign, range, status, channels } = row;
   return (
     <TableRow
@@ -157,19 +164,35 @@ function CampaignTableRow({ row }: { row: CampaignRow }) {
           {status}
         </span>
       </TableCell>
-      <TableCell className={CELL_PADDING} />
+      <TableCell className={CELL_PADDING}>
+        {canEdit ? (
+          <CampaignRowMenu
+            campaignId={campaign.campaignId}
+            name={campaign.name}
+          />
+        ) : null}
+      </TableCell>
     </TableRow>
   );
 }
 
 export function CampaignTable({
   rows,
+  canEdit,
   ...sortProps
-}: SortProps & { rows: readonly CampaignRow[] }) {
+}: SortProps & {
+  rows: readonly CampaignRow[];
+  /** False for Viewers, who get no ⋮ menu. */
+  canEdit: boolean;
+}) {
   return (
     <CampaignTableFrame testId="campaign-table" {...sortProps}>
       {rows.map((row) => (
-        <CampaignTableRow key={row.campaign.campaignId} row={row} />
+        <CampaignTableRow
+          key={row.campaign.campaignId}
+          row={row}
+          canEdit={canEdit}
+        />
       ))}
     </CampaignTableFrame>
   );
