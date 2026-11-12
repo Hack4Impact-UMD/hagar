@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+// import { AppSidebar } from "@frontend/components/app-sidebar.tsx";
 
 export const Route = createFileRoute("/_app/calendar")({ component: Calendar });
 
