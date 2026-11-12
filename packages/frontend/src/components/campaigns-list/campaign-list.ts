@@ -8,6 +8,13 @@ import type {
 export const campaignStatuses = ["Active", "Ended", "Draft"] as const;
 export type CampaignStatus = (typeof campaignStatuses)[number];
 
+/** The dot drawn beside a status in the table and in the Status filter. */
+export const STATUS_DOT_CLASS: Record<CampaignStatus, string> = {
+  Active: "bg-[#4A9FD8]",
+  Ended: "bg-[#4CA868]",
+  Draft: "bg-[#E0954B]",
+};
+
 export type Channel = LinkedItem["type"];
 
 /** Typed against `LinkedItem` so a new kind of item fails to compile until it has a label. */

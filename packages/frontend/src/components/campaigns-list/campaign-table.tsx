@@ -16,11 +16,11 @@ import {
 } from "@frontend/components/ui/table.tsx";
 import type {
   CampaignRow,
-  CampaignStatus,
   SortDirection,
 } from "@frontend/components/campaigns-list/campaign-list.ts";
 import {
   CHANNEL_LABELS,
+  STATUS_DOT_CLASS,
   formatDateRange,
 } from "@frontend/components/campaigns-list/campaign-list.ts";
 
@@ -37,12 +37,6 @@ const COLUMNS = [
 const ACTIONS_WIDTH = "w-[8%]";
 const CELL_PADDING = "px-5.5";
 const BAR = "h-3 max-w-full rounded-[0.375rem] bg-[#EEEAE5]";
-
-const STATUS_DOT: Record<CampaignStatus, string> = {
-  Active: "bg-[#4A9FD8]",
-  Ended: "bg-[#4CA868]",
-  Draft: "bg-[#E0954B]",
-};
 
 type SortProps = {
   sort?: SortDirection;
@@ -158,7 +152,7 @@ function CampaignTableRow({ row }: { row: CampaignRow }) {
         <span className="inline-flex items-center gap-2 text-[0.9375rem] text-[#1F1F1F]">
           <span
             aria-hidden="true"
-            className={`size-2 rounded-full ${STATUS_DOT[status]}`}
+            className={`size-2 rounded-full ${STATUS_DOT_CLASS[status]}`}
           />
           {status}
         </span>

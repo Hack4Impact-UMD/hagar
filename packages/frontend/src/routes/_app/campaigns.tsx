@@ -8,6 +8,11 @@ import {
   CampaignListError,
   CampaignListNoMatches,
 } from "@frontend/components/campaigns-list/campaign-list-states.tsx";
+import type { UpdateSearch } from "@frontend/components/campaigns-list/campaign-filters.tsx";
+import {
+  CampaignFilterBar,
+  CampaignFilterChips,
+} from "@frontend/components/campaigns-list/campaign-filters.tsx";
 import {
   CampaignTable,
   CampaignTableMessage,
@@ -64,14 +69,16 @@ function Campaigns() {
     void campaigns.refetch();
     void emails.refetch();
   };
+  const setSearch: UpdateSearch = (update, options) =>
+    navigate({ search: update, replace: options?.replace });
   const toggleSort = () =>
-    navigate({
+    setSearch((prev) => ({
+      ...prev,
       // "desc" is the default, so it is left out of the URL.
-      search: (prev) => ({
-        ...prev,
-        sort: sort === "desc" ? "asc" : undefined,
-      }),
-    });
+      sort: sort === "desc" ? "asc" : undefined,
+    }));
+  // Clears the search and every filter, but keeps the chosen sort order.
+  const clearFilters = () => setSearch((prev) => ({ sort: prev.sort }));
   const sortProps = { sort, onToggleSort: toggleSort };
 
   let body: ReactNode;
@@ -92,7 +99,7 @@ function Campaigns() {
   } else if (visible.length === 0) {
     body = (
       <CampaignTableMessage {...sortProps}>
-        <CampaignListNoMatches onClear={() => navigate({ search: {} })} />
+        <CampaignListNoMatches onClear={clearFilters} />
       </CampaignTableMessage>
     );
   } else {
@@ -106,8 +113,20 @@ function Campaigns() {
       >
         Campaign List
       </h1>
-      <div className="flex items-center justify-end">
-        <CampaignViewToggle />
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <CampaignFilterBar search={search} setSearch={setSearch} />
+          <CampaignViewToggle />
+        </div>
+        {rows && visible ? (
+          <CampaignFilterChips
+            search={search}
+            shown={visible.length}
+            total={rows.length}
+            setSearch={setSearch}
+            onClearAll={clearFilters}
+          />
+        ) : null}
       </div>
       {body}
     </main>
