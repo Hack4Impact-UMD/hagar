@@ -7,8 +7,13 @@ import {
   CampaignListEmpty,
   CampaignListError,
   CampaignListNoMatches,
-  CampaignTableSkeleton,
 } from "@frontend/components/campaigns-list/campaign-list-states.tsx";
+import {
+  CampaignTable,
+  CampaignTableMessage,
+  CampaignTableSkeleton,
+  CampaignViewToggle,
+} from "@frontend/components/campaigns-list/campaign-table.tsx";
 import type { CampaignRow } from "@frontend/components/campaigns-list/campaign-list.ts";
 import {
   filterCampaigns,
@@ -44,43 +49,55 @@ function Campaigns() {
     }
   }, [campaigns.data, emails.data, now]);
 
+  const sort = toSortDirection(search);
   const visible = useMemo(
     () =>
       rows &&
       sortCampaigns(
         filterCampaigns(rows, toFilters(search), new Date(now)),
-        toSortDirection(search),
+        sort,
       ),
-    [rows, search, now],
+    [rows, search, sort, now],
   );
 
   const retry = () => {
     void campaigns.refetch();
     void emails.refetch();
   };
+  const toggleSort = () =>
+    navigate({
+      // "desc" is the default, so it is left out of the URL.
+      search: (prev) => ({
+        ...prev,
+        sort: sort === "desc" ? "asc" : undefined,
+      }),
+    });
+  const sortProps = { sort, onToggleSort: toggleSort };
 
   let body: ReactNode;
   if (campaigns.isError || emails.isError || rows === null) {
-    body = <CampaignListError onRetry={retry} />;
+    body = (
+      <CampaignTableMessage {...sortProps}>
+        <CampaignListError onRetry={retry} />
+      </CampaignTableMessage>
+    );
   } else if (!rows || !visible) {
     body = <CampaignTableSkeleton />;
   } else if (rows.length === 0) {
-    body = <CampaignListEmpty />;
-  } else if (visible.length === 0) {
-    body = <CampaignListNoMatches onClear={() => navigate({ search: {} })} />;
-  } else {
     body = (
-      <ul data-testid="campaign-list">
-        {visible.map((row) => (
-          <li key={row.campaign.campaignId}>{row.campaign.name}</li>
-        ))}
-      </ul>
+      <CampaignTableMessage {...sortProps}>
+        <CampaignListEmpty />
+      </CampaignTableMessage>
     );
+  } else if (visible.length === 0) {
+    body = (
+      <CampaignTableMessage {...sortProps}>
+        <CampaignListNoMatches onClear={() => navigate({ search: {} })} />
+      </CampaignTableMessage>
+    );
+  } else {
+    body = <CampaignTable rows={visible} {...sortProps} />;
   }
-  //body = <CampaignTableSkeleton />;
-  //body = <CampaignListError onRetry={retry} />;              // error
-  //body = <CampaignListEmpty />;                              // no campaigns
-  body = <CampaignListNoMatches onClear={() => {}} />; // no matches
   return (
     <main className="flex flex-1 flex-col gap-6 px-6 pt-6 pb-10 md:px-10">
       <h1
@@ -89,6 +106,9 @@ function Campaigns() {
       >
         Campaign List
       </h1>
+      <div className="flex items-center justify-end">
+        <CampaignViewToggle />
+      </div>
       {body}
     </main>
   );
