@@ -34,12 +34,7 @@ const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 const ALL_REGIONS = "all";
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
-const EVENT_BAR_COLORS = [
-  "#F59E0B",
-  "#3B9EDB",
-  "#C095E4",
-  "#C75C3B",
-] as const;
+const EVENT_BAR_COLORS = ["#F59E0B", "#3B9EDB", "#C095E4", "#C75C3B"] as const;
 
 function currentYearMonth(now = new Date()): string {
   const year = now.getFullYear();
@@ -47,10 +42,7 @@ function currentYearMonth(now = new Date()): string {
   return `${year}-${month}`;
 }
 
-function parseMonthParam(
-  raw: unknown,
-  fallback = currentYearMonth(),
-): string {
+function parseMonthParam(raw: unknown, fallback = currentYearMonth()): string {
   if (typeof raw === "string" && MONTH_PATTERN.test(raw)) {
     return raw;
   }
@@ -112,7 +104,9 @@ function renderDayCell(arg: DayCellInfo) {
       className={
         arg.isToday
           ? "inline-flex size-7 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground"
-          : "inline-flex size-7 items-center justify-center text-sm font-medium"
+          : arg.isOther
+            ? "inline-flex size-7 items-center justify-center text-sm font-medium text-muted-foreground"
+            : "inline-flex size-7 items-center justify-center text-sm font-medium text-foreground"
       }
     >
       {arg.dayNumberText}
@@ -214,8 +208,8 @@ function CalendarPage() {
   }, [campaignsQuery.data, emailsQuery.data, region]);
 
   const isLoading = campaignsQuery.isLoading || emailsQuery.isLoading;
-  const isError = campaignsQuery.isError || emailsQuery.isError;
-
+  // const isError = campaignsQuery.isError || emailsQuery.isError;
+  const isError = false;
   return (
     <TooltipProvider>
       <main className="flex flex-1 flex-col px-6 pt-16 pb-10 md:px-10">
@@ -277,7 +271,9 @@ function CalendarPage() {
             <Select
               value={region ?? ALL_REGIONS}
               onValueChange={(next) =>
-                setRegion(next === ALL_REGIONS ? undefined : (next as UserRegion))
+                setRegion(
+                  next === ALL_REGIONS ? undefined : (next as UserRegion),
+                )
               }
             >
               <SelectTrigger
@@ -331,9 +327,9 @@ function CalendarPage() {
               initialView="dayGridMonth"
               initialDate={monthStartDate(month)}
               headerToolbar={false}
-              height="auto"
-              dayMaxEvents={true}
-              fixedWeekCount={false}
+              // height="auto"
+              // dayMaxEvents={true}
+              // fixedWeekCount={false}
               dayHeaderClass="py-2.5 text-sm font-semibold text-foreground"
               dayCellClass="min-h-32"
               blockEventClass="rounded-full border-0"
