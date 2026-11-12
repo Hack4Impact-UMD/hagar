@@ -1,8 +1,9 @@
 import type { UserRegion } from "@repo/common";
-import { userRegions } from "@repo/common";
+import { campaignDateRanges, nowUtc, userRegions } from "@repo/common";
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@frontend/components/ui/button.tsx";
 import {
   Select,
@@ -11,27 +12,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@frontend/components/ui/select.tsx";
+import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
+import { trpc } from "@frontend/lib/trpc.ts";
 
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 const ALL_REGIONS = "all";
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
-export function currentYearMonth(now = new Date()): string {
+function currentYearMonth(now = new Date()): string {
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   return `${year}-${month}`;
 }
 
-export function parseMonthParam(
-  raw: unknown,
-  fallback = currentYearMonth(),
-): string {
+function parseMonthParam(raw: unknown, fallback = currentYearMonth()): string {
   if (typeof raw === "string" && MONTH_PATTERN.test(raw)) {
     return raw;
   }
   return fallback;
 }
 
-export function parseYearMonth(month: string): {
+function parseYearMonth(month: string): {
   year: number;
   monthIndex: number;
 } {
@@ -42,7 +43,7 @@ export function parseYearMonth(month: string): {
   };
 }
 
-export function shiftMonth(month: string, delta: number): string {
+function shiftMonth(month: string, delta: number): string {
   const { year, monthIndex } = parseYearMonth(month);
   const shifted = new Date(year, monthIndex + delta, 1);
   return currentYearMonth(shifted);
@@ -53,7 +54,7 @@ const MONTH_HEADING_FORMATTER = new Intl.DateTimeFormat("en-US", {
   year: "numeric",
 });
 
-export function formatMonthHeading(month: string): string {
+function formatMonthHeading(month: string): string {
   const { year, monthIndex } = parseYearMonth(month);
   return MONTH_HEADING_FORMATTER.format(new Date(year, monthIndex, 1));
 }
@@ -70,12 +71,33 @@ function CalendarPage() {
   const navigate = Route.useNavigate();
   const todayMonth = currentYearMonth();
   const [region, setRegion] = useState<UserRegion | undefined>();
+  const [sentTo, setSentTo] = useState(() => nowUtc());
+
+  const campaignsQuery = useQuery(trpc.campaigns.list.queryOptions());
+  const emailsQuery = useQuery(trpc.emails.campaigns.queryOptions({ sentTo }));
 
   const setMonth = (nextMonth: string) => {
     void navigate({
       search: (prev) => ({ ...prev, month: nextMonth }),
     });
   };
+
+  const handleRetry = () => {
+    setSentTo(nowUtc());
+    void campaignsQuery.refetch();
+    void emailsQuery.refetch();
+  };
+
+  const visibleRanges = useMemo(() => {
+    if (!campaignsQuery.data || !emailsQuery.data) return [];
+    const filteredCampaigns = region
+      ? campaignsQuery.data.filter((c) => c.region === region)
+      : campaignsQuery.data;
+    return campaignDateRanges(filteredCampaigns, emailsQuery.data);
+  }, [campaignsQuery.data, emailsQuery.data, region]);
+
+  const isLoading = campaignsQuery.isLoading || emailsQuery.isLoading;
+  const isError = campaignsQuery.isError || emailsQuery.isError;
 
   return (
     <main className="flex flex-1 flex-col px-6 pt-16 pb-10 md:px-10">
@@ -92,20 +114,21 @@ function CalendarPage() {
         aria-label="Calendar controls"
         className="mb-4 flex flex-wrap items-center justify-between gap-4"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Button
             type="button"
             variant="ghost"
             size="icon"
             aria-label="Previous month"
             data-testid="prev-month"
+            className="-ml-2.5"
             onClick={() => setMonth(shiftMonth(month, -1))}
           >
             <CaretLeftIcon className="size-4" aria-hidden />
           </Button>
           <h2
             data-testid="calendar-month"
-            className="min-w-44 text-center text-xl font-semibold text-foreground"
+            className="text-xl font-semibold text-foreground"
           >
             {formatMonthHeading(month)}
           </h2>
@@ -157,6 +180,64 @@ function CalendarPage() {
           </Select>
         </div>
       </section>
+
+      {isLoading ? (
+        <CalendarLoadingGrid />
+      ) : isError ? (
+        <div
+          role="alert"
+          data-testid="calendar-error"
+          className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-border py-20 text-center"
+        >
+          <p className="text-sm text-destructive">
+            Could not load calendar campaigns. Please try again.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            data-testid="calendar-retry"
+            onClick={handleRetry}
+          >
+            Retry
+          </Button>
+        </div>
+      ) : (
+        <div data-testid="calendar-ready" data-count={visibleRanges.length} />
+      )}
     </main>
+  );
+}
+
+function CalendarLoadingGrid() {
+  return (
+    <div
+      data-testid="calendar-loading"
+      aria-label="Loading calendar"
+      className="overflow-hidden rounded-2xl border border-border"
+    >
+      <div className="grid grid-cols-7 border-b border-border">
+        {WEEKDAYS.map((day) => (
+          <div
+            key={day}
+            className="px-3 py-2 text-sm font-semibold text-foreground"
+          >
+            {day}
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7">
+        {Array.from({ length: 35 }, (_, index) => (
+          <div
+            key={index}
+            className="flex h-28 flex-col justify-between border-r border-b border-border p-3 last:border-r-0 nth-[7n]:border-r-0 nth-[n+29]:border-b-0"
+          >
+            <Skeleton className="ml-auto size-6 rounded-full" />
+            {index % 6 === 1 ? (
+              <Skeleton className="h-5 w-4/5 rounded-full" />
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
