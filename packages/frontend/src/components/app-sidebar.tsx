@@ -7,6 +7,7 @@ import {
   FileTextIcon,
   HouseIcon,
   SignOutIcon,
+  UserIcon,
   UsersThreeIcon,
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
@@ -67,7 +68,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
     <Sidebar collapsible="none" {...props}>
       <SidebarContent className="gap-0 overflow-hidden p-0">
         <Link to="/" className="block shrink-0 pt-5.5 pb-17 pl-3.25">
-          <img src="/logo.png" alt="Hagar" className="w-44" />
+          <img src="/logo-full.svg" alt="Hagar" className="w-44" />
         </Link>
 
         <nav className="flex flex-col gap-0.75">
@@ -120,6 +121,11 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
                 <DotsThreeVerticalIcon className="size-4" weight="bold" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" side="top">
+                <DropdownMenuItem asChild>
+                  <Link to="/profile">
+                    <UserIcon /> Profile
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   data-testid="sign-out"
                   onClick={() => void auth.signOut()}
