@@ -1,18 +1,32 @@
 import { useMutation } from "@tanstack/react-query";
-import { Dialog } from "radix-ui";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Button } from "@frontend/components/ui/button.tsx";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@frontend/components/ui/dialog.tsx";
+import { Input } from "@frontend/components/ui/input.tsx";
+import { Label } from "@frontend/components/ui/label.tsx";
 import { trpc } from "@frontend/lib/trpc.ts";
 import { cleanName } from "@frontend/lib/viewDraft.ts";
 
 type NewViewDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onCreated: (viewId: string) => Promise<void>;
-  disabled?: boolean;
 };
 
-export function NewViewDialog({ onCreated, disabled }: NewViewDialogProps) {
-  const [open, setOpen] = useState(false);
+export function NewViewDialog({
+  open,
+  onOpenChange,
+  onCreated,
+}: NewViewDialogProps) {
   const [name, setName] = useState("");
+  const id = useId();
 
   const create = useMutation({
     ...trpc.views.create.mutationOptions(),
@@ -26,7 +40,7 @@ export function NewViewDialog({ onCreated, disabled }: NewViewDialogProps) {
   const tooLong = name.trim().length > 500;
 
   function handleOpenChange(next: boolean) {
-    setOpen(next);
+    onOpenChange(next);
     if (!next) {
       setName("");
       create.reset();
@@ -39,61 +53,54 @@ export function NewViewDialog({ onCreated, disabled }: NewViewDialogProps) {
   }
 
   return (
-    <Dialog.Root open={open} onOpenChange={handleOpenChange}>
-      <Dialog.Trigger asChild>
-        <Button
-          variant="outline"
-          disabled={disabled}
-          className="border-primary text-primary"
-        >
-          New view
-        </Button>
-      </Dialog.Trigger>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent aria-describedby={undefined} className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>New view</DialogTitle>
+        </DialogHeader>
 
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/40" />
-        <Dialog.Content
-          aria-describedby={undefined}
-          className="fixed top-1/2 left-1/2 w-[min(90vw,24rem)] -translate-x-1/2 -translate-y-1/2 rounded-lg bg-background p-6 shadow-lg"
-        >
-          <Dialog.Title className="text-lg font-semibold">
-            New view
-          </Dialog.Title>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <Label htmlFor={`${id}-name`}>Name</Label>
+            <Input
+              id={`${id}-name`}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              aria-invalid={tooLong}
+            />
+          </div>
 
-          <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
-            <label className="flex flex-col gap-1 text-sm">
-              Name
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="rounded-md border px-3 py-1.5"
-              />
-            </label>
+          {tooLong && (
+            <p className="text-sm text-destructive">
+              Name must be 500 characters or fewer.
+            </p>
+          )}
+          {create.isError && (
+            <p role="alert" className="text-sm text-destructive">
+              Couldn&apos;t create the view. Try again.
+            </p>
+          )}
 
-            {tooLong && (
-              <p className="text-sm text-destructive">
-                Name must be 500 characters or fewer.
-              </p>
-            )}
-            {create.isError && (
-              <p role="alert" className="text-sm text-destructive">
-                Couldn&apos;t create the view. Try again.
-              </p>
-            )}
-
-            <div className="flex justify-end gap-2">
-              <Dialog.Close asChild>
-                <Button type="button" variant="ghost">
-                  Cancel
-                </Button>
-              </Dialog.Close>
-              <Button type="submit" disabled={!cleaned || create.isPending}>
-                {create.isPending ? "Creating…" : "Create"}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-8 rounded-sm border-primary px-2.5 text-sm font-normal text-primary"
+              >
+                Cancel
               </Button>
-            </div>
-          </form>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+            </DialogClose>
+            <Button
+              type="submit"
+              disabled={!cleaned || create.isPending}
+              className="h-8 rounded-sm px-2.5 text-sm font-normal"
+            >
+              {create.isPending ? "Creating…" : "Create"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

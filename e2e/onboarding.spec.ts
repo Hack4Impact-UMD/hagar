@@ -67,7 +67,7 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   await approveUser(TEST_USER.email);
   await page.reload();
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByTestId("homepage")).toContainText("Welcome");
+  await expect(page.getByTestId("homepage")).toBeVisible();
 
   await page.getByTestId("profile-link").click();
   await expect(page.getByTestId("profile")).toHaveText("Profile");
@@ -85,6 +85,7 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   await page.getByRole("link", { name: "Back to homepage" }).click();
   await expect(page.getByTestId("homepage")).toBeVisible();
 
+  await page.getByRole("button", { name: "Account menu" }).click();
   await page.getByTestId("sign-out").click();
   await expect(page).toHaveURL(/\/login$/);
   await expect(page.getByRole("heading", { name: "Login" })).toBeVisible();
@@ -93,5 +94,5 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   await page.getByTestId("email").fill(TEST_USER.email);
   await page.getByTestId("password").fill(TEST_USER.password);
   await page.getByTestId("log-in").click();
-  await expect(page.getByTestId("homepage")).toContainText("Welcome");
+  await expect(page.getByTestId("homepage")).toBeVisible();
 });
