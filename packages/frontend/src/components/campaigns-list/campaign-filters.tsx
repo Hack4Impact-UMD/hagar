@@ -39,13 +39,13 @@ function orUndefined<T>(list: T[]): T[] | undefined {
 }
 
 const TRIGGER =
-  "inline-flex h-[2.125rem] cursor-pointer items-center gap-1.5 rounded-md border px-3 text-[0.875rem] outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
+  "inline-flex h-[2.125rem] cursor-pointer items-center gap-1.5 rounded-md border px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
 const TRIGGER_IDLE = "border-[#D9D4CE] bg-white text-[#1F1F1F]";
-const TRIGGER_ACTIVE = "border-[#C75C3B] bg-[#F6E6DC] text-[#9A3F22]";
+const TRIGGER_ACTIVE = "border-primary bg-[#F6E6DC] text-[#9A3F22]";
 const PANEL =
   "min-w-56 rounded-xl border-[#D9D4CE] bg-white p-0 shadow-[0_12px_32px_0_rgba(0,0,0,0.12)]";
 const PANEL_LABEL =
-  "px-4 pt-4 pb-2 text-[0.75rem] font-semibold tracking-wide text-[#6B6B6B] uppercase";
+  "px-4 pt-4 pb-2 text-xs font-semibold tracking-wide text-[#6B6B6B] uppercase";
 
 function FilterTrigger({
   label,
@@ -67,7 +67,7 @@ function FilterTrigger({
       >
         {label}
         {count ? (
-          <span className="flex size-4 items-center justify-center rounded-full bg-[#C75C3B] text-[0.6875rem] leading-none font-semibold text-white">
+          <span className="flex size-4 items-center justify-center rounded-full bg-primary text-[0.6875rem] leading-none font-semibold text-primary-foreground">
             {count}
           </span>
         ) : null}
@@ -107,7 +107,7 @@ function SearchBox({
           setText(event.target.value);
           onChange(event.target.value);
         }}
-        className="h-[2.125rem] rounded-md border-[#D9D4CE] bg-white pl-9 text-[0.875rem] shadow-none"
+        className="h-[2.125rem] rounded-md border-[#D9D4CE] bg-white pl-9 text-sm shadow-none"
       />
     </div>
   );
@@ -199,11 +199,11 @@ function MultiSelectFilter<T extends string>({
           >
             <span
               aria-hidden="true"
-              className="flex size-4 items-center justify-center rounded-[0.25rem] border border-[#BCB4AB] group-data-[state=checked]:border-[#C75C3B] group-data-[state=checked]:bg-[#C75C3B]"
+              className="flex size-4 items-center justify-center rounded-[0.25rem] border border-[#BCB4AB] group-data-[state=checked]:border-primary group-data-[state=checked]:bg-primary"
             >
               <CheckIcon
                 weight="bold"
-                className="size-3 text-white opacity-0 group-data-[state=checked]:opacity-100"
+                className="size-3 text-primary-foreground opacity-0 group-data-[state=checked]:opacity-100"
               />
             </span>
             {renderOption(option)}
@@ -213,14 +213,14 @@ function MultiSelectFilter<T extends string>({
           <button
             type="button"
             onClick={() => onChange([])}
-            className="cursor-pointer text-[0.875rem] text-[#6B6B6B]"
+            className="cursor-pointer text-sm text-[#6B6B6B]"
           >
             Clear
           </button>
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="h-8 cursor-pointer rounded-md bg-[#C75C3B] px-4 text-[0.875rem] text-white hover:bg-[#B4512F]"
+            className="h-8 cursor-pointer rounded-md bg-primary px-4 text-sm text-primary-foreground hover:bg-primary/90"
           >
             Done
           </button>
@@ -358,7 +358,7 @@ export function CampaignFilterChips({
   return (
     <div
       data-testid="campaign-filter-chips"
-      className="flex flex-wrap items-center gap-2 text-[0.875rem]"
+      className="flex flex-wrap items-center gap-2 text-sm"
     >
       <span className="text-[#6B6B6B]">
         Showing {shown} of {total} {total === 1 ? "campaign" : "campaigns"}
@@ -387,7 +387,7 @@ export function CampaignFilterChips({
           type="button"
           data-testid="campaign-clear-filters"
           onClick={onClearAll}
-          className="cursor-pointer text-[#C75C3B]"
+          className="cursor-pointer text-primary"
         >
           Clear all
         </button>

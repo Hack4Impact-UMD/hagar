@@ -21,7 +21,7 @@ function StateMessage({
       data-testid={testId}
       className="flex flex-col items-center px-6 pt-16 pb-24 text-center"
     >
-      <p className="text-[1.25rem] leading-normal font-semibold text-[#1F1F1F]">
+      <p className="text-xl leading-normal font-semibold text-[#1F1F1F]">
         {title}
       </p>
       {description ? (

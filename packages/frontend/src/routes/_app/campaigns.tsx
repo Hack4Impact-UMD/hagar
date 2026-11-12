@@ -1,4 +1,4 @@
-import { campaignDateRanges, nowUtc } from "@repo/common";
+import { campaignDateRanges, isActive, nowUtc } from "@repo/common";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import type { ReactNode } from "react";
@@ -8,6 +8,7 @@ import {
   CampaignListError,
   CampaignListNoMatches,
 } from "@frontend/components/campaigns-list/campaign-list-states.tsx";
+import { AddCampaignButton } from "@frontend/components/campaigns-list/add-campaign-dialog.tsx";
 import type { UpdateSearch } from "@frontend/components/campaigns-list/campaign-filters.tsx";
 import {
   CampaignFilterBar,
@@ -41,6 +42,13 @@ function Campaigns() {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const now = useMemo(() => nowUtc(), []);
+  // Already cached by the root route's guard, so this resolves immediately.
+  const { data: me } = useQuery({
+    ...trpc.me.queryOptions(),
+    staleTime: "static",
+  });
+  // Viewers can read campaigns but not add them; the backend enforces this too.
+  const canEdit = !!me && isActive(me) && me.role !== "Viewer";
   const campaigns = useQuery(trpc.campaigns.list.queryOptions());
   const emails = useQuery(trpc.emails.campaigns.queryOptions({ sentTo: now }));
   const rows = useMemo((): CampaignRow[] | null | undefined => {
@@ -93,7 +101,9 @@ function Campaigns() {
   } else if (rows.length === 0) {
     body = (
       <CampaignTableMessage {...sortProps}>
-        <CampaignListEmpty />
+        <CampaignListEmpty
+          action={canEdit ? <AddCampaignButton /> : undefined}
+        />
       </CampaignTableMessage>
     );
   } else if (visible.length === 0) {
@@ -116,7 +126,10 @@ function Campaigns() {
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <CampaignFilterBar search={search} setSearch={setSearch} />
-          <CampaignViewToggle />
+          <div className="flex items-center gap-5">
+            {canEdit ? <AddCampaignButton /> : null}
+            <CampaignViewToggle />
+          </div>
         </div>
         {rows && visible ? (
           <CampaignFilterChips

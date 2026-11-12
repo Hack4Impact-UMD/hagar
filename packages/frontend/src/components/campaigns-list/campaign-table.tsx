@@ -36,7 +36,7 @@ const COLUMNS = [
 // The last, unlabelled column holds each row's ⋮ menu.
 const ACTIONS_WIDTH = "w-[8%]";
 const CELL_PADDING = "px-5.5";
-const BAR = "h-3 max-w-full rounded-[0.375rem] bg-[#EEEAE5]";
+const BAR = "h-3 max-w-full rounded-sm bg-[#EEEAE5]";
 
 type SortProps = {
   sort?: SortDirection;
@@ -61,7 +61,7 @@ function CampaignTableFrame({
     <div
       data-testid={testId}
       aria-busy={busy || undefined}
-      className={`overflow-hidden rounded-[0.625rem] border border-[#ECE8E3] bg-white ${className}`}
+      className={`overflow-hidden rounded-lg border border-[#ECE8E3] bg-white ${className}`}
     >
       <Table className="table-fixed">
         <TableHeader className="[&_tr]:border-0">
@@ -76,7 +76,7 @@ function CampaignTableFrame({
                       : "descending"
                     : undefined
                 }
-                className={`${width} h-13 ${CELL_PADDING} text-[0.875rem] font-semibold text-[#6B6B6B]`}
+                className={`${width} h-13 ${CELL_PADDING} text-sm font-semibold text-[#6B6B6B]`}
               >
                 {label === "Date" ? (
                   <button
