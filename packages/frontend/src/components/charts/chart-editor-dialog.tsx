@@ -14,9 +14,16 @@ import {
 } from "@phosphor-icons/react";
 import { skipToken, useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
+import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 import { useEffect, useId, useMemo, useState } from "react";
 import { Button } from "@frontend/components/ui/button.tsx";
 import { Calendar } from "@frontend/components/ui/calendar.tsx";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@frontend/components/ui/chart.tsx";
+import type { ChartConfig } from "@frontend/components/ui/chart.tsx";
 import { Checkbox } from "@frontend/components/ui/checkbox.tsx";
 import {
   Dialog,
@@ -399,6 +406,19 @@ function ChartEditorForm({
             onSelect={(next) => setValue(key, next)}
           />
         ))}
+
+        <ChartPreview
+          title={form.title.trim()}
+          caption={
+            form.values.metric
+              ? EMAIL_CAMPAIGN_METRIC_LABELS[form.values.metric]
+              : CHART_TYPES[form.chartId].label
+          }
+          overTime={keysOf("DATE").some((key) => {
+            const field = FIELDS[key];
+            return field.kind === "DATE" && field.edge === "START";
+          })}
+        />
 
         <DialogFooter>
           <CancelButton />
@@ -799,5 +819,62 @@ function CheckboxFilter<T extends string>({
         </div>
       </PopoverContent>
     </Popover>
+  );
+}
+
+// placeholder numbers until the preview loads real chart data
+const TEMPLATE_SERIES = [
+  { at: "Jun", value: 820 },
+  { at: "Jul", value: 932 },
+  { at: "Aug", value: 901 },
+  { at: "Sep", value: 1034 },
+  { at: "Oct", value: 1190 },
+  { at: "Nov", value: 1248 },
+];
+const TEMPLATE_VALUE = 1248;
+
+function ChartPreview({
+  title,
+  caption,
+  overTime,
+}: {
+  title: string;
+  caption: string;
+  overTime: boolean;
+}) {
+  const config = {
+    value: { label: caption, color: "var(--chart-1)" },
+  } satisfies ChartConfig;
+
+  return (
+    <section
+      aria-label="Preview"
+      className="flex flex-col gap-3 rounded-md border bg-muted/40 p-5"
+    >
+      <span className="text-base font-semibold">{title || "Untitled"}</span>
+      {overTime ? (
+        <ChartContainer config={config} className="h-48 w-full">
+          <AreaChart data={TEMPLATE_SERIES} margin={{ left: 0, right: 8 }}>
+            <CartesianGrid vertical={false} />
+            <XAxis dataKey="at" tickLine={false} axisLine={false} />
+            <ChartTooltip content={<ChartTooltipContent />} />
+            <Area
+              dataKey="value"
+              type="monotone"
+              stroke="var(--color-value)"
+              fill="var(--color-value)"
+              fillOpacity={0.3}
+            />
+          </AreaChart>
+        </ChartContainer>
+      ) : (
+        <div className="flex flex-col items-center gap-1 py-6">
+          <span className="text-5xl font-semibold">
+            {TEMPLATE_VALUE.toLocaleString()}
+          </span>
+          <span className="text-sm text-muted-foreground">{caption}</span>
+        </div>
+      )}
+    </section>
   );
 }
