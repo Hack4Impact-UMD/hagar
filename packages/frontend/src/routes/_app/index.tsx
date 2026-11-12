@@ -14,6 +14,7 @@ import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
 import { errorCode, trpc } from "@frontend/lib/trpc.ts";
 
 export const Route = createFileRoute("/_app/")({
+  head: () => pageTitle("Homepage"),
   validateSearch: (search: Record<string, unknown>): { view?: string } => ({
     view: typeof search.view === "string" ? search.view : undefined,
   }),
