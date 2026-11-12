@@ -3,6 +3,7 @@ import { userRegions } from "@repo/common";
 import type {
   ChartDefinition,
   ChartId,
+  EmailCampaignSummary,
   UserRegion,
   UtcDateString,
 } from "@repo/common";
@@ -278,10 +279,27 @@ function ChartEditorForm({
   const id = useId();
   const chart = formToChart(form);
   const dates = resolveDates(form, now);
-  const canSave = chart !== undefined && dates.inOrder;
   const params = paramsOf(form.chartId);
   const keysOf = (kind: Field["kind"]) =>
     params.filter((key) => FIELDS[key].kind === kind);
+  const emailKey = keysOf("EMAIL")[0];
+  const pickedEmail = emailKey && (form.values[emailKey] as string | undefined);
+  const datesReady = dates.complete && dates.inOrder;
+  // queried here rather than in the picker so Save can wait for it
+  const emails = useQuery(
+    trpc.emails.campaigns.queryOptions(
+      emailKey && datesReady && dates.to
+        ? { ...(dates.from && { sentFrom: dates.from }), sentTo: dates.to }
+        : skipToken,
+    ),
+  );
+  // the old pick stays set while a new range loads or if it fails, so only
+  // save once the loaded emails still include it
+  const emailConfirmed =
+    !emailKey ||
+    (emails.data?.some((email) => email.emailCampaignId === pickedEmail) ??
+      false);
+  const canSave = chart !== undefined && dates.inOrder && emailConfirmed;
   const setValue = (key: ParamKey, value: unknown) =>
     setForm((current) => ({
       ...current,
@@ -389,16 +407,16 @@ function ChartEditorForm({
           </div>
         ) : null}
 
-        {keysOf("EMAIL").map((key) => (
+        {emailKey ? (
           <EmailPicker
-            key={key}
+            query={emails}
             sentFrom={dates.from}
             sentTo={dates.to}
-            ready={dates.complete && dates.inOrder}
-            selectedId={form.values[key] as string | undefined}
-            onSelect={(next) => setValue(key, next)}
+            ready={datesReady}
+            selectedId={pickedEmail}
+            onSelect={(next) => setValue(emailKey, next)}
           />
-        ))}
+        ) : null}
         {keysOf("LIST").map((key) => (
           <ListPicker
             key={key}
@@ -574,12 +592,19 @@ function FixedDatePicker({
 const showDate = (date: UtcDateString) => format(new Date(date), "MMM d, yyyy");
 
 function EmailPicker({
+  query,
   sentFrom,
   sentTo,
   ready,
   selectedId,
   onSelect,
 }: {
+  query: {
+    data?: EmailCampaignSummary[];
+    isPending: boolean;
+    isError: boolean;
+    refetch: () => unknown;
+  };
   sentFrom: UtcDateString | undefined;
   sentTo: UtcDateString | undefined;
   ready: boolean;
@@ -588,11 +613,6 @@ function EmailPicker({
 }) {
   const [regions, setRegions] = useState<UserRegion[]>([]);
   const [search, setSearch] = useState("");
-  const query = useQuery(
-    trpc.emails.campaigns.queryOptions(
-      ready && sentTo ? { ...(sentFrom && { sentFrom }), sentTo } : skipToken,
-    ),
-  );
   const inRegion = (query.data ?? []).filter(
     (email) => regions.length === 0 || regions.includes(email.region),
   );
