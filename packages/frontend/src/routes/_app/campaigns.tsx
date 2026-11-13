@@ -1,8 +1,8 @@
 import { campaignDateRanges, isActive, nowUtc } from "@repo/common";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import {
   CampaignListEmpty,
   CampaignListError,
@@ -77,6 +77,13 @@ function Campaigns() {
     void campaigns.refetch();
     void emails.refetch();
   };
+  const router = useRouter();
+  // The search text in the URL right now. `search` can trail it by a render
+  // or two while the router catches up with typing.
+  const latestQ = useCallback(
+    () => parseCampaignSearch(router.latestLocation.search).q ?? "",
+    [router],
+  );
   const setSearch: UpdateSearch = (update, options) =>
     navigate({ search: update, replace: options?.replace });
   const toggleSort = () =>
@@ -125,7 +132,11 @@ function Campaigns() {
       </h1>
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <CampaignFilterBar search={search} setSearch={setSearch} />
+          <CampaignFilterBar
+            search={search}
+            setSearch={setSearch}
+            latestQ={latestQ}
+          />
           <div className="flex items-center gap-5">
             {canEdit ? <AddCampaignButton /> : null}
             <CampaignViewToggle />

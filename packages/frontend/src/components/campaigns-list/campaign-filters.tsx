@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { userRegions } from "@repo/common";
 import {
   CaretDownIcon,
@@ -79,25 +79,22 @@ function FilterTrigger({
 
 function SearchBox({
   value,
+  latestValue,
   onChange,
 }: {
   value: string;
+  /** The search text in the URL right now, which `value` can trail. */
+  latestValue: () => string;
   onChange: (text: string) => void;
 }) {
+  // Typed text lives here so the cursor doesn't jump while the URL catches up.
   const [text, setText] = useState(value);
-  // Values this box sent to the URL that haven't come back yet. The router
-  // updates the URL after a short delay, so `value` can trail the typing.
-  const pending = useRef<string[]>([]);
   useEffect(() => {
-    const index = pending.current.indexOf(value);
-    if (index === -1) {
-      pending.current = [];
-      setText(value);
-    } else {
-      // Our own update arrived; anything sent before it is out of date.
-      pending.current = pending.current.slice(index + 1);
-    }
-  }, [value]);
+    // An older value from our own typing doesn't match the URL any more, so
+    // it's skipped. Once `value` matches the URL it has settled, whether it
+    // came from typing, Back/Forward, "Clear all" or a removed chip.
+    if (value === latestValue()) setText(value);
+  }, [value, latestValue]);
 
   return (
     <div className="relative w-54">
@@ -109,13 +106,8 @@ function SearchBox({
         data-testid="campaign-search"
         value={text}
         onChange={(event) => {
-          pending.current.push(event.target.value);
           setText(event.target.value);
           onChange(event.target.value);
-        }}
-        // Typing has stopped, so any value still on the list is out of date.
-        onBlur={() => {
-          pending.current = [];
         }}
         className="h-8.5 rounded-md border-[#D9D4CE] bg-white pl-9 text-sm shadow-none"
       />
@@ -209,7 +201,7 @@ function MultiSelectFilter<T extends string>({
           >
             <span
               aria-hidden="true"
-              className="flex size-4 items-center justify-center rounded-lg border border-[#BCB4AB] group-data-[state=checked]:border-primary group-data-[state=checked]:bg-primary"
+              className="flex size-4 items-center justify-center rounded-[4px] border border-[#BCB4AB] group-data-[state=checked]:border-primary group-data-[state=checked]:bg-primary"
             >
               <CheckIcon
                 weight="bold"
@@ -243,14 +235,17 @@ function MultiSelectFilter<T extends string>({
 export function CampaignFilterBar({
   search,
   setSearch,
+  latestQ,
 }: {
   search: CampaignSearch;
   setSearch: UpdateSearch;
+  latestQ: () => string;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <SearchBox
         value={search.q ?? ""}
+        latestValue={latestQ}
         onChange={(text) =>
           // One history entry per keystroke would make Back unusable.
           setSearch(
