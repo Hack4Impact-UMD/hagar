@@ -1,5 +1,6 @@
 import "@mdxeditor/editor/style.css";
 import {
+  addImportVisitor$,
   applyListType$,
   BoldItalicUnderlineToggles,
   convertSelectionToNode$,
@@ -13,12 +14,13 @@ import {
   listsPlugin,
   markdownShortcutPlugin,
   MDXEditor,
+  realmPlugin,
   Separator,
   toolbarPlugin,
   useCellValue,
   usePublisher,
 } from "@mdxeditor/editor";
-import type { RealmPlugin } from "@mdxeditor/editor";
+import type { MdastImportVisitor, RealmPlugin } from "@mdxeditor/editor";
 import { $createHeadingNode } from "@lexical/rich-text";
 import { CaretDownIcon } from "@phosphor-icons/react";
 import {
@@ -44,8 +46,9 @@ export type NotesEditorProps = {
   onChange?: (markdown: string, normalized: boolean) => void;
 };
 
-// Notes are user-entered, so links may only point at ordinary web or mail
-// addresses, never `javascript:` or `data:` URLs.
+// Markdown links the user adds may only point at ordinary web or mail
+// addresses, never `javascript:` or `data:` URLs. Lexical also rewrites any
+// other link it renders to `about:blank`.
 function isSafeUrl(url: string): boolean {
   try {
     return ["http:", "https:", "mailto:"].includes(new URL(url).protocol);
@@ -54,7 +57,57 @@ function isSafeUrl(url: string): boolean {
   }
 }
 
+// MDXEditor's markdown node type, which it doesn't export by name.
+type MdastNode = Parameters<
+  Extract<MdastImportVisitor<never>["testNode"], (...args: never[]) => unknown>
+>[0];
+
+/** The text inside a markdown node, without any of its markup. */
+function plainText(node: MdastNode): string {
+  if ("value" in node && typeof node.value === "string") return node.value;
+  if ("children" in node) return node.children.map(plainText).join("");
+  return "";
+}
+
+/**
+ * Notes are user-entered, so HTML in them must never become real elements.
+ * MDXEditor's fallback for HTML tags copies every attribute onto the element,
+ * so `<a href="javascript:…">` would run script when clicked. This visitor
+ * runs just before that fallback (priority -100) and keeps only the text.
+ * Underline is unaffected: MDXEditor turns `<u>` into formatting at a higher
+ * priority and ignores its attributes.
+ */
+const htmlAsTextVisitor: MdastImportVisitor<MdastNode> = {
+  testNode: (node) =>
+    node.type === "html" ||
+    node.type === "mdxJsxTextElement" ||
+    node.type === "mdxJsxFlowElement",
+  visitNode: ({ mdastNode, lexicalParent, actions }) => {
+    // Inline tags keep their content, formatting included, in place.
+    if (mdastNode.type === "mdxJsxTextElement") {
+      actions.visitChildren(mdastNode, lexicalParent);
+      return;
+    }
+    // Raw HTML shows as the text it was written as; block tags as their text.
+    const text =
+      mdastNode.type === "html" ? mdastNode.value : plainText(mdastNode);
+    const node = lexical.$createTextNode(text);
+    if (!lexical.$isElementNode(lexicalParent)) return;
+    if (lexical.$isRootNode(lexicalParent)) {
+      lexicalParent.append(lexical.$createParagraphNode().append(node));
+    } else {
+      lexicalParent.append(node);
+    }
+  },
+  priority: -50,
+};
+
+const htmlAsTextPlugin = realmPlugin({
+  init: (realm) => realm.pubIn({ [addImportVisitor$]: htmlAsTextVisitor }),
+});
+
 const contentPlugins: RealmPlugin[] = [
+  htmlAsTextPlugin(),
   headingsPlugin({ allowedHeadingLevels: [2] }),
   listsPlugin(),
   linkPlugin({ validateUrl: isSafeUrl }),
