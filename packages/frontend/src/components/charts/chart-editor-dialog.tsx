@@ -92,7 +92,7 @@ export function ChartEditorDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="max-h-[calc(100dvh-2rem)] gap-0 overflow-y-auto p-0 sm:max-w-180"
+        className="flex h-215 max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-180"
       >
         {/* content unmounts on close so each open starts fresh */}
         <ChartEditor initial={initial} onSave={onSave} />
@@ -119,7 +119,7 @@ function ChartEditor({
 
 function EditorHeader({ title }: { title: string }) {
   return (
-    <DialogHeader className="flex-row items-center justify-between border-b px-11 py-7">
+    <DialogHeader className="shrink-0 flex-row items-center justify-between border-b px-11 py-7">
       <DialogTitle className="text-2xl font-medium">{title}</DialogTitle>
       <DialogClose asChild>
         <Button type="button" variant="ghost" size="icon-lg">
@@ -157,6 +157,11 @@ const chartIdsOf = (channel: Channel) =>
     (chartId) => CHART_TYPES[chartId].channel === channel,
   );
 
+// the modal has a fixed size, so only the body scrolls and the header and
+// buttons stay put
+const BODY = "flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-11";
+const FOOTER = "shrink-0 px-11 py-6";
+
 // figma's radio is an orange ring with an orange dot, not a filled circle
 const RADIO =
   "border-primary data-checked:bg-transparent [&_[data-slot=radio-group-indicator]>span]:bg-primary";
@@ -176,7 +181,7 @@ function AddAnalyticStep({ onNext }: { onNext: (channel: Channel) => void }) {
   return (
     <>
       <EditorHeader title="Add New Analytic" />
-      <div className="flex flex-col gap-6 px-11 py-6">
+      <div className={`${BODY} pt-6`}>
         <div className="flex items-center gap-3">
           <div className="relative flex-1">
             <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground" />
@@ -242,21 +247,21 @@ function AddAnalyticStep({ onNext }: { onNext: (channel: Channel) => void }) {
             })}
           </RadioGroup>
         )}
-
-        <DialogFooter>
-          <CancelButton />
-          <Button
-            type="button"
-            disabled={!picked}
-            className="w-34"
-            onClick={() => {
-              if (picked) onNext(picked);
-            }}
-          >
-            Next
-          </Button>
-        </DialogFooter>
       </div>
+
+      <DialogFooter className={FOOTER}>
+        <CancelButton />
+        <Button
+          type="button"
+          disabled={!picked}
+          className="w-34"
+          onClick={() => {
+            if (picked) onNext(picked);
+          }}
+        >
+          Next
+        </Button>
+      </DialogFooter>
     </>
   );
 }
@@ -308,6 +313,7 @@ function ChartEditorForm({
 
   return (
     <form
+      className="flex min-h-0 flex-1 flex-col"
       onSubmit={(event) => {
         event.preventDefault();
         if (chart && canSave) onSave(chart);
@@ -315,7 +321,7 @@ function ChartEditorForm({
     >
       <EditorHeader title="Customize Analytic" />
 
-      <div className="flex flex-col gap-6 px-11 py-8">
+      <div className={`${BODY} pt-8`}>
         <div className={FIELD}>
           <Label htmlFor={`${id}-title`} className={FIELD_LABEL}>
             Title
@@ -437,14 +443,14 @@ function ChartEditorForm({
             return field.kind === "DATE" && field.edge === "START";
           })}
         />
-
-        <DialogFooter>
-          <CancelButton />
-          <Button type="submit" disabled={!canSave} className="w-34">
-            Save
-          </Button>
-        </DialogFooter>
       </div>
+
+      <DialogFooter className={FOOTER}>
+        <CancelButton />
+        <Button type="submit" disabled={!canSave} className="w-34">
+          Save
+        </Button>
+      </DialogFooter>
     </form>
   );
 }
