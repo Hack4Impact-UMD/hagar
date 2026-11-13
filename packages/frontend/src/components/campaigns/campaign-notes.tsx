@@ -35,6 +35,9 @@ export function CampaignNotes({
   // opening the notes without typing never counts as a change.
   const [saved, setSaved] = useState(campaign.notes);
   const [draft, setDraft] = useState(campaign.notes);
+  // Set when the editor can't read the notes and shows them as plain text.
+  // Saving then would overwrite notes the user never saw, so it's turned off.
+  const [unreadable, setUnreadable] = useState(false);
 
   const save = useMutation(
     trpc.campaigns.setNotes.mutationOptions({
@@ -78,6 +81,7 @@ export function CampaignNotes({
               if (normalized) setSaved(markdown);
               setDraft(markdown);
             }}
+            onUnreadable={() => setUnreadable(true)}
           />
         </Suspense>
       </div>
@@ -90,7 +94,7 @@ export function CampaignNotes({
           {error}
         </p>
       ) : null}
-      {canEdit ? (
+      {canEdit && !unreadable ? (
         <div className="flex items-center justify-end gap-3">
           {save.isSuccess && !dirty ? (
             <span

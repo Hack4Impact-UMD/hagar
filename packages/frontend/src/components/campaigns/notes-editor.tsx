@@ -14,8 +14,10 @@ import {
   listsPlugin,
   markdownShortcutPlugin,
   MDXEditor,
+  quotePlugin,
   realmPlugin,
   Separator,
+  thematicBreakPlugin,
   toolbarPlugin,
   useCellValue,
   usePublisher,
@@ -23,6 +25,7 @@ import {
 import type { MdastImportVisitor, RealmPlugin } from "@mdxeditor/editor";
 import { $createHeadingNode } from "@lexical/rich-text";
 import { CaretDownIcon } from "@phosphor-icons/react";
+import { useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,6 +47,11 @@ export type NotesEditorProps = {
    * into its canonical form, which isn't an edit by the user.
    */
   onChange?: (markdown: string, normalized: boolean) => void;
+  /**
+   * Called when the notes contain markdown the editor can't read. The notes
+   * are then shown as plain text instead, and must not be saved over.
+   */
+  onUnreadable?: () => void;
 };
 
 // Markdown links the user adds may only point at ordinary web or mail
@@ -110,6 +118,10 @@ const contentPlugins: RealmPlugin[] = [
   htmlAsTextPlugin(),
   headingsPlugin({ allowedHeadingLevels: [2] }),
   listsPlugin(),
+  // Not in the toolbar, but common in markdown, and typing `> ` or `---`
+  // creates them. Without these plugins, notes containing them can't load.
+  quotePlugin(),
+  thematicBreakPlugin(),
   linkPlugin({ validateUrl: isSafeUrl }),
   linkDialogPlugin(),
   markdownShortcutPlugin(),
@@ -136,20 +148,46 @@ export function NotesEditor({
   markdown,
   readOnly,
   onChange,
+  onUnreadable,
 }: NotesEditorProps) {
+  // MDXEditor stops at the first markdown it can't read and shows only what
+  // came before it, or nothing. Saving that would erase the rest, so the
+  // original text is shown instead.
+  const [unreadable, setUnreadable] = useState(false);
+  if (unreadable) return <UnreadableNotes markdown={markdown} />;
+
   return (
     <MDXEditor
       markdown={markdown}
       readOnly={readOnly}
       onChange={onChange}
+      onError={() => {
+        setUnreadable(true);
+        onUnreadable?.();
+      }}
       // Viewers can't change anything, so they get no toolbar at all.
       plugins={readOnly ? contentPlugins : editablePlugins}
       placeholder={readOnly ? "No notes yet." : "Type"}
       // Tailwind's preflight strips heading and list styles, and MDXEditor
       // leaves typography to the host page. Checklists keep MDXEditor's own
       // checkbox styling, so they're excluded from bullets.
-      contentEditableClassName="min-h-[32rem] text-lg leading-7 [&_a]:text-primary [&_a]:underline [&_h2]:my-2 [&_h2]:text-xl [&_h2]:font-bold [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-1 [&_ul]:pl-6 [&_ul:not(:has(>li[role=checkbox]))]:list-disc"
+      contentEditableClassName="min-h-[32rem] text-lg leading-7 [&_a]:text-primary [&_a]:underline [&_blockquote]:text-muted-foreground [&_blockquote]:my-2 [&_blockquote]:border-l-4 [&_blockquote]:pl-4 [&_hr]:my-4 [&_h2]:my-2 [&_h2]:text-xl [&_h2]:font-bold [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-1 [&_ul]:pl-6 [&_ul:not(:has(>li[role=checkbox]))]:list-disc"
     />
+  );
+}
+
+/** The notes as plain text, for markdown the editor can't read. */
+function UnreadableNotes({ markdown }: { markdown: string }) {
+  return (
+    <div data-testid="notes-unreadable" className="flex flex-col gap-3 p-3">
+      <p role="alert" className="text-muted-foreground text-sm">
+        These notes use formatting the editor can&apos;t show, so they&apos;re
+        displayed as plain text and can&apos;t be edited here.
+      </p>
+      <pre className="font-sans text-lg leading-7 break-words whitespace-pre-wrap">
+        {markdown}
+      </pre>
+    </div>
   );
 }
 
