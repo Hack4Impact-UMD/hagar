@@ -62,7 +62,9 @@ function CampaignDetails() {
 
   if (campaign.isPending) return <CampaignDetailsSkeleton />;
 
-  if (campaign.isError) {
+  // Only a failed first load replaces the page. If a background refetch fails,
+  // the last loaded campaign stays on screen, so unsaved notes aren't lost.
+  if (campaign.isLoadingError) {
     if (campaign.error.data?.code === "NOT_FOUND") {
       return (
         <PageMessage testId="campaign-not-found" title="Campaign not found">
@@ -107,6 +109,26 @@ function CampaignDetails() {
           </p>
         </div>
       </header>
+
+      {campaign.isRefetchError ? (
+        <div
+          role="alert"
+          data-testid="campaign-refresh-error"
+          className="flex items-center gap-3 md:ml-8"
+        >
+          <p className="text-muted-foreground">
+            Couldn&apos;t refresh this campaign. You&apos;re seeing the last
+            loaded version.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void campaign.refetch()}
+          >
+            Try again
+          </Button>
+        </div>
+      ) : null}
 
       <section
         aria-labelledby="traffic-overview"

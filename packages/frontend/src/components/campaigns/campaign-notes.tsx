@@ -38,11 +38,20 @@ export function CampaignNotes({
   // Set when the editor can't read the notes and shows them as plain text.
   // Saving then would overwrite notes the user never saw, so it's turned off.
   const [unreadable, setUnreadable] = useState(false);
+  // MDXEditor only reads its notes when it mounts, so loading newer notes
+  // means remounting it under a new key.
+  const [editorKey, setEditorKey] = useState(0);
+  // The server's notes as of the last time this component looked, to notice
+  // when a background refetch brings in someone else's change.
+  const [serverNotes, setServerNotes] = useState(campaign.notes);
+  // Set when the server's notes changed while the user had unsaved edits.
+  const [changedElsewhere, setChangedElsewhere] = useState(false);
 
   const save = useMutation(
     trpc.campaigns.setNotes.mutationOptions({
       onSuccess: (updated, { notes }) => {
         setSaved(notes);
+        setChangedElsewhere(false);
         queryClient.setQueryData(
           trpc.campaigns.get.queryKey({ campaignId: campaign.campaignId }),
           updated,
@@ -54,6 +63,23 @@ export function CampaignNotes({
 
   const tooLong = draft.length > MAX_CAMPAIGN_NOTES_LENGTH;
   const dirty = draft !== saved;
+
+  // Adjusting state during render, rather than in an effect, avoids showing
+  // the old notes for a frame.
+  if (campaign.notes !== serverNotes) {
+    setServerNotes(campaign.notes);
+    if (campaign.notes === saved) {
+      // Our own save coming back: the editor already shows these notes.
+    } else if (dirty) {
+      // Keep the user's edits. Saving will replace the other change, so say so.
+      setChangedElsewhere(true);
+    } else {
+      setSaved(campaign.notes);
+      setDraft(campaign.notes);
+      setUnreadable(false);
+      setEditorKey((key) => key + 1);
+    }
+  }
   const error = tooLong
     ? TOO_LONG
     : save.isError
@@ -75,16 +101,29 @@ export function CampaignNotes({
       <div className="rounded-[0.625rem] bg-card">
         <Suspense fallback={<Skeleton className="h-[34rem] w-full" />}>
           <NotesEditor
+            key={editorKey}
             markdown={campaign.notes}
             readOnly={!canEdit}
             onChange={(markdown, normalized) => {
               if (normalized) setSaved(markdown);
               setDraft(markdown);
+              // A failed save's message is about text that's now changed.
+              if (save.isError) save.reset();
             }}
             onUnreadable={() => setUnreadable(true)}
           />
         </Suspense>
       </div>
+      {changedElsewhere ? (
+        <p
+          aria-live="polite"
+          data-testid="notes-conflict"
+          className="text-muted-foreground text-sm"
+        >
+          Someone else changed these notes while you were editing. Saving will
+          replace their changes with yours.
+        </p>
+      ) : null}
       {error ? (
         <p
           role="alert"
