@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@frontend/components/ui/table.tsx";
 import { ApproveDialog } from "@frontend/components/user-management/approve-dialog.tsx";
-import { ConfirmDialog } from "@frontend/components/user-management/confirm-dialog.tsx";
+import { ConfirmDialog } from "@frontend/components/confirm-dialog.tsx";
 import {
   EmptyState,
   ErrorState,

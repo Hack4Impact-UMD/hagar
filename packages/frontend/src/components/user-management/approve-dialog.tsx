@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@frontend/components/ui/select.tsx";
-import { ConfirmDialog } from "@frontend/components/user-management/confirm-dialog.tsx";
+import { ConfirmDialog } from "@frontend/components/confirm-dialog.tsx";
 
 interface ApproveDialogProps {
   open: boolean;
