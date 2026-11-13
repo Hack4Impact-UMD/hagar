@@ -4,6 +4,7 @@ import type {
   ChartDefinition,
   ChartId,
   EmailCampaignSummary,
+  EmailListSummary,
   UserRegion,
   UtcDateString,
 } from "@repo/common";
@@ -304,7 +305,17 @@ function ChartEditorForm({
     !emailKey ||
     (emails.data?.some((email) => email.emailCampaignId === pickedEmail) ??
       false);
-  const canSave = chart !== undefined && dates.inOrder && emailConfirmed;
+  const listKey = keysOf("LIST")[0];
+  const pickedList = listKey && (form.values[listKey] as string | undefined);
+  const lists = useQuery(
+    trpc.emails.lists.queryOptions(listKey ? undefined : skipToken),
+  );
+  // same for lists, since a saved list may have been deleted since
+  const listConfirmed =
+    !listKey ||
+    (lists.data?.some((list) => list.emailListId === pickedList) ?? false);
+  const canSave =
+    chart !== undefined && dates.inOrder && emailConfirmed && listConfirmed;
   const setValue = (key: ParamKey, value: unknown) =>
     setForm((current) => ({
       ...current,
@@ -423,13 +434,13 @@ function ChartEditorForm({
             onSelect={(next) => setValue(emailKey, next)}
           />
         ) : null}
-        {keysOf("LIST").map((key) => (
+        {listKey ? (
           <ListPicker
-            key={key}
-            selectedId={form.values[key] as string | undefined}
-            onSelect={(next) => setValue(key, next)}
+            query={lists}
+            selectedId={pickedList}
+            onSelect={(next) => setValue(listKey, next)}
           />
-        ))}
+        ) : null}
 
         <ChartPreview
           title={form.title.trim()}
@@ -692,13 +703,26 @@ function EmailPicker({
 }
 
 function ListPicker({
+  query,
   selectedId,
   onSelect,
 }: {
+  query: {
+    data?: EmailListSummary[];
+    isPending: boolean;
+    isError: boolean;
+    refetch: () => unknown;
+  };
   selectedId: string | undefined;
   onSelect: (id?: string) => void;
 }) {
-  const query = useQuery(trpc.emails.lists.queryOptions());
+  const pickGone =
+    query.data !== undefined &&
+    selectedId !== undefined &&
+    !query.data.some((list) => list.emailListId === selectedId);
+  useEffect(() => {
+    if (pickGone) onSelect();
+  }, [pickGone, onSelect]);
 
   return (
     <div className="flex flex-col gap-3">
