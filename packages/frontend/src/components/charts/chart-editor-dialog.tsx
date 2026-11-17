@@ -57,6 +57,7 @@ import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
 import {
   CHART_TYPES,
   FIELDS,
+  NOW,
   changeChartType,
   chartToForm,
   formToChart,
@@ -288,6 +289,18 @@ function ChartEditorForm({
   const params = paramsOf(form.chartId);
   const keysOf = (kind: Field["kind"]) =>
     params.filter((key) => FIELDS[key].kind === kind);
+  const dateKeyAt = (edge: "START" | "END") =>
+    keysOf("DATE").find((key) => {
+      const field = FIELDS[key];
+      return field.kind === "DATE" && field.edge === edge;
+    });
+  // charts with a start and end get the range presets
+  const startKey = dateKeyAt("START");
+  const endKey = dateKeyAt("END");
+  const labelOf = (key: ParamKey) => {
+    const field = FIELDS[key];
+    return field.kind === "DATE" ? field.label : key;
+  };
   const emailKey = keysOf("EMAIL")[0];
   const pickedEmail = emailKey && (form.values[emailKey] as string | undefined);
   const datesReady = dates.complete && dates.inOrder;
@@ -403,19 +416,27 @@ function ChartEditorForm({
 
         {keysOf("DATE").length > 0 ? (
           <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap gap-4">
-              {keysOf("DATE").map((key) => {
-                const field = FIELDS[key];
-                return field.kind === "DATE" ? (
-                  <DateField
-                    key={key}
-                    label={field.label}
-                    value={form.values[key] as DateControl}
-                    onChange={(next) => setValue(key, next)}
-                  />
-                ) : null;
-              })}
-            </div>
+            {startKey && endKey ? (
+              <RangeField
+                start={form.values[startKey] as DateControl}
+                end={form.values[endKey] as DateControl}
+                startLabel={labelOf(startKey)}
+                endLabel={labelOf(endKey)}
+                onChange={(start, end) => {
+                  setValue(startKey, start);
+                  setValue(endKey, end);
+                }}
+              />
+            ) : (
+              keysOf("DATE").map((key) => (
+                <DateField
+                  key={key}
+                  label={labelOf(key)}
+                  value={form.values[key] as DateControl}
+                  onChange={(next) => setValue(key, next)}
+                />
+              ))
+            )}
             {dates.inOrder ? null : (
               <p role="alert" className="text-sm text-destructive">
                 Start must be before End.
@@ -449,10 +470,7 @@ function ChartEditorForm({
               ? EMAIL_CAMPAIGN_METRIC_LABELS[form.values.metric]
               : CHART_TYPES[form.chartId].label
           }
-          overTime={keysOf("DATE").some((key) => {
-            const field = FIELDS[key];
-            return field.kind === "DATE" && field.edge === "START";
-          })}
+          overTime={startKey !== undefined}
         />
       </div>
 
@@ -466,29 +484,91 @@ function ChartEditorForm({
   );
 }
 
-type DateChoice = "FIXED" | "NOW" | Ago["unit"];
-
-const DATE_CHOICES: { value: DateChoice; label: string }[] = [
-  { value: "FIXED", label: "Fixed date" },
-  { value: "NOW", label: "Now" },
-  { value: "DAY", label: "Days ago" },
-  { value: "WEEK", label: "Weeks ago" },
-  { value: "MONTH", label: "Months ago" },
-  { value: "YEAR", label: "Years ago" },
+const PRESETS: { label: string; ago: Ago }[] = [
+  { label: "Last 7 days", ago: { amount: 7, unit: "DAY" } },
+  { label: "Last 30 days", ago: { amount: 30, unit: "DAY" } },
+  { label: "Last 3 months", ago: { amount: 3, unit: "MONTH" } },
+  { label: "Last 12 months", ago: { amount: 12, unit: "MONTH" } },
 ];
+const CUSTOM = "Custom";
 
-function choiceOf(control: DateControl): DateChoice {
-  if (control.mode === "FIXED") return "FIXED";
-  return control.ago?.unit ?? "NOW";
+// a preset is a relative start that ends now. saved dates that match none
+// show as custom
+function presetOf(start: DateControl, end: DateControl): string {
+  const preset = PRESETS.find(
+    ({ ago }) =>
+      start.mode === "RELATIVE" &&
+      start.ago?.amount === ago.amount &&
+      start.ago.unit === ago.unit &&
+      end.mode === "RELATIVE" &&
+      !end.ago,
+  );
+  return preset?.label ?? CUSTOM;
 }
 
-function withChoice(control: DateControl, choice: DateChoice): DateControl {
-  if (choice === "FIXED") return { mode: "FIXED", date: undefined };
-  if (choice === "NOW") return { mode: "RELATIVE", ago: undefined };
-  // keeps the number when only the unit changes, so 3 weeks ago -> 3 months ago
-  const amount =
-    control.mode === "RELATIVE" && control.ago ? control.ago.amount : 1;
-  return { mode: "RELATIVE", ago: { amount, unit: choice } };
+function RangeField({
+  start,
+  end,
+  startLabel,
+  endLabel,
+  onChange,
+}: {
+  start: DateControl;
+  end: DateControl;
+  startLabel: string;
+  endLabel: string;
+  onChange: (start: DateControl, end: DateControl) => void;
+}) {
+  const id = useId();
+  const range = presetOf(start, end);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className={FIELD}>
+        <span id={id} className={FIELD_LABEL}>
+          Date range
+        </span>
+        <Select
+          value={range}
+          onValueChange={(next) => {
+            const preset = PRESETS.find((p) => p.label === next);
+            if (preset) onChange({ mode: "RELATIVE", ago: preset.ago }, NOW);
+            else onChange({ mode: "FIXED", date: undefined }, end);
+          }}
+        >
+          <SelectTrigger aria-labelledby={id} className={SELECT_TRIGGER}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent position="popper">
+            {[...PRESETS.map((p) => p.label), CUSTOM].map((label) => (
+              <SelectItem key={label} value={label}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      {range === CUSTOM ? (
+        <div className="flex flex-wrap gap-4">
+          <div className="flex w-60 flex-col gap-2">
+            <span id={`${id}-start`} className="text-sm text-muted-foreground">
+              {startLabel}
+            </span>
+            <FixedDatePicker
+              labelId={`${id}-start`}
+              date={start.mode === "FIXED" ? start.date : undefined}
+              onChange={(date) => onChange({ mode: "FIXED", date }, end)}
+            />
+          </div>
+          <DateField
+            label={endLabel}
+            value={end}
+            onChange={(next) => onChange(start, next)}
+          />
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 function DateField({
@@ -501,52 +581,29 @@ function DateField({
   onChange: (next: DateControl) => void;
 }) {
   const id = useId();
-  const ago = value.mode === "RELATIVE" ? value.ago : undefined;
 
   return (
     <div className="flex w-60 flex-col gap-2">
       <span id={id} className="text-sm text-muted-foreground">
         {label}
       </span>
-      <div className="flex gap-2">
-        {ago ? (
-          <Input
-            type="number"
-            min={1}
-            max={10000}
-            step={1}
-            aria-label={`${label} amount`}
-            value={Number.isNaN(ago.amount) ? "" : ago.amount}
-            onChange={(event) =>
-              onChange({
-                mode: "RELATIVE",
-                ago: { ...ago, amount: event.target.valueAsNumber },
-              })
-            }
-            className="h-10 w-18 text-base font-semibold shadow-none md:text-base"
-          />
-        ) : null}
-        <Select
-          value={choiceOf(value)}
-          onValueChange={(next) =>
-            onChange(withChoice(value, next as DateChoice))
-          }
+      <Select
+        value={value.mode}
+        onValueChange={(next) =>
+          onChange(next === "FIXED" ? { mode: "FIXED", date: undefined } : NOW)
+        }
+      >
+        <SelectTrigger
+          aria-labelledby={id}
+          className="w-full text-base shadow-none data-[size=default]:h-10"
         >
-          <SelectTrigger
-            aria-labelledby={id}
-            className="flex-1 text-base shadow-none data-[size=default]:h-10"
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent position="popper">
-            {DATE_CHOICES.map((choice) => (
-              <SelectItem key={choice.value} value={choice.value}>
-                {choice.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent position="popper">
+          <SelectItem value="RELATIVE">Now</SelectItem>
+          <SelectItem value="FIXED">Fixed date</SelectItem>
+        </SelectContent>
+      </Select>
       {value.mode === "FIXED" ? (
         <FixedDatePicker
           labelId={id}

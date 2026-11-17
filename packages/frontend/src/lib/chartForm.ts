@@ -4,7 +4,6 @@ import {
   emailCampaignMetricOverTimeChart,
   emailListSizeChart,
   emailListSizeOverTimeChart,
-  pointInTime,
   resolvePointInTime,
 } from "@repo/common";
 import type {
@@ -55,7 +54,7 @@ export type Field =
       initial: DateControl;
     };
 
-const NOW: DateControl = { mode: "RELATIVE", ago: undefined };
+export const NOW: DateControl = { mode: "RELATIVE", ago: undefined };
 
 // the input for each param. a Record so a new param fails to compile until it
 // gets an input here
@@ -68,7 +67,7 @@ export const FIELDS: Record<ParamKey, Field> = {
     kind: "DATE",
     label: "Start",
     edge: "START",
-    initial: { mode: "RELATIVE", ago: { amount: 1, unit: "MONTH" } },
+    initial: { mode: "RELATIVE", ago: { amount: 30, unit: "DAY" } },
   },
   end: { kind: "DATE", label: "End", edge: "END", initial: NOW },
 };
@@ -191,19 +190,6 @@ export function chartToForm(chart: ChartDefinition): ChartForm {
   return { title: chart.name, chartId: chart.chartId, values };
 }
 
-// the amount box can be empty or out of range while typing, and resolving that
-// would throw, so it gives undefined instead
-function resolveControl(
-  control: DateControl | undefined,
-  edge: "START" | "END",
-  now: Date,
-): UtcDateString | undefined {
-  const point = control && controlToPoint(control, edge);
-  return point && pointInTime.allows(point)
-    ? resolvePointInTime(point, now)
-    : undefined;
-}
-
 // from is only set for types with a start date. an unfinished date makes
 // complete false but still counts as in order
 export function resolveDates(form: ChartForm, now: Date) {
@@ -213,11 +199,9 @@ export function resolveDates(form: ChartForm, now: Date) {
   for (const key of paramsOf(form.chartId)) {
     const field = FIELDS[key];
     if (field.kind !== "DATE") continue;
-    const resolved = resolveControl(
-      form.values[key] as DateControl | undefined,
-      field.edge,
-      now,
-    );
+    const control = form.values[key] as DateControl | undefined;
+    const point = control && controlToPoint(control, field.edge);
+    const resolved = point && resolvePointInTime(point, now);
     if (!resolved) complete = false;
     if (field.edge === "START") from = resolved;
     else to = resolved;
