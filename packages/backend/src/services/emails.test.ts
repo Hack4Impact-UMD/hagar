@@ -121,7 +121,7 @@ function summaryOf(id: keyof typeof SENT): EmailCampaignSummary {
 }
 
 describe("listEmailCampaigns", () => {
-  it.fails("lists only the summary of each email sent in the range, bounds included, newest first", async () => {
+  it("lists only the summary of each email sent in the range, bounds included, newest first", async () => {
     const { db } = seeded();
 
     const emails = await listEmailCampaigns(db, admin, {
@@ -132,7 +132,7 @@ describe("listEmailCampaigns", () => {
     expect(emails).toEqual([summaryOf("april"), summaryOf("march")]);
   });
 
-  it.fails("lists every email sent up to the end when there is no start", async () => {
+  it("lists every email sent up to the end when there is no start", async () => {
     const { db } = seeded();
 
     const emails = await listEmailCampaigns(db, admin, {
@@ -142,7 +142,7 @@ describe("listEmailCampaigns", () => {
     expect(emails).toEqual([summaryOf("april"), summaryOf("march")]);
   });
 
-  it.fails("leaves out emails with no send time", async () => {
+  it("leaves out emails with no send time", async () => {
     const { db } = seeded();
 
     const emails = await listEmailCampaigns(db, admin, { sentTo: fetchedAt });
@@ -154,7 +154,7 @@ describe("listEmailCampaigns", () => {
     ]);
   });
 
-  it.fails("lists emails for a Viewer too", async () => {
+  it("lists emails for a Viewer too", async () => {
     const { db } = seeded();
 
     const emails = await listEmailCampaigns(db, actor("Viewer"), {
@@ -164,7 +164,7 @@ describe("listEmailCampaigns", () => {
     expect(emails).toHaveLength(3);
   });
 
-  it.fails("returns an empty list when nothing was sent in the range", async () => {
+  it("returns an empty list when nothing was sent in the range", async () => {
     const { db } = seeded();
 
     await expect(
@@ -174,7 +174,7 @@ describe("listEmailCampaigns", () => {
 });
 
 describe("listEmailLists", () => {
-  it.fails("lists only the summary of every list, sorted by name", async () => {
+  it("lists only the summary of every list, sorted by name", async () => {
     const { db } = seeded();
 
     const lists = await listEmailLists(db, admin);
@@ -186,13 +186,13 @@ describe("listEmailLists", () => {
     ]);
   });
 
-  it.fails("lists email lists for a Viewer too", async () => {
+  it("lists email lists for a Viewer too", async () => {
     const { db } = seeded();
 
     await expect(listEmailLists(db, actor("Viewer"))).resolves.toHaveLength(3);
   });
 
-  it.fails("returns an empty list when there are no lists", async () => {
+  it("returns an empty list when there are no lists", async () => {
     const { db } = fakeFirestore();
 
     await expect(listEmailLists(db, admin)).resolves.toEqual([]);
