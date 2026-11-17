@@ -1,3 +1,4 @@
+import { MAX_CAMPAIGN_NOTES_LENGTH } from "@repo/common";
 import type { Campaign } from "@repo/common";
 import { useMutation } from "@tanstack/react-query";
 import { lazy, Suspense, useState } from "react";
@@ -10,10 +11,6 @@ const NotesEditor = lazy(async () => {
     await import("@frontend/components/campaigns/notes-editor.tsx");
   return { default: NotesEditor };
 });
-
-// Matches the `campaignNotes` schema in `@repo/common`, which doesn't export
-// the number. The editor counts in UTF-16 code units, as the schema does.
-const MAX_CAMPAIGN_NOTES_LENGTH = 10_000;
 
 const TOO_LONG = `Notes can be at most ${MAX_CAMPAIGN_NOTES_LENGTH.toLocaleString("en-US")} characters.`;
 

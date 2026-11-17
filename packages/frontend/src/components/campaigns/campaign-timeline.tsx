@@ -27,16 +27,18 @@ export function CampaignTimeline({
           No emails in this campaign yet.
         </p>
       ) : (
-        <ol className="relative">
-          {/* The line runs through the centre of the 24px dots. */}
+        <div className="relative">
+          {/* The line runs through the center of the 24px dots. */}
           <span
             aria-hidden
             className="bg-foreground absolute top-0 bottom-0 left-[6.75rem] w-px"
           />
-          {emails.map((email) => (
-            <TimelineEmail key={email.emailCampaignId} email={email} />
-          ))}
-        </ol>
+          <ol>
+            {emails.map((email) => (
+              <TimelineEmail key={email.emailCampaignId} email={email} />
+            ))}
+          </ol>
+        </div>
       )}
     </section>
   );

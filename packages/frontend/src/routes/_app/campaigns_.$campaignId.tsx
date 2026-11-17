@@ -5,6 +5,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
 import { CampaignNotes } from "@frontend/components/campaigns/campaign-notes.tsx";
+import { NotFound } from "@frontend/components/NotFound.tsx";
 import { CampaignTimeline } from "@frontend/components/campaigns/campaign-timeline.tsx";
 import { EmailAnalytics } from "@frontend/components/campaigns/email-analytics.tsx";
 import type { EmailAnalyticsDay } from "@frontend/components/campaigns/email-analytics.tsx";
@@ -65,13 +66,7 @@ function CampaignDetails() {
   // Only a failed first load replaces the page. If a background refetch fails,
   // the last loaded campaign stays on screen, so unsaved notes aren't lost.
   if (campaign.isLoadingError) {
-    if (campaign.error.data?.code === "NOT_FOUND") {
-      return (
-        <PageMessage testId="campaign-not-found" title="Campaign not found">
-          <p>It may have been deleted, or the link may be wrong.</p>
-        </PageMessage>
-      );
-    }
+    if (campaign.error.data?.code === "NOT_FOUND") return <NotFound />;
     return (
       <PageMessage testId="campaign-error" title="Couldn't load this campaign">
         <p>Something went wrong. Check your connection and try again.</p>
@@ -149,7 +144,7 @@ function CampaignDetails() {
           <div
             role="alert"
             data-testid="timeline-error"
-            className="flex items-center gap-3 self-start"
+            className="flex items-center gap-3"
           >
             <p className="text-muted-foreground">
               Couldn&apos;t load this campaign&apos;s emails.
