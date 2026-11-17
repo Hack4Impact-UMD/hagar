@@ -72,6 +72,28 @@ export const FIELDS: Record<ParamKey, Field> = {
   end: { kind: "DATE", label: "End", edge: "END", initial: NOW },
 };
 
+export const PRESETS: { label: string; ago: Ago }[] = [
+  { label: "Last 7 days", ago: { amount: 7, unit: "DAY" } },
+  { label: "Last 30 days", ago: { amount: 30, unit: "DAY" } },
+  { label: "Last 3 months", ago: { amount: 3, unit: "MONTH" } },
+  { label: "Last 12 months", ago: { amount: 12, unit: "MONTH" } },
+];
+export const CUSTOM = "Custom";
+
+// a preset is a relative start that ends now. saved dates that match none
+// show as custom
+export function presetOf(start: DateControl, end: DateControl): string {
+  const preset = PRESETS.find(
+    ({ ago }) =>
+      start.mode === "RELATIVE" &&
+      start.ago?.amount === ago.amount &&
+      start.ago.unit === ago.unit &&
+      end.mode === "RELATIVE" &&
+      !end.ago,
+  );
+  return preset?.label ?? CUSTOM;
+}
+
 export type Channel = "INSTAGRAM" | "WEBSITE" | "EMAIL" | "LINKEDIN";
 
 // the params come from each chart's schema, so only the label and channel are

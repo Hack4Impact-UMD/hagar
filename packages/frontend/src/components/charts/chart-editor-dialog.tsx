@@ -56,17 +56,19 @@ import {
 import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
 import {
   CHART_TYPES,
+  CUSTOM,
   FIELDS,
   NOW,
+  PRESETS,
   changeChartType,
   chartToForm,
   formToChart,
   newChartForm,
   paramsOf,
+  presetOf,
   resolveDates,
 } from "@frontend/lib/chartForm.ts";
 import type {
-  Ago,
   Channel,
   ChartForm,
   DateControl,
@@ -493,28 +495,6 @@ function ChartEditorForm({
       </DialogFooter>
     </form>
   );
-}
-
-const PRESETS: { label: string; ago: Ago }[] = [
-  { label: "Last 7 days", ago: { amount: 7, unit: "DAY" } },
-  { label: "Last 30 days", ago: { amount: 30, unit: "DAY" } },
-  { label: "Last 3 months", ago: { amount: 3, unit: "MONTH" } },
-  { label: "Last 12 months", ago: { amount: 12, unit: "MONTH" } },
-];
-const CUSTOM = "Custom";
-
-// a preset is a relative start that ends now. saved dates that match none
-// show as custom
-function presetOf(start: DateControl, end: DateControl): string {
-  const preset = PRESETS.find(
-    ({ ago }) =>
-      start.mode === "RELATIVE" &&
-      start.ago?.amount === ago.amount &&
-      start.ago.unit === ago.unit &&
-      end.mode === "RELATIVE" &&
-      !end.ago,
-  );
-  return preset?.label ?? CUSTOM;
 }
 
 function RangeField({
