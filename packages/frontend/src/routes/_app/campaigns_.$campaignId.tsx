@@ -86,30 +86,32 @@ function CampaignDetails() {
   const canEdit = me !== undefined && isActive(me) && me.role !== "Viewer";
 
   return (
-    <main className="flex flex-1 flex-col gap-10 px-6 py-10 md:px-10 xl:px-16">
-      <header className="flex items-start gap-2">
-        <BackToCampaigns />
-        <div>
+    <main className="flex flex-1 flex-col gap-10 px-6 pt-19 pb-10 md:px-10">
+      <header>
+        {/* The chevron sits in the page's left padding, so the title lines up
+            with the other pages' titles. */}
+        <div className="relative">
+          <BackToCampaigns />
           <h1
             data-testid="campaign-name"
-            className="text-[2.1875rem] leading-[2.8125rem] font-bold break-words"
+            className="text-[2.1875rem] leading-none font-bold break-words"
           >
             {campaign.data.name}
           </h1>
-          <p
-            data-testid="campaign-region"
-            className="text-muted-foreground text-2xl leading-[1.9375rem]"
-          >
-            {campaign.data.region}
-          </p>
         </div>
+        <p
+          data-testid="campaign-region"
+          className="text-muted-foreground mt-2.5 text-2xl leading-none"
+        >
+          {campaign.data.region}
+        </p>
       </header>
 
       {campaign.isRefetchError ? (
         <div
           role="alert"
           data-testid="campaign-refresh-error"
-          className="flex items-center gap-3 md:ml-8"
+          className="flex items-center gap-3"
         >
           <p className="text-muted-foreground">
             Couldn&apos;t refresh this campaign. You&apos;re seeing the last
@@ -127,17 +129,17 @@ function CampaignDetails() {
 
       <section
         aria-labelledby="traffic-overview"
-        className="flex flex-col gap-6 md:ml-8"
+        className="mt-5 flex flex-col gap-12.5"
       >
-        <h2 id="traffic-overview" className="text-2xl font-bold">
+        <h2 id="traffic-overview" className="text-2xl leading-4 font-bold">
           Traffic Overview
         </h2>
         <EmailAnalytics data={TEMPLATE_EMAIL_DATA} />
       </section>
 
-      <hr className="border-border" />
+      <hr className="border-border mt-10" />
 
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="mt-10 grid gap-x-12.5 gap-y-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
         {emails.isPending ? (
           <TimelineSkeleton />
         ) : emails.isError ? (
@@ -176,7 +178,7 @@ function BackToCampaigns() {
       to="/campaigns"
       aria-label="Back to campaigns"
       data-testid="back-to-campaigns"
-      className="text-muted-foreground hover:text-foreground mt-2 rounded-md"
+      className="text-muted-foreground hover:text-foreground absolute top-2.25 -left-7.75 rounded-md"
     >
       <CaretLeftIcon aria-hidden className="size-6" />
     </Link>
