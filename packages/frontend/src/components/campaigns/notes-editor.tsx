@@ -158,6 +158,9 @@ export function NotesEditor({
 
   return (
     <MDXEditor
+      // Fills the notes box: the whole box is clickable and the notes scroll
+      // inside it, under a toolbar that stays put.
+      className="mdxeditor-full-height h-full"
       markdown={markdown}
       readOnly={readOnly}
       onChange={onChange}
@@ -171,7 +174,7 @@ export function NotesEditor({
       // Tailwind's preflight strips heading and list styles, and MDXEditor
       // leaves typography to the host page. Checklists keep MDXEditor's own
       // checkbox styling, so they're excluded from bullets.
-      contentEditableClassName="min-h-[32rem] text-lg leading-7 [&_a]:text-primary [&_a]:underline [&_blockquote]:text-muted-foreground [&_blockquote]:my-2 [&_blockquote]:border-l-4 [&_blockquote]:pl-4 [&_hr]:my-4 [&_h2]:my-2 [&_h2]:text-xl [&_h2]:font-bold [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-1 [&_ul]:pl-6 [&_ul:not(:has(>li[role=checkbox]))]:list-disc"
+      contentEditableClassName="text-lg leading-7 [&_a]:text-primary [&_a]:underline [&_blockquote]:text-muted-foreground [&_blockquote]:my-2 [&_blockquote]:border-l-4 [&_blockquote]:pl-4 [&_hr]:my-4 [&_h2]:my-2 [&_h2]:text-xl [&_h2]:font-bold [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-1 [&_ul]:pl-6 [&_ul:not(:has(>li[role=checkbox]))]:list-disc"
     />
   );
 }
@@ -179,7 +182,10 @@ export function NotesEditor({
 /** The notes as plain text, for markdown the editor can't read. */
 function UnreadableNotes({ markdown }: { markdown: string }) {
   return (
-    <div data-testid="notes-unreadable" className="flex flex-col gap-3 p-3">
+    <div
+      data-testid="notes-unreadable"
+      className="flex h-full flex-col gap-3 overflow-auto p-3"
+    >
       <p role="alert" className="text-muted-foreground text-sm">
         These notes use formatting the editor can&apos;t show, so they&apos;re
         displayed as plain text and can&apos;t be edited here.

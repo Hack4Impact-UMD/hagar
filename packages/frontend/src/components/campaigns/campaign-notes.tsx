@@ -95,8 +95,9 @@ export function CampaignNotes({
       data-testid="campaign-notes"
       className="flex flex-col gap-3"
     >
-      <div className="rounded-[0.625rem] bg-card">
-        <Suspense fallback={<Skeleton className="h-[34rem] w-full" />}>
+      {/* Figma's notes box is 730px tall; the editor fills it and scrolls. */}
+      <div className="h-[45.625rem] rounded-[0.625rem] bg-card">
+        <Suspense fallback={<Skeleton className="h-full w-full" />}>
           <NotesEditor
             key={editorKey}
             markdown={campaign.notes}
