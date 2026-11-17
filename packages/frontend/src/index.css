@@ -85,12 +85,15 @@
   --field-border: #d9d9d9;
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
-  /* Figma campaign analytics: green for opens, amber for clicks. */
-  --chart-1: #12b76a;
-  --chart-2: #ffa800;
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
+  /* Campaign email analytics (Figma): green for opens, amber for clicks.
+     Separate from --chart-1..5 so other shadcn charts keep their colors. */
+  --chart-opens: #12b76a;
+  --chart-clicks: #ffa800;
   --radius: 0.625rem;
   /* Figma "FINAL NAV" background. */
   --sidebar: #f9f6f1;
@@ -124,11 +127,13 @@
   --field-border: #d9d9d9;
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
-  --chart-1: #12b76a;
-  --chart-2: #ffa800;
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
+  --chart-opens: #12b76a;
+  --chart-clicks: #ffa800;
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: var(--primary);

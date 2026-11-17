@@ -28,8 +28,8 @@ export type EmailAnalyticsDay = { date: string } & Pick<
 >;
 
 const chartConfig = {
-  uniqOpens: { label: "Unique opens", color: "var(--chart-1)" },
-  uniqClicks: { label: "Unique clicks", color: "var(--chart-2)" },
+  uniqOpens: { label: "Unique opens", color: "var(--chart-opens)" },
+  uniqClicks: { label: "Unique clicks", color: "var(--chart-clicks)" },
 } satisfies Partial<Record<EmailCampaignMetric, ChartConfig[string]>>;
 
 const RANGES = {
@@ -67,7 +67,7 @@ export function EmailAnalytics({
     >
       <header className="flex flex-wrap items-center gap-2 border-b px-6 py-4">
         <div className="grid flex-1 gap-1">
-          <h3 className="text-lg font-bold">Email engagement</h3>
+          <h3 className="text-2xl leading-none font-bold">Email engagement</h3>
           <p className="text-muted-foreground text-sm">
             Unique opens and clicks per day
           </p>
