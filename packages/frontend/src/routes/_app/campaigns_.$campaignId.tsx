@@ -215,20 +215,23 @@ function CampaignDetailsSkeleton() {
       aria-busy
       aria-label="Loading campaign"
       data-testid="campaign-loading"
-      className="flex flex-1 flex-col gap-10 px-6 py-10 md:px-10 xl:px-16"
+      className="flex flex-1 flex-col gap-10 px-6 pt-19 pb-10 md:px-10"
     >
-      <div className="flex flex-col gap-3 md:ml-8">
-        <Skeleton className="h-11 w-80 max-w-full" />
-        <Skeleton className="h-7 w-40" />
+      <div className="flex flex-col gap-2.5">
+        <Skeleton className="h-[2.1875rem] w-80 max-w-full" />
+        <Skeleton className="h-6 w-40" />
       </div>
-      <div className="flex flex-col gap-6 md:ml-8">
-        <Skeleton className="h-7 w-48" />
-        <Skeleton className="h-[22rem] w-full rounded-[1.25rem]" />
+      <div className="mt-5 flex flex-col gap-12.5">
+        <Skeleton className="h-4 w-48" />
+        {/* The chart card's rendered height: header, 256px chart, legend. */}
+        <Skeleton className="h-[22.6875rem] w-full rounded-[1.25rem]" />
       </div>
-      <hr className="border-border" />
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <TimelineSkeleton />
-        <Skeleton className="h-[34rem] w-full" />
+      <hr className="border-border mt-10" />
+      <div className="mt-10 grid gap-x-12.5 gap-y-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="lg:-mt-8.5">
+          <TimelineSkeleton />
+        </div>
+        <Skeleton className="h-[45.625rem] w-full" />
       </div>
     </main>
   );
@@ -236,12 +239,12 @@ function CampaignDetailsSkeleton() {
 
 function TimelineSkeleton() {
   return (
-    <div aria-hidden className="flex flex-col gap-10 pt-14">
+    <div aria-hidden className="flex flex-col gap-10 pt-10">
       {[0, 1, 2].map((row) => (
         <div key={row} className="flex items-center gap-6">
           <Skeleton className="h-11 w-16" />
           <Skeleton className="size-6 rounded-full" />
-          <Skeleton className="h-[3.1875rem] flex-1" />
+          <Skeleton className="h-12.5 flex-1" />
         </div>
       ))}
     </div>
