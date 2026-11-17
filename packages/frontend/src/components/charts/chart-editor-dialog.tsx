@@ -353,11 +353,22 @@ function ChartEditorForm({
           <Input
             id={`${id}-title`}
             value={form.title}
+            // same limit as the chart name in charts.ts
+            maxLength={500}
+            aria-describedby={`${id}-title-hint`}
             onChange={(event) =>
               setForm({ ...form, title: event.target.value })
             }
             className="h-10 w-75 text-base font-semibold shadow-none md:text-base"
           />
+          {form.title.trim() ? null : (
+            <p
+              id={`${id}-title-hint`}
+              className="text-sm text-muted-foreground"
+            >
+              Add a title to save.
+            </p>
+          )}
         </div>
 
         <div className={FIELD}>
