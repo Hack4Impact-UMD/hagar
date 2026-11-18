@@ -134,7 +134,9 @@ export function setCampaignNotes(
   input: SetCampaignNotesInput,
 ): Promise<Campaign> {
   return editCampaign(db, input.campaignId, "notes", (current) =>
-    current.notes === input.notes ? current : { ...current, notes: input.notes },
+    current.notes === input.notes
+      ? current
+      : { ...current, notes: input.notes },
   );
 }
 
