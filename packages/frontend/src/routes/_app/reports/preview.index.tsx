@@ -1,5 +1,13 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { ReportPreviewView } from "@frontend/components/reports/ReportPreviewView.tsx";
 import { pageTitle } from "@frontend/lib/pageTitle.ts";
+import {
+  failureMessage,
+  trpcCode,
+  viewListStatus,
+} from "@frontend/lib/reportPreviewErrors.ts";
+import { trpc } from "@frontend/lib/trpc.ts";
 
 /**
  * The report preview with no view chosen yet. Choosing a view moves to
@@ -11,15 +19,36 @@ export const Route = createFileRoute("/_app/reports/preview/")({
 });
 
 function ReportPreviewEmpty() {
+  const navigate = useNavigate();
+  const listQuery = useQuery(trpc.views.list.queryOptions());
+
   return (
-    <main className="flex flex-col gap-4 p-6">
-      <h1 data-testid="report-preview">Report preview</h1>
-      <p>
-        Placeholder for choosing a view to preview and generate a report of.
-      </p>
-      <Link to="/" className="underline">
-        Back to homepage
-      </Link>
-    </main>
+    <ReportPreviewView
+      views={listQuery.data ?? []}
+      currentViewId={null}
+      listStatus={viewListStatus(listQuery.isPending, listQuery.isError)}
+      view={null}
+      status="no-selection"
+      errorMessage={null}
+      listError={
+        listQuery.isError && trpcCode(listQuery.error) !== "NOT_IMPLEMENTED"
+          ? failureMessage(listQuery.error)
+          : null
+      }
+      canEdit={false}
+      generatePending={false}
+      generateError={null}
+      downloadUrl={null}
+      onSelectView={(viewId) => {
+        void navigate({ to: "/reports/preview/$viewId", params: { viewId } });
+      }}
+      onRetry={() => {
+        void listQuery.refetch();
+      }}
+      onExport={noop}
+    />
   );
 }
+
+// Nothing is selected, so the export button is always disabled.
+function noop() {}
