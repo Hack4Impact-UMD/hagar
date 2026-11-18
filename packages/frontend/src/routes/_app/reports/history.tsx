@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState } from "react";
 import {
-  CaretLeftIcon,
   CaretRightIcon,
   DownloadSimpleIcon,
   MagnifyingGlassIcon,
@@ -9,11 +8,7 @@ import {
 import { MAX_USER_INFO } from "@repo/common";
 import type { Report } from "@repo/common";
 import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
-import {
-  createFileRoute,
-  useCanGoBack,
-  useRouter,
-} from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { cn } from "cn";
 import { Button } from "@frontend/components/ui/button.tsx";
 import { Input } from "@frontend/components/ui/input.tsx";
@@ -152,7 +147,7 @@ function ReportsHistory() {
   return (
     // The layout's header is h-12 (3rem). Filling the rest of the screen lets
     // the list scroll inside the card while everything above it stays put.
-    <main className="flex h-[calc(100svh-3rem)] flex-col gap-7.5 px-9 pb-6">
+    <main className="flex h-[calc(100svh-3rem)] flex-col gap-6 px-6 py-6 md:px-10">
       <PageHeader />
       <section className="flex min-h-0 flex-1 flex-col gap-7.5 rounded-xl border bg-card p-7.5">
         <div className="relative w-63">
@@ -176,37 +171,25 @@ function ReportsHistory() {
 }
 
 function PageHeader() {
-  const router = useRouter();
-  // Someone who opened this page directly has nowhere in the app to go back
-  // to, and going back would leave the app.
-  const canGoBack = useCanGoBack();
-
   return (
-    // The arrow hangs to the left of the card's edge, as in the design, and
-    // keeps its space when hidden so the title doesn't move.
-    <div className="-ml-3.5 flex items-start gap-1">
-      {canGoBack ? (
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label="Back"
-          onClick={() => router.history.back()}
-          className="mt-3.5 text-muted-foreground"
-        >
-          <CaretLeftIcon className="size-6" />
-        </Button>
-      ) : (
-        <div aria-hidden className="size-8 shrink-0" />
-      )}
-      <div className="flex flex-col gap-2.5">
-        <h1 data-testid="reports-history" className="text-4xl/[45px] font-bold">
-          Report History
-        </h1>
-        <p className="text-2xl/[29px] text-muted-foreground">
-          View and download past reports.
-        </p>
-      </div>
-    </div>
+    <header>
+      <h1
+        data-testid="reports-history"
+        className="text-[2.1875rem] leading-[normal] font-bold"
+      >
+        Report History
+      </h1>
+      <p className="text-[1.5rem] leading-[normal] text-muted-foreground">
+        View and download past reports.
+      </p>
+      <Link
+        to="/reports/preview"
+        className="mt-1 inline-flex items-center gap-1 text-base font-bold text-primary hover:underline"
+      >
+        Preview Reports
+        <CaretRightIcon aria-hidden className="size-4" />
+      </Link>
+    </header>
   );
 }
 
