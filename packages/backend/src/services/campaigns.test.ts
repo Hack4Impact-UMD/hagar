@@ -253,6 +253,19 @@ describe("setCampaignNotes", () => {
     });
   });
 
+  it("changes nothing when the notes are the same", async () => {
+    freezeTime();
+    const { db, doc } = seeded();
+
+    const updated = await setCampaignNotes(db, admin, {
+      campaignId: "middle",
+      notes: "Targets returning donors",
+    });
+
+    expect(updated).toEqual(campaignOf("middle"));
+    expect(doc("campaigns", "middle")).toEqual(CAMPAIGNS.middle);
+  });
+
   it("leaves every other campaign untouched", async () => {
     const { db, doc } = seeded();
 
@@ -328,6 +341,19 @@ describe("addLinkedItem", () => {
   it("changes nothing when the link already exists", async () => {
     freezeTime();
     const { db, doc } = seeded();
+
+    const updated = await addLinkedItem(db, admin, {
+      campaignId: "middle",
+      item: { type: "EMAIL", id: "email-1" },
+    });
+
+    expect(updated).toEqual(campaignOf("middle"));
+    expect(doc("campaigns", "middle")).toEqual(CAMPAIGNS.middle);
+  });
+
+  it("changes nothing when the link already exists but its item is gone", async () => {
+    freezeTime();
+    const { db, doc } = fakeFirestore({ campaigns: CAMPAIGNS });
 
     const updated = await addLinkedItem(db, admin, {
       campaignId: "middle",

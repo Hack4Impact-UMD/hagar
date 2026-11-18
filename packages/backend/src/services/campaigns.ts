@@ -133,10 +133,9 @@ export function setCampaignNotes(
   _actor: ActiveUserProfile,
   input: SetCampaignNotesInput,
 ): Promise<Campaign> {
-  return editCampaign(db, input.campaignId, "notes", (current) => ({
-    ...current,
-    notes: input.notes,
-  }));
+  return editCampaign(db, input.campaignId, "notes", (current) =>
+    current.notes === input.notes ? current : { ...current, notes: input.notes },
+  );
 }
 
 /**
@@ -158,6 +157,11 @@ export function addLinkedItem(
     input.campaignId,
     "linkedItems",
     async (current, tx) => {
+      const next = withLinkedItem(current, input.item);
+      // An existing link is a no-op even if its item has since been deleted,
+      // matching how `removeLinkedItem` tolerates dangling links.
+      if (next === current) return current;
+
       const item = await tx.get(itemRef);
       if (!item.exists) {
         throw new TRPCError({
@@ -165,7 +169,7 @@ export function addLinkedItem(
           message: "That linked item does not exist.",
         });
       }
-      return withLinkedItem(current, input.item);
+      return next;
     },
   );
 }
