@@ -1,5 +1,6 @@
-import { userRegions } from "@repo/common";
-import type { UserRegion } from "@repo/common";
+import { type } from "arktype";
+import type { Type } from "arktype";
+import { userRegion, userRegions } from "@repo/common";
 import {
   NO_FILTERS,
   campaignStatuses,
@@ -8,44 +9,48 @@ import {
 } from "@frontend/lib/campaign-list.ts";
 import type {
   CampaignFilters,
-  CampaignStatus,
-  Channel,
   DatePreset,
   SortDirection,
 } from "@frontend/lib/campaign-list.ts";
 
-type UrlDatePreset = Exclude<DatePreset, "ALL_TIME">;
 // "All time" is the default, so it never appears in the URL.
 const urlDatePresets = datePresets.filter(
-  (preset): preset is UrlDatePreset => preset !== "ALL_TIME",
+  (preset): preset is Exclude<DatePreset, "ALL_TIME"> => preset !== "ALL_TIME",
 );
+
+const searchText = type("string >= 1");
+const urlDatePreset = type.enumerated(...urlDatePresets);
+const campaignStatus = type.enumerated(...campaignStatuses);
+const channel = type.enumerated(...channels);
+const sortParam = type("'asc'");
 
 /**
  * The campaign list's search, filters and sort, kept in the URL so a filtered
  * view survives a reload and can be shared. A missing key means its default.
  */
-export type CampaignSearch = {
-  q?: string;
-  date?: UrlDatePreset;
-  status?: CampaignStatus[];
-  region?: UserRegion[];
-  channel?: Channel[];
+export const campaignSearch = type({
+  "q?": searchText,
+  "date?": urlDatePreset,
+  "status?": campaignStatus.array().atLeastLength(1),
+  "region?": userRegion.array().atLeastLength(1),
+  "channel?": channel.array().atLeastLength(1),
   // Newest first ("desc") is the default.
-  sort?: "asc";
-};
+  "sort?": sortParam,
+});
+export type CampaignSearch = typeof campaignSearch.infer;
 
-function oneOf<T extends string>(
-  allowed: readonly T[],
+function valid<T extends string>(
+  schema: Type<T>,
   value: unknown,
 ): T | undefined {
-  return (allowed as readonly unknown[]).includes(value)
-    ? (value as T)
-    : undefined;
+  // `allows` narrows to ArkType's distilled input type, which TypeScript
+  // can't relate back to a generic `T`.
+  return schema.allows(value) ? (value as T) : undefined;
 }
 
 // Filtering `allowed` rather than `value` drops unknown entries and
 // duplicates, and keeps a stable order however the URL lists them.
-function someOf<T extends string>(
+function validEntries<T extends string>(
   allowed: readonly T[],
   value: unknown,
 ): T[] | undefined {
@@ -55,22 +60,26 @@ function someOf<T extends string>(
 }
 
 /**
- * Reads the search params, dropping anything unrecognised instead of
- * throwing, so a stale or hand-edited link still opens the page.
+ * Reads the search params against `campaignSearch` one key at a time,
+ * dropping anything unrecognised instead of throwing, so a stale or
+ * hand-edited link still opens the page. ArkType rejects a whole value, so
+ * lists are cleaned entry by entry first to keep their valid entries.
+ *
+ * Kept as a function rather than passing `campaignSearch` to `validateSearch`
+ * directly: the router types links and `navigate` from a schema's input, and
+ * this keeps that input as `CampaignSearch` rather than `unknown`.
  */
 export function parseCampaignSearch(
   raw: Record<string, unknown>,
 ): CampaignSearch {
-  // The router JSON-parses each param, so `?q=2026` arrives as a number.
-  const q =
-    typeof raw.q === "string" || typeof raw.q === "number" ? String(raw.q) : "";
   return {
-    q: q === "" ? undefined : q,
-    date: oneOf(urlDatePresets, raw.date),
-    status: someOf(campaignStatuses, raw.status),
-    region: someOf(userRegions, raw.region),
-    channel: someOf(channels, raw.channel),
-    sort: raw.sort === "asc" ? "asc" : undefined,
+    // The router JSON-parses each param, so `?q=2026` arrives as a number.
+    q: valid(searchText, typeof raw.q === "number" ? String(raw.q) : raw.q),
+    date: valid(urlDatePreset, raw.date),
+    status: validEntries(campaignStatuses, raw.status),
+    region: validEntries(userRegions, raw.region),
+    channel: validEntries(channels, raw.channel),
+    sort: valid(sortParam, raw.sort),
   };
 }
 
