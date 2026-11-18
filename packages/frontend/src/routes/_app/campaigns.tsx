@@ -20,20 +20,22 @@ import {
   CampaignTableSkeleton,
   CampaignViewToggle,
 } from "@frontend/components/campaigns-list/campaign-table.tsx";
-import type { CampaignRow } from "@frontend/lib/campaign-list";
+import type { CampaignRow } from "@frontend/lib/campaign-list.ts";
 import {
   filterCampaigns,
   sortCampaigns,
   toCampaignRows,
-} from "@frontend/lib/campaign-list";
+} from "@frontend/lib/campaign-list.ts";
 import {
   parseCampaignSearch,
   toFilters,
   toSortDirection,
 } from "@frontend/lib/campaignSearch.ts";
+import { pageTitle } from "@frontend/lib/pageTitle.ts";
 import { trpc } from "@frontend/lib/trpc.ts";
 
 export const Route = createFileRoute("/_app/campaigns")({
+  head: () => pageTitle("Campaigns"),
   validateSearch: parseCampaignSearch,
   component: Campaigns,
 });

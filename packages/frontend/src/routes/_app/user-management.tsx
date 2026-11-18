@@ -8,6 +8,7 @@ import { Button } from "@frontend/components/ui/button.tsx";
 import { PendingUsersTable } from "@frontend/components/user-management/pending-users-table.tsx";
 import { queryClient, trpc } from "@frontend/lib/trpc.ts";
 import { ActiveUsersGrid } from "@frontend/components/user-management/active-users-grid.tsx";
+import { pageTitle } from "@frontend/lib/pageTitle.ts";
 
 type View = "pending" | "users";
 
@@ -17,6 +18,7 @@ const SUBTITLES: Record<View, string> = {
 };
 
 export const Route = createFileRoute("/_app/user-management")({
+  head: () => pageTitle("User management"),
   // Viewers get the same page as an unknown URL, so the page's existence isn't
   // advertised to people who can't use it. The root guard has already cached `me`.
   beforeLoad: async () => {

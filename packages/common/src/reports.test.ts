@@ -8,6 +8,7 @@ import {
   reportFolder,
   reportPath,
   reportUuid,
+  viewIdInput,
 } from "@common/reports.ts";
 
 const uuid = "123e4567-e89b-42d3-a456-426614174000";
@@ -38,6 +39,29 @@ describe("reportUuid", () => {
     expect(reportUuid(uuid)).toBe(uuid);
     for (const bad of ["", "report-1", uuid.toUpperCase(), `${uuid}.pdf`]) {
       expect(reportUuid(bad)).toBeInstanceOf(type.errors);
+    }
+  });
+});
+
+describe("viewIdInput", () => {
+  it("accepts an id Firestore can store as a document id", () => {
+    for (const ok of ["view-1", "Kx9fQ2mZpL0aB7", "a.b", ".hidden", "_x_"]) {
+      expect(viewIdInput(ok)).toBe(ok);
+    }
+    expect(viewIdInput("v".repeat(128))).toBe("v".repeat(128));
+  });
+
+  it("rejects ids that make Firestore throw or break the report path", () => {
+    for (const bad of [
+      "",
+      "a/b",
+      "/",
+      ".",
+      "..",
+      "__name__",
+      "v".repeat(129),
+    ]) {
+      expect(viewIdInput(bad)).toBeInstanceOf(type.errors);
     }
   });
 });
@@ -80,5 +104,13 @@ describe("report procedure inputs", () => {
     expect(
       createReportInput({ viewId: "view-1", reportId: "report-1" }),
     ).toBeInstanceOf(type.errors);
+    expect(getReportInput({ reportId: "a/b" })).toBeInstanceOf(type.errors);
+  });
+
+  it("reject a view id that is not a valid document id", () => {
+    expect(createReportInput({ viewId: "a/b", reportId: uuid })).toBeInstanceOf(
+      type.errors,
+    );
+    expect(listReportsInput({ viewId: ".." })).toBeInstanceOf(type.errors);
   });
 });

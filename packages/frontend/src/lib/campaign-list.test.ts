@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type {
   CampaignFilters,
   CampaignRow,
-} from "@frontend/lib/campaign-list";
+} from "@frontend/lib/campaign-list.ts";
 import {
   NO_FILTERS,
   campaignChannels,
@@ -12,7 +12,7 @@ import {
   formatDateRange,
   sortCampaigns,
   toCampaignRows,
-} from "@frontend/lib/campaign-list";
+} from "@frontend/lib/campaign-list.ts";
 
 const NOW = new Date("2026-06-15T12:00:00.000Z");
 

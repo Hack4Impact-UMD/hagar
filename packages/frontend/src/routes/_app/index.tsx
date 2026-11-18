@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { auth } from "@frontend/lib/firebase.ts";
+import { pageTitle } from "@frontend/lib/pageTitle.ts";
 
-export const Route = createFileRoute("/_app/")({ component: Home });
+export const Route = createFileRoute("/_app/")({
+  head: () => pageTitle("Homepage"),
+  component: Home,
+});
 
 function Home() {
   return (

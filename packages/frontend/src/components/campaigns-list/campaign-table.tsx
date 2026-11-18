@@ -18,12 +18,12 @@ import {
 import type {
   CampaignRow,
   SortDirection,
-} from "@frontend/lib/campaign-list";
+} from "@frontend/lib/campaign-list.ts";
 import {
   CHANNEL_LABELS,
   STATUS_DOT_CLASS,
   formatDateRange,
-} from "@frontend/lib/campaign-list";
+} from "@frontend/lib/campaign-list.ts";
 
 // Widths only take effect because the table uses `table-fixed`.
 // `bar` is the width of that column's loading placeholder.

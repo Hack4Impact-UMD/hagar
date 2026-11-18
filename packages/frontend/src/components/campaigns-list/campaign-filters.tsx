@@ -16,7 +16,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@frontend/components/ui/dropdown-menu.tsx";
-import type { CampaignStatus } from "@frontend/lib/campaign-list";
+import type { CampaignStatus } from "@frontend/lib/campaign-list.ts";
 import {
   CHANNEL_LABELS,
   DATE_PRESET_LABELS,
@@ -24,7 +24,7 @@ import {
   campaignStatuses,
   channels,
   datePresets,
-} from "@frontend/lib/campaign-list";
+} from "@frontend/lib/campaign-list.ts";
 import type { CampaignSearch } from "@frontend/lib/campaignSearch.ts";
 
 /** Changes the URL's search params. `replace` skips adding a history entry. */

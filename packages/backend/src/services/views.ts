@@ -1,7 +1,9 @@
 import {
+  MAX_VIEW_NAME_LENGTH,
   canEditView,
   canSeeView,
   canShareView,
+  nowUtc,
   storedView,
 } from "@repo/common";
 import type {
@@ -15,7 +17,10 @@ import type {
   View,
 } from "@repo/common";
 import { TRPCError } from "@trpc/server";
-import type { Firestore } from "firebase-admin/firestore";
+import type {
+  QueryDocumentSnapshot,
+  Firestore,
+} from "firebase-admin/firestore";
 
 export const COLLECTION = "views";
 
@@ -76,45 +81,90 @@ export function assertCanShareView(
 }
 
 /**
+ * Throws `NOT_FOUND` if `viewId` contains "/" because .doc() reads the argument as a path
+ * and it should be a single document name, not a path into another collection or subcollection.
+ */
+export function assertValidViewId(viewId: string): void {
+  if (viewId.includes("/")) throw viewNotFound();
+}
+
+/**
  * Lists every view `actor` can see: their own, and everyone else's that are
  * shared. A Global Admin sees every view. Most recently updated first. No
  * pagination.
  */
-export function listViews(
-  _db: Firestore,
-  _actor: ActiveUserProfile,
+export async function listViews(
+  db: Firestore,
+  actor: ActiveUserProfile,
 ): Promise<View[]> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "views.list is not implemented yet.",
-  });
+  const views = db.collection(COLLECTION);
+
+  let docs: QueryDocumentSnapshot[];
+  if (actor.role === "Global Admin") {
+    const snapshots = await views.orderBy("updatedAt", "desc").get();
+    docs = snapshots.docs;
+  } else {
+    const [mine, shared] = await Promise.all([
+      views
+        .where("authorUid", "==", actor.uid)
+        .orderBy("updatedAt", "desc")
+        .get(),
+      views
+        .where("shareOption", "in", ["ANYONE_VIEW", "ANYONE_EDIT"])
+        .orderBy("updatedAt", "desc")
+        .get(),
+    ]);
+    const idMapping = new Map<string, QueryDocumentSnapshot>();
+    for (const doc of [...mine.docs, ...shared.docs]) {
+      idMapping.set(doc.id, doc);
+    }
+    docs = [...idMapping.values()];
+  }
+
+  // The queries already narrow to visible views. Checking again means a query
+  // that is later widened cannot leak a private view.
+  const results = docs
+    .map((doc) => toView(doc.id, doc.data()))
+    .filter((view) => canSeeView(actor, view));
+  results.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  return results;
 }
 
 /** Returns one view, or throws `NOT_FOUND` if it is missing or not visible. */
-export function getView(
-  _db: Firestore,
-  _actor: ActiveUserProfile,
-  _input: GetViewInput,
+export async function getView(
+  db: Firestore,
+  actor: ActiveUserProfile,
+  input: GetViewInput,
 ): Promise<View> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "views.get is not implemented yet.",
-  });
+  assertValidViewId(input.viewId);
+  const entry = await db.collection(COLLECTION).doc(input.viewId).get();
+  if (!entry.exists) throw viewNotFound();
+
+  const view = toView(entry.id, entry.data());
+  assertCanSeeView(actor, view);
+  return view;
 }
 
 /**
  * Creates a view owned by `actor`. It starts private with no charts unless the
  * input says otherwise. Anyone may, Viewers included.
  */
-export function createView(
-  _db: Firestore,
-  _actor: ActiveUserProfile,
-  _input: CreateViewInput,
+export async function createView(
+  db: Firestore,
+  actor: ActiveUserProfile,
+  input: CreateViewInput,
 ): Promise<View> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "views.create is not implemented yet.",
-  });
+  const ref = db.collection(COLLECTION).doc();
+  const stored: StoredView = {
+    name: input.name,
+    authorUid: actor.uid,
+    shareOption: input.shareOption ?? "PRIVATE",
+    charts: input.charts ?? [],
+    updatedAt: nowUtc(),
+  };
+  // `create` fails on an id clash instead of overwriting an existing view.
+  await ref.create(stored);
+  return toView(ref.id, stored);
 }
 
 /**
@@ -123,13 +173,35 @@ export function createView(
  * original's share option is. Anyone may, Viewers included.
  */
 export function copyView(
-  _db: Firestore,
-  _actor: ActiveUserProfile,
-  _input: CopyViewInput,
+  db: Firestore,
+  actor: ActiveUserProfile,
+  input: CopyViewInput,
 ): Promise<View> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "views.copy is not implemented yet.",
+  // A transaction keeps the copy from reading a view the author has just made
+  // private.
+  return db.runTransaction(async (tx) => {
+    const snapshot = await tx.get(db.collection(COLLECTION).doc(input.viewId));
+    if (!snapshot.exists) throw viewNotFound();
+    const original = parseStoredView.assert(snapshot.data());
+    assertCanSeeView(actor, original);
+
+    // The limit counts UTF-16 units, so the cut can land between the two halves
+    // of an emoji. A lone leading half is not valid Unicode and is lost when
+    // stored as UTF-8, so it is dropped too.
+    let name = `Copy of ${original.name}`.slice(0, MAX_VIEW_NAME_LENGTH);
+    if (/[\uD800-\uDBFF]$/.test(name)) name = name.slice(0, -1);
+
+    const ref = db.collection(COLLECTION).doc();
+    const copy: StoredView = {
+      name,
+      authorUid: actor.uid,
+      // A copy never inherits the original's sharing.
+      shareOption: "PRIVATE",
+      charts: original.charts,
+      updatedAt: nowUtc(),
+    };
+    tx.create(ref, copy);
+    return toView(ref.id, copy);
   });
 }
 
@@ -139,24 +211,50 @@ export function copyView(
  * their own views.
  */
 export function updateView(
-  _db: Firestore,
-  _actor: ActiveUserProfile,
-  _input: UpdateViewInput,
+  db: Firestore,
+  actor: ActiveUserProfile,
+  input: UpdateViewInput,
 ): Promise<View> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "views.update is not implemented yet.",
+  return db.runTransaction(async (tx) => {
+    assertValidViewId(input.viewId);
+    const ref = db.collection(COLLECTION).doc(input.viewId);
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw viewNotFound();
+    const view = toView(snap.id, snap.data());
+
+    assertCanSeeView(actor, view);
+    assertCanEditView(actor, view);
+
+    const changes: { name?: string; charts?: StoredView["charts"] } = {};
+    if (input.name !== undefined) changes.name = input.name;
+    if (input.charts !== undefined) changes.charts = input.charts;
+
+    const updatedAt = nowUtc();
+    tx.update(ref, { ...changes, updatedAt });
+
+    return toView(ref.id, { ...view, ...changes, updatedAt });
   });
 }
 
 /** Changes who a view is shared with. Only its author may. */
 export function setViewShareOption(
-  _db: Firestore,
-  _actor: ActiveUserProfile,
-  _input: SetViewShareOptionInput,
+  db: Firestore,
+  actor: ActiveUserProfile,
+  input: SetViewShareOptionInput,
 ): Promise<View> {
-  throw new TRPCError({
-    code: "NOT_IMPLEMENTED",
-    message: "views.setShareOption is not implemented yet.",
+  // A transaction makes the author check use the view as it is when written.
+  return db.runTransaction(async (tx) => {
+    const ref = db.collection(COLLECTION).doc(input.viewId);
+    const snapshot = await tx.get(ref);
+    if (!snapshot.exists) throw viewNotFound();
+    const stored = parseStoredView.assert(snapshot.data());
+    // Seeing comes first so a private view reads as missing, not forbidden.
+    assertCanSeeView(actor, stored);
+    assertCanShareView(actor, stored);
+
+    // Saving the same option again still counts as an update.
+    const changes = { shareOption: input.shareOption, updatedAt: nowUtc() };
+    tx.update(ref, changes);
+    return toView(ref.id, { ...stored, ...changes });
   });
 }
