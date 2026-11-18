@@ -121,7 +121,11 @@ export async function listViews(
     docs = [...idMapping.values()];
   }
 
-  const results = docs.map((doc) => toView(doc.id, doc.data()));
+  // The queries already narrow to visible views. Checking again means a query
+  // that is later widened cannot leak a private view.
+  const results = docs
+    .map((doc) => toView(doc.id, doc.data()))
+    .filter((view) => canSeeView(actor, view));
   results.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   return results;
 }
@@ -216,10 +220,10 @@ export function updateView(
     const ref = db.collection(COLLECTION).doc(input.viewId);
     const snap = await tx.get(ref);
     if (!snap.exists) throw viewNotFound();
-    const stored = parseStoredView.assert(snap.data());
+    const view = toView(snap.id, snap.data());
 
-    assertCanSeeView(actor, stored);
-    assertCanEditView(actor, stored);
+    assertCanSeeView(actor, view);
+    assertCanEditView(actor, view);
 
     const changes: { name?: string; charts?: StoredView["charts"] } = {};
     if (input.name !== undefined) changes.name = input.name;
@@ -228,7 +232,7 @@ export function updateView(
     const updatedAt = nowUtc();
     tx.update(ref, { ...changes, updatedAt });
 
-    return toView(ref.id, { ...stored, ...changes, updatedAt });
+    return toView(ref.id, { ...view, ...changes, updatedAt });
   });
 }
 
