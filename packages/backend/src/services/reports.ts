@@ -43,10 +43,13 @@ export function reportNotFound(): TRPCError {
   });
 }
 
+const PDF_SIGNATURE = "%PDF-";
+
 /**
  * Refuses a report whose PDF isn't in Cloud Storage yet, isn't a PDF, or is over
  * the size limit. Clients upload the file themselves, so this is the only place
- * the backend learns what was actually uploaded.
+ * the backend learns what was actually uploaded. The content type is whatever
+ * the uploader declared, so the file's first bytes are checked as well.
  */
 export async function assertUploadedReport(path: string): Promise<void> {
   const file = getStorage().bucket().file(path);
@@ -60,13 +63,24 @@ export async function assertUploadedReport(path: string): Promise<void> {
   }
 
   const [metadata] = await file.getMetadata();
-  if (
-    metadata.contentType !== "application/pdf" ||
-    Number(metadata.size) > MAX_REPORT_BYTES
-  ) {
+  // Written so that a missing or non-numeric size is refused, not waved through.
+  const withinLimit = Number(metadata.size) <= MAX_REPORT_BYTES;
+  if (metadata.contentType !== "application/pdf" || !withinLimit) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: `A report must be a PDF no larger than ${MAX_REPORT_BYTES / (1024 * 1024)} MB.`,
+    });
+  }
+
+  // `end` is inclusive.
+  const [head] = await file.download({
+    start: 0,
+    end: PDF_SIGNATURE.length - 1,
+  });
+  if (head.toString("latin1") !== PDF_SIGNATURE) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "The uploaded file is not a PDF.",
     });
   }
 }

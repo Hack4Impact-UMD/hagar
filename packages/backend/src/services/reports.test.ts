@@ -22,6 +22,7 @@ const bucket = vi.hoisted(() => {
   const file = {
     exists: vi.fn<() => Promise<[boolean]>>(),
     getMetadata: vi.fn<() => Promise<[FileMetadata]>>(),
+    download: vi.fn<() => Promise<[Buffer]>>(),
   };
   return { file, fileAt: vi.fn<(path: string) => typeof file>(() => file) };
 });
@@ -36,6 +37,8 @@ beforeEach(() => {
   bucket.file.getMetadata.mockResolvedValue([
     { contentType: "application/pdf", size: "1234" },
   ]);
+  // A ranged download returns only the bytes asked for.
+  bucket.file.download.mockResolvedValue([Buffer.from("%PDF-")]);
 });
 
 afterEach(() => {
@@ -172,6 +175,30 @@ describe("assertUploadedReport", () => {
   it("refuses a file that is not a PDF", async () => {
     bucket.file.getMetadata.mockResolvedValue([
       { contentType: "text/html", size: "10" },
+    ]);
+
+    await expect(assertUploadedReport(path)).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+  });
+
+  it("refuses a file labelled as a PDF whose content is not one", async () => {
+    bucket.file.download.mockResolvedValue([Buffer.from("<html")]);
+
+    await expect(assertUploadedReport(path)).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+  });
+
+  it("reads only the first bytes of the file", async () => {
+    await assertUploadedReport(path);
+
+    expect(bucket.file.download).toHaveBeenCalledWith({ start: 0, end: 4 });
+  });
+
+  it("refuses a file whose size is unknown", async () => {
+    bucket.file.getMetadata.mockResolvedValue([
+      { contentType: "application/pdf" },
     ]);
 
     await expect(assertUploadedReport(path)).rejects.toMatchObject({
