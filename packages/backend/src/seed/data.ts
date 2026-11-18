@@ -100,6 +100,8 @@ function uidOf(slug: string): string {
 
 type UserSpec = {
   slug: string;
+  /** Overrides the email made from the slug, for an account that is easy to type. */
+  email?: string;
   firstName: string;
   lastName: string;
   role: UserRole;
@@ -116,7 +118,8 @@ type UserSpec = {
 // each view of the app has someone to sign in as.
 const USER_SPECS: UserSpec[] = [
   {
-    slug: "global-admin",
+    slug: "admin",
+    email: "admin@example.com",
     firstName: "Grace",
     lastName: "Okafor",
     role: "Global Admin",
@@ -211,7 +214,7 @@ function buildUsers(now: Date): SeedUser[] {
   return USER_SPECS.map((spec, index) => {
     const uid = uidOf(spec.slug);
     const base = {
-      email: `${uid}@example.com`,
+      email: spec.email ?? `${uid}@example.com`,
       role: spec.role,
       createdAt: daysAgo(now, 90 - index * 5),
     };
@@ -647,7 +650,7 @@ const VIEW_SPECS: ViewSpec[] = [
   {
     slug: "donor-growth",
     name: "Donor growth",
-    author: "global-admin",
+    author: "admin",
     shareOption: "ANYONE_VIEW",
     charts: [
       listSize("Monthly donors today", "mc-donors"),
@@ -701,7 +704,7 @@ const VIEW_SPECS: ViewSpec[] = [
   {
     slug: "executive-overview",
     name: "Executive overview",
-    author: "global-admin",
+    author: "admin",
     shareOption: "PRIVATE",
     charts: [
       listSize("Newsletter subscribers", "mc-newsletter"),
