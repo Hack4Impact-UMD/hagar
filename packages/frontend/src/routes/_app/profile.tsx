@@ -33,6 +33,7 @@ import {
 } from "@frontend/lib/profilePhotos.ts";
 import { saveProfileEdits } from "@frontend/lib/saveProfile.ts";
 import { queryClient, trpc } from "@frontend/lib/trpc.ts";
+import { pageTitle } from "@frontend/lib/pageTitle.ts";
 
 function isForbidden(error: unknown): boolean {
   return (
@@ -43,7 +44,10 @@ function isForbidden(error: unknown): boolean {
   );
 }
 
-export const Route = createFileRoute("/_app/profile")({ component: Profile });
+export const Route = createFileRoute("/_app/profile")({
+  head: () => pageTitle("My Profile"),
+  component: Profile,
+});
 
 function Profile() {
   const router = useRouter();

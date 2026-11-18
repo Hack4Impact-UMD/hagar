@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { pageTitle } from "@frontend/lib/pageTitle.ts";
 
 export const Route = createFileRoute("/_app/campaigns")({
+  head: () => pageTitle("Campaigns"),
   component: Campaigns,
 });
 

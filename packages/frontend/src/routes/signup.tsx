@@ -7,8 +7,12 @@ import { FormField } from "@frontend/components/form/FormField.tsx";
 import { SubmitButton } from "@frontend/components/form/SubmitButton.tsx";
 import { authErrorMessage } from "@frontend/lib/authErrors.ts";
 import { auth } from "@frontend/lib/firebase.ts";
+import { pageTitle } from "@frontend/lib/pageTitle.ts";
 
-export const Route = createFileRoute("/signup")({ component: Signup });
+export const Route = createFileRoute("/signup")({
+  head: () => pageTitle("Sign up"),
+  component: Signup,
+});
 
 function Signup() {
   const [email, setEmail] = useState("");
