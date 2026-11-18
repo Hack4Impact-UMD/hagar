@@ -10,8 +10,12 @@ import {
   isBadCredentials,
 } from "@frontend/lib/authErrors.ts";
 import { auth } from "@frontend/lib/firebase.ts";
+import { pageTitle } from "@frontend/lib/pageTitle.ts";
 
-export const Route = createFileRoute("/login")({ component: Login });
+export const Route = createFileRoute("/login")({
+  head: () => pageTitle("Login"),
+  component: Login,
+});
 
 function Login() {
   const [email, setEmail] = useState("");
