@@ -16,12 +16,12 @@ function AwaitingApproval() {
         <div className="flex h-37.5 w-50 items-center justify-center bg-onboarding-icon-tile">
           <HourglassIcon aria-hidden size={160} className="text-white" />
         </div>
-        <h1 className="mt-8 text-[40px] leading-none font-bold text-foreground">
+        <h1 className="mt-8 text-[2.5rem] leading-none font-bold text-foreground">
           Your account is pending approval
         </h1>
         <p
           data-testid="awaiting-approval"
-          className="mt-6 max-w-[516px] text-lg leading-none text-foreground"
+          className="mt-6 max-w-129 text-lg leading-none text-foreground"
         >
           Thanks for signing up! An admin needs to approve your account and
           assign you a role before you can access Hagar.
@@ -31,7 +31,7 @@ function AwaitingApproval() {
           variant="outline"
           data-testid="sign-out"
           onClick={() => void auth.signOut()}
-          className="mt-8 h-17.5 w-full max-w-82.25 rounded-[10px] border-primary bg-background text-base font-bold text-primary hover:bg-background hover:text-primary"
+          className="mt-8 h-17.5 w-full max-w-82.25 rounded-[0.625rem] border-primary bg-background text-base font-bold text-primary hover:bg-background hover:text-primary"
         >
           Log out
         </Button>
