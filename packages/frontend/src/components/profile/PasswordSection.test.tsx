@@ -114,26 +114,20 @@ describe("old password", () => {
 });
 
 describe("typed passwords", () => {
-  it("turn off the phone keyboard's capitalizing and autocorrect", () => {
+  it("stay masked, whether or not the field has focus", () => {
     renderSection();
 
     for (const testId of ["oldPassword", "newPassword", "confirmPassword"]) {
-      expect(field(testId)).toHaveAttribute("autocapitalize", "none");
-      expect(field(testId)).toHaveAttribute("autocorrect", "off");
+      expect(field(testId)).toHaveAttribute("type", "password");
     }
-  });
-
-  it("show while typing and as x's after leaving the field", () => {
-    renderSection();
 
     type("newPassword", "hunter2hunter2");
     expect(field("newPassword")).toHaveValue("hunter2hunter2");
+    expect(field("newPassword")).toHaveAttribute("type", "password");
 
     fireEvent.blur(field("newPassword"));
-    expect(field("newPassword")).toHaveValue("xxxxxxxxxxxxxx");
-
-    fireEvent.focus(field("newPassword"));
     expect(field("newPassword")).toHaveValue("hunter2hunter2");
+    expect(field("newPassword")).toHaveAttribute("type", "password");
   });
 });
 
