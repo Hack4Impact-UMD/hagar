@@ -87,7 +87,9 @@ if (live) {
 }
 
 initializeApp({
-  credential,
+  // firebase-admin rejects a `credential` key whose value is undefined, so on
+  // the emulators the key is left out altogether.
+  ...(credential && { credential }),
   projectId,
   storageBucket: bucketName,
 });
