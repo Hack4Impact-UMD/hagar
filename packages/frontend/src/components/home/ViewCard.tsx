@@ -11,6 +11,8 @@ type ViewCardProps = {
   width: ChartWidth;
   /** Pass this in edit mode to show the remove button. */
   onRemove?: () => void;
+  /** Called when the title is clicked in edit mode. */
+  onEdit?: () => void;
   disabled?: boolean;
 };
 
@@ -25,7 +27,13 @@ const COLUMN_SPAN: Record<ChartWidth, string> = {
  * One analytic in a view, spanning as many grid columns as its chart kind is
  * wide. Charts aren't built yet, so a grey box stands in for the chart.
  */
-export function ViewCard({ name, width, onRemove, disabled }: ViewCardProps) {
+export function ViewCard({
+  name,
+  width,
+  onRemove,
+  onEdit,
+  disabled,
+}: ViewCardProps) {
   return (
     <li
       className={cn(
@@ -43,12 +51,10 @@ export function ViewCard({ name, width, onRemove, disabled }: ViewCardProps) {
             <DotsSixVerticalIcon weight="bold" className="size-4 shrink-0" />
           </div>
           <h2 className="min-w-0 flex-1">
-            {/* Placeholder until the chart editor modal (#84) exists. It
-                should open on this card's chart, and its onSave should
-                replace the card in the draft. */}
             <button
               type="button"
               aria-label={`Edit ${name}`}
+              onClick={onEdit}
               disabled={disabled}
               className="flex h-6 w-full items-center gap-1 rounded-[10px] border border-[#E5E5E5] pr-1 pl-2 text-left hover:bg-muted disabled:opacity-50"
             >

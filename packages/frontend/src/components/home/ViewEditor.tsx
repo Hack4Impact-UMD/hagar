@@ -4,9 +4,10 @@ import {
   PlusCircleIcon,
 } from "@phosphor-icons/react";
 import { chartWidth } from "@repo/common";
-import type { View, ViewShareOption } from "@repo/common";
+import type { ChartDefinition, View, ViewShareOption } from "@repo/common";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useId, useState } from "react";
+import { AnalyticDialog } from "@frontend/components/home/AnalyticDialog.tsx";
 import { ViewCard } from "@frontend/components/home/ViewCard.tsx";
 import { Button } from "@frontend/components/ui/button.tsx";
 import {
@@ -20,10 +21,12 @@ import { Separator } from "@frontend/components/ui/separator.tsx";
 import { errorCode, trpc } from "@frontend/lib/trpc.ts";
 
 import {
+  addCard,
   cleanName,
   diffDraft,
   draftFromView,
   removeCard,
+  renameCard,
 } from "@frontend/lib/viewDraft.ts";
 
 const SHARE_OPTIONS: { value: ViewShareOption; label: string }[] = [
@@ -52,10 +55,14 @@ export function ViewEditor({
   const [draft, setDraft] = useState(() => draftFromView(view));
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // Which card the analytic dialog is for: a card id to edit it, "new" to add
+  // one, or null while the dialog is closed.
+  const [dialogTarget, setDialogTarget] = useState<string | null>(null);
   const update = useMutation(trpc.views.update.mutationOptions());
   const setShareOption = useMutation(
     trpc.views.setShareOption.mutationOptions(),
   );
+  const editedCard = draft.cards.find((c) => c.id === dialogTarget);
   const nameProblem = nameError(draft.name);
   const nameErrorId = useId();
 
@@ -220,15 +227,15 @@ export function ViewEditor({
               key={card.id}
               name={card.chart.name}
               width={chartWidth(card.chart)}
+              onEdit={() => setDialogTarget(card.id)}
               onRemove={() => setDraft(removeCard(draft, card.id))}
               disabled={saving}
             />
           ))}
           <li>
-            {/* Placeholder until the chart editor modal (#84) exists. Its
-              onSave should call `setDraft(addCard(draft, chart))`. */}
             <button
               type="button"
+              onClick={() => setDialogTarget("new")}
               disabled={saving}
               className="flex h-[270px] w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-primary bg-[#F9F6F1] text-lg font-bold text-primary hover:brightness-95 disabled:opacity-50"
             >
@@ -256,6 +263,21 @@ export function ViewEditor({
           {saving ? "Saving…" : "Save changes"}
         </Button>
       </div>
+
+      <AnalyticDialog
+        open={dialogTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDialogTarget(null);
+        }}
+        initialName={editedCard?.chart.name}
+        onSave={(name) =>
+          setDraft(
+            editedCard
+              ? renameCard(draft, editedCard.id, name)
+              : addCard(draft, placeholderChart(name)),
+          )
+        }
+      />
     </section>
   );
 }
@@ -302,6 +324,20 @@ function ShareMenu({
       </DropdownMenuContent>
     </DropdownMenu>
   );
+}
+
+// The chart editor modal (#84) will let users pick a chart kind and its
+// params. Until then every added analytic is a list-size chart on a made-up
+// list, so only the name is meaningful.
+function placeholderChart(name: string): ChartDefinition {
+  return {
+    name,
+    chartId: "EMAIL_LIST_SIZE",
+    params: {
+      emailListId: "placeholder",
+      pointInTime: { type: "RELATIVE", anchor: "NOW" },
+    },
+  };
 }
 
 function nameError(name: string): string | null {

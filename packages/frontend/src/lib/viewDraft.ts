@@ -57,6 +57,19 @@ export function removeCard(draft: ViewDraft, id: string): ViewDraft {
   return { ...draft, cards: draft.cards.filter((c) => c.id !== id) };
 }
 
+export function renameCard(
+  draft: ViewDraft,
+  id: string,
+  name: string,
+): ViewDraft {
+  return {
+    ...draft,
+    cards: draft.cards.map((c) =>
+      c.id === id ? { ...c, chart: { ...c.chart, name } } : c,
+    ),
+  };
+}
+
 function cardsChanged(
   saved: readonly ChartDefinition[],
   cards: readonly DraftCard[],
