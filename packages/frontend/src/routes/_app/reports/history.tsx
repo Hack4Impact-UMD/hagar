@@ -69,7 +69,8 @@ function ReportsHistory() {
     [views.data],
   );
   // A report stores only who asked for it, so names come from `users.info`,
-  // which takes at most MAX_USER_INFO ids per call.
+  // which takes at most MAX_USER_INFO ids per call. Names are secondary, so a
+  // failed lookup shows "Unknown user" rather than hiding the reports.
   const requesterUids = useMemo(
     () => [...new Set(reports.data?.map((report) => report.requesterUid))],
     [reports.data],
@@ -88,12 +89,6 @@ function ReportsHistory() {
         ),
       ),
       isPending: results.some((result) => result.isPending),
-      isError: results.some((result) => result.isError),
-      retry: () => {
-        for (const result of results) {
-          if (result.isError) void result.refetch();
-        }
-      },
     }),
   });
   const matches = useMemo(
@@ -102,7 +97,7 @@ function ReportsHistory() {
   );
 
   let content: React.ReactNode;
-  if (reports.isError || views.isError || authors.isError) {
+  if (reports.isError || views.isError) {
     content = (
       <Message>
         <p role="alert">Reports could not be loaded.</p>
@@ -111,7 +106,6 @@ function ReportsHistory() {
           onClick={() => {
             if (reports.isError) void reports.refetch();
             if (views.isError) void views.refetch();
-            authors.retry();
           }}
         >
           Try again
