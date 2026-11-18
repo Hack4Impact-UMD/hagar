@@ -57,7 +57,7 @@ export function ReportPreviewView({
       className="flex flex-col px-9 py-6 md:h-[calc(100svh-3rem)] md:min-h-0"
     >
       <div className="mb-9 shrink-0">
-        <p className="text-[35px] font-bold">Report Preview</p>
+        <p className="text-[2.1875rem] font-bold">Report Preview</p>
         <p className="text-2xl text-muted-foreground">
           Create, customize, and export reports.
         </p>
@@ -83,7 +83,7 @@ export function ReportPreviewView({
 
       <section
         className={cn(
-          "relative min-h-0 rounded-lg border px-[34px] pt-[34px] pb-6",
+          "relative min-h-0 rounded-lg border px-8.5 pt-8.5 pb-6",
           status === "no-selection" ? "overflow-hidden" : "overflow-y-auto",
         )}
       >
@@ -144,13 +144,13 @@ export function ReportPreviewView({
               type="button"
               variant="outline"
               size="sm"
-              className="rounded-[6px]"
+              className="rounded-[0.375rem]"
               disabled
             >
               Edit
             </Button>
           )}
-          <Button size="sm" className="rounded-[6px]" asChild>
+          <Button size="sm" className="rounded-[0.375rem]" asChild>
             <Link to="/reports/history">
               <FileTextIcon />
               View Past Reports
@@ -159,7 +159,7 @@ export function ReportPreviewView({
           <Button
             type="button"
             size="sm"
-            className="rounded-[6px]"
+            className="rounded-[0.375rem]"
             disabled={exportDisabled}
             onClick={onExport}
           >
@@ -167,7 +167,7 @@ export function ReportPreviewView({
             {generatePending ? "Exporting…" : "Export as PDF"}
           </Button>
           {downloadUrl && (
-            <Button size="sm" className="rounded-[6px]" asChild>
+            <Button size="sm" className="rounded-[0.375rem]" asChild>
               <a href={downloadUrl} target="_blank" rel="noreferrer">
                 Open PDF
               </a>

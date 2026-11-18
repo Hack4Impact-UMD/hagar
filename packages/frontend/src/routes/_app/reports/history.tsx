@@ -183,7 +183,7 @@ function PageHeader() {
       <p className="text-[1.5rem] leading-[normal] text-muted-foreground">
         View and download past reports.
       </p>
-      <Button size="sm" className="mt-2 rounded-[6px]" asChild>
+      <Button size="sm" className="mt-2 rounded-[0.375rem]" asChild>
         <Link to="/reports/preview">
           <FileTextIcon />
           Preview Reports
