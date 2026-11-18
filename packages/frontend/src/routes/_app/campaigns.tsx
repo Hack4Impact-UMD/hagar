@@ -20,12 +20,12 @@ import {
   CampaignTableSkeleton,
   CampaignViewToggle,
 } from "@frontend/components/campaigns-list/campaign-table.tsx";
-import type { CampaignRow } from "@frontend/components/campaigns-list/campaign-list.ts";
+import type { CampaignRow } from "@frontend/lib/campaign-list";
 import {
   filterCampaigns,
   sortCampaigns,
   toCampaignRows,
-} from "@frontend/components/campaigns-list/campaign-list.ts";
+} from "@frontend/lib/campaign-list";
 import {
   parseCampaignSearch,
   toFilters,

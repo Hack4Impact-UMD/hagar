@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { NO_FILTERS } from "@frontend/components/campaigns-list/campaign-list.ts";
+import { NO_FILTERS } from "@frontend/lib/campaign-list";
 import {
   parseCampaignSearch,
   toFilters,

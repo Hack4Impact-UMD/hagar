@@ -5,14 +5,14 @@ import {
   campaignStatuses,
   channels,
   datePresets,
-} from "@frontend/components/campaigns-list/campaign-list.ts";
+} from "@frontend/lib/campaign-list";
 import type {
   CampaignFilters,
   CampaignStatus,
   Channel,
   DatePreset,
   SortDirection,
-} from "@frontend/components/campaigns-list/campaign-list.ts";
+} from "@frontend/lib/campaign-list";
 
 type UrlDatePreset = Exclude<DatePreset, "ALL_TIME">;
 // "All time" is the default, so it never appears in the URL.
