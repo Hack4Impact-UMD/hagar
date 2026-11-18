@@ -11,6 +11,7 @@ import { ViewCard } from "@frontend/components/home/ViewCard.tsx";
 import { Button } from "@frontend/components/ui/button.tsx";
 import { Separator } from "@frontend/components/ui/separator.tsx";
 import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
+import { pageTitle } from "@frontend/lib/pageTitle.ts";
 import { errorCode, trpc } from "@frontend/lib/trpc.ts";
 
 export const Route = createFileRoute("/_app/")({
