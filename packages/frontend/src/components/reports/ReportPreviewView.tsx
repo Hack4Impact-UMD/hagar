@@ -1,6 +1,7 @@
 import type { View } from "@repo/common";
 import { DownloadSimpleIcon, FileTextIcon } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
+import { cn } from "cn";
 import { Button } from "@frontend/components/ui/button.tsx";
 import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
 import { ViewPicker } from "@frontend/components/reports/ViewPicker.tsx";
@@ -9,13 +10,14 @@ import type { ViewListStatus } from "@frontend/components/reports/ViewPicker.tsx
 export type ReportPreviewStatus =
   | "loading"
   | "empty"
+  | "no-selection"
   | "not-found"
   | "error"
   | "ready";
 
 export type ReportPreviewViewProps = {
   views: View[];
-  currentViewId: string;
+  currentViewId: string | null;
   listStatus: ViewListStatus;
   view: View | null;
   status: ReportPreviewStatus;
@@ -79,9 +81,28 @@ export function ReportPreviewView({
         ) : null}
       </div>
 
-      <section className="min-h-0 overflow-y-auto rounded-lg border px-[34px] pt-[34px] pb-6">
+      <section
+        className={cn(
+          "relative min-h-0 rounded-lg border px-[34px] pt-[34px] pb-6",
+          status === "no-selection" ? "overflow-hidden" : "overflow-y-auto",
+        )}
+      >
         {(status === "loading" || status === "empty") && (
           <ReportPreviewSkeleton />
+        )}
+
+        {status === "no-selection" && (
+          // The hidden skeleton holds the card at the size a loaded view has. The
+          // message is positioned against the card, not the skeleton, so it stays
+          // centered when the skeleton is taller than the space available.
+          <>
+            <div aria-hidden className="invisible">
+              <ReportPreviewSkeleton />
+            </div>
+            <p className="absolute inset-0 flex items-center justify-center text-2xl font-bold">
+              No View Selected
+            </p>
+          </>
         )}
 
         {status === "not-found" && <p>That view does not exist.</p>}

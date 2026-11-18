@@ -2,16 +2,19 @@ import { canEditView } from "@repo/common";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { TRPCClientError } from "@trpc/client";
 import { ReportPreviewView } from "@frontend/components/reports/ReportPreviewView.tsx";
 import type { ReportPreviewStatus } from "@frontend/components/reports/ReportPreviewView.tsx";
-import type { ViewListStatus } from "@frontend/components/reports/ViewPicker.tsx";
 import {
   buildReportPdf,
   reportDownloadUrl,
   uploadReportPdf,
 } from "@frontend/lib/reports.ts";
 import { pageTitle } from "@frontend/lib/pageTitle.ts";
+import {
+  failureMessage,
+  trpcCode,
+  viewListStatus,
+} from "@frontend/lib/reportPreviewErrors.ts";
 import { queryClient, trpc } from "@frontend/lib/trpc.ts";
 
 const DOWNLOAD_LINK_FAILED =
@@ -183,12 +186,6 @@ function exportFailureMessage(
   return null;
 }
 
-function viewListStatus(pending: boolean, error: boolean): ViewListStatus {
-  if (pending) return "loading";
-  if (error) return "error";
-  return "ready";
-}
-
 function previewStatus(pending: boolean, error: unknown): ReportPreviewStatus {
   if (pending) return "loading";
   if (!error) return "ready";
@@ -196,23 +193,4 @@ function previewStatus(pending: boolean, error: unknown): ReportPreviewStatus {
   // Nothing to draw until this endpoint returns a view. Retrying cannot produce one.
   if (trpcCode(error) === "NOT_IMPLEMENTED") return "empty";
   return "error";
-}
-
-function failureMessage(error: unknown): string {
-  switch (trpcCode(error)) {
-    case "NOT_FOUND":
-      return "That view does not exist.";
-    case "BAD_REQUEST":
-      return "The report file could not be saved.";
-    case "CONFLICT":
-      return "That report was already recorded. Try again.";
-    case "NOT_IMPLEMENTED":
-      return "This is not available yet.";
-    default:
-      return error instanceof Error ? error.message : "Something went wrong.";
-  }
-}
-
-function trpcCode(error: unknown): string | undefined {
-  return error instanceof TRPCClientError ? error.data?.code : undefined;
 }

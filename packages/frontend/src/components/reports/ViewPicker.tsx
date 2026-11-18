@@ -13,7 +13,7 @@ export type ViewListStatus = "loading" | "ready" | "error";
 
 export type ViewPickerProps = {
   views: View[];
-  currentViewId: string;
+  currentViewId: string | null;
   listStatus: ViewListStatus;
   onSelect: (viewId: string) => void;
   disabled?: boolean;
@@ -121,7 +121,7 @@ export function ViewPicker({
         }
         aria-autocomplete="list"
         aria-label="Search views"
-        placeholder="Search"
+        placeholder="Search Views"
         disabled={disabled}
         value={query}
         className="h-8 bg-background pl-8 text-sm shadow-none [&::-webkit-search-cancel-button]:appearance-none"

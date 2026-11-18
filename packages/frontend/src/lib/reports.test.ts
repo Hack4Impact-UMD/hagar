@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { buildReportPdf } from "@frontend/lib/reports.ts";
 
+const chart = (name: string) => ({
+  name,
+  chartId: "EMAIL_LIST_SIZE" as const,
+  params: {
+    emailListId: "list-1",
+    pointInTime: { type: "STATIC" as const, date: "2025-01-01" },
+  },
+});
+
 const longName =
   "Regional fundraising progress for every program, chapter, and partner organization";
 
@@ -8,11 +17,7 @@ describe("buildReportPdf", () => {
   it("writes each full name, including characters outside Latin-1", async () => {
     const pdf = await buildReportPdf({
       name: "Executive Overview",
-      charts: [
-        { name: "Donations Š" },
-        { name: longName },
-        { name: "Volunteers" },
-      ],
+      charts: [chart("Donations Š"), chart(longName), chart("Volunteers")],
     });
 
     expect(pdf.type).toBe("application/pdf");

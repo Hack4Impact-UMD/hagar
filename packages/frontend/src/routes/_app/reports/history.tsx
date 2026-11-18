@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import {
   CaretRightIcon,
   DownloadSimpleIcon,
+  FileTextIcon,
   MagnifyingGlassIcon,
   SpinnerGapIcon,
 } from "@phosphor-icons/react";
@@ -182,13 +183,12 @@ function PageHeader() {
       <p className="text-[1.5rem] leading-[normal] text-muted-foreground">
         View and download past reports.
       </p>
-      <Link
-        to="/reports/preview"
-        className="mt-1 inline-flex items-center gap-1 text-base font-bold text-primary hover:underline"
-      >
-        Preview Reports
-        <CaretRightIcon aria-hidden className="size-4" />
-      </Link>
+      <Button size="sm" className="mt-2 rounded-[6px]" asChild>
+        <Link to="/reports/preview">
+          <FileTextIcon />
+          Preview Reports
+        </Link>
+      </Button>
     </header>
   );
 }
