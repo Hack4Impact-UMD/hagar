@@ -17,6 +17,13 @@
   * {
     @apply border-border outline-ring/50;
   }
+
+  /* Tailwind's reset gives buttons the default arrow cursor. Disabled ones
+     keep it, since they can't be clicked. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
 }
 
 @theme inline {

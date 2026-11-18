@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { auth } from "@frontend/lib/firebase.ts";
+import { pageTitle } from "@frontend/lib/pageTitle.ts";
 
 export const Route = createFileRoute("/awaiting-approval")({
+  head: () => pageTitle("Awaiting approval"),
   component: AwaitingApproval,
 });
 

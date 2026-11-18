@@ -8,3 +8,4 @@ export * from "@common/reports.ts";
 export * from "@common/campaigns.ts";
 export * from "@common/permissions.ts";
 export * from "@common/profilePhoto.ts";
+export * from "@common/password.ts";
