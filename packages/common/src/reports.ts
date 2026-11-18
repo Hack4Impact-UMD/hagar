@@ -18,6 +18,15 @@ export const reportPath = type(
 /** What the client generates for a new report. */
 export const reportUuid = type(new RegExp(`^${UUID}$`));
 
+/**
+ * A view id a client may send. Firestore throws on an id with a `/`, on `.` and
+ * `..`, and on `__name__`, which would reach the caller as a server error
+ * instead of "not found". The length matches the folder segment in `reportPath`.
+ */
+export const viewIdInput = type(
+  new RegExp(`^(?!\\.{1,2}$)(?!__.*__$)[^/]{1,128}$`),
+);
+
 /** Keep in step with the size limit in `storage.rules`. */
 export const MAX_REPORT_BYTES = 200 * 1024 * 1024;
 
@@ -53,13 +62,13 @@ export type Report = typeof report.infer;
 // Every procedure input rejects undeclared keys. ArkType passes them through
 // by default, which would let a caller send fields like `charts` or `takenAt`
 // along. Both come from the backend, so a report can't be forged.
-export const getReportInput = type({ reportId: "string >= 1" }).onUndeclaredKey(
+export const getReportInput = type({ reportId: reportUuid }).onUndeclaredKey(
   "reject",
 );
 export type GetReportInput = typeof getReportInput.infer;
 
 /** With a `viewId`, lists that view's reports. Without one, lists them all. */
-export const listReportsInput = type({ "viewId?": "string >= 1" })
+export const listReportsInput = type({ "viewId?": viewIdInput })
   .onUndeclaredKey("reject")
   .or("undefined");
 export type ListReportsInput = typeof listReportsInput.infer;
@@ -69,7 +78,7 @@ export type ListReportsInput = typeof listReportsInput.infer;
  * `reportFilePath(viewId, reportId)`.
  */
 export const createReportInput = type({
-  viewId: "string >= 1",
+  viewId: viewIdInput,
   reportId: reportUuid,
   "notes?": "string <= 10000",
 }).onUndeclaredKey("reject");
