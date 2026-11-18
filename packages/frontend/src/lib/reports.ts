@@ -13,20 +13,14 @@ const MIN_NAME_SIZE = 6;
 
 /**
  * A text PDF of the preview: the view name, then one square card per chart.
- * jsPDF and its font load only when a report is generated, so they stay off
- * the first page load. Cards stay a fixed size, matching the preview.
+ * jsPDF loads only when a report is generated, so it stays off the first page
+ * load. Cards stay a fixed size, matching the preview.
  */
 export async function buildReportPdf(
   view: Pick<View, "name" | "charts">,
 ): Promise<Blob> {
   const { jsPDF: JsPdf } = await import("jspdf");
   const doc = new JsPdf({ unit: "pt", format: "letter" });
-  // Helvetica cannot draw names outside Latin-1. Inter can, and jsPDF can embed this static file.
-  const font = await import("@frontend/assets/Inter-Regular.ttf?inline");
-  doc.addFileToVFS("Inter-Regular.ttf", fontBase64(font.default));
-  doc.addFont("Inter-Regular.ttf", "Inter", "normal");
-  doc.setFont("Inter", "normal");
-
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const cardSize = (pageWidth - MARGIN * 2 - GAP * (COLUMNS - 1)) / COLUMNS;
@@ -81,12 +75,6 @@ export async function uploadReportPdf(
 
 export function reportDownloadUrl(path: string): Promise<string> {
   return getDownloadURL(ref(storage, path));
-}
-
-/** `?inline` is a data URL in the app and a raw base64 string under Vitest. */
-function fontBase64(font: string): string {
-  const comma = font.indexOf(",");
-  return comma === -1 ? font : font.slice(comma + 1);
 }
 
 function wrap(doc: jsPDF, text: string, width: number): string[] {
