@@ -4,7 +4,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createContext } from "@backend/trpc/context.ts";
 
 const auth = vi.hoisted(() => ({
-  verifyIdToken: vi.fn<(token: string) => Promise<Partial<DecodedIdToken>>>(),
+  verifyIdToken:
+    vi.fn<
+      (
+        token: string,
+        checkRevoked?: boolean,
+      ) => Promise<Partial<DecodedIdToken>>
+    >(),
 }));
 vi.mock("firebase-admin/auth", () => ({ getAuth: () => auth }));
 vi.mock("firebase-admin/firestore", () => ({ getFirestore: () => ({}) }));
@@ -34,7 +40,8 @@ describe("createContext", () => {
       email: "demo@example.com",
       emailVerified: true,
     });
-    expect(auth.verifyIdToken).toHaveBeenCalledWith("good-token");
+    // Revocation must be checked so a deleted account's token stops working.
+    expect(auth.verifyIdToken).toHaveBeenCalledWith("good-token", true);
   });
 
   it("treats a missing or malformed header as signed out", async () => {
@@ -47,6 +54,16 @@ describe("createContext", () => {
     auth.verifyIdToken.mockRejectedValue(new Error("Token expired."));
 
     await expect(sessionFor("Bearer bad-token")).resolves.toBeNull();
+  });
+
+  it("treats a token for a deleted account as signed out", async () => {
+    auth.verifyIdToken.mockRejectedValue(
+      Object.assign(new Error("No user record."), {
+        code: "auth/user-not-found",
+      }),
+    );
+
+    await expect(sessionFor("Bearer deleted-user")).resolves.toBeNull();
   });
 
   it("treats an account without an email as signed out", async () => {

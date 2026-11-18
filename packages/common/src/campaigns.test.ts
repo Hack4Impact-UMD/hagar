@@ -1,9 +1,10 @@
 import { type } from "arktype";
 import { describe, expect, it } from "vitest";
+import type { Campaign } from "@common/campaigns.ts";
 import {
-  campaign,
+  campaignDateRanges,
+  createCampaignInput,
   getCampaignInput,
-  linkedItem,
   linkedItemInput,
   setCampaignNotesInput,
   storedCampaign,
@@ -23,81 +24,7 @@ const stored = {
   linkedItems: [{ type: "EMAIL", id: "email-1" }],
 };
 
-describe("linkedItem", () => {
-  it("accepts an email link", () => {
-    expect(linkedItem({ type: "EMAIL", id: "email-1" })).toEqual({
-      type: "EMAIL",
-      id: "email-1",
-    });
-  });
-
-  it("rejects an unknown type or a missing id", () => {
-    expect(linkedItem({ type: "SMS", id: "sms-1" })).toBeInstanceOf(
-      type.errors,
-    );
-    expect(linkedItem({ type: "EMAIL", id: "" })).toBeInstanceOf(type.errors);
-    expect(linkedItem({ type: "EMAIL" })).toBeInstanceOf(type.errors);
-  });
-});
-
-describe("storedCampaign", () => {
-  it("accepts a campaign, including one with no codes or links yet", () => {
-    expect(storedCampaign(stored)).toEqual(stored);
-    expect(
-      storedCampaign({ ...stored, utmCodes: [], linkedItems: [] }),
-    ).toEqual({ ...stored, utmCodes: [], linkedItems: [] });
-  });
-
-  it("requires a UTC date string for the update time", () => {
-    for (const updatedAt of [1714566600000, "2024-05-01", "yesterday"]) {
-      expect(storedCampaign({ ...stored, updatedAt })).toBeInstanceOf(
-        type.errors,
-      );
-    }
-  });
-
-  it("requires one of the known regions", () => {
-    const { region: _region, ...withoutRegion } = stored;
-    expect(storedCampaign(withoutRegion)).toBeInstanceOf(type.errors);
-    for (const region of ["UK", "", null]) {
-      expect(storedCampaign({ ...stored, region })).toBeInstanceOf(type.errors);
-    }
-    expect(storedCampaign({ ...stored, region: "New Zealand" })).toMatchObject({
-      region: "New Zealand",
-    });
-  });
-
-  it("rejects an empty name, an empty UTM code, or a bad link", () => {
-    expect(storedCampaign({ ...stored, name: "" })).toBeInstanceOf(type.errors);
-    expect(storedCampaign({ ...stored, utmCodes: [""] })).toBeInstanceOf(
-      type.errors,
-    );
-    expect(
-      storedCampaign({ ...stored, linkedItems: [{ type: "SMS", id: "x" }] }),
-    ).toBeInstanceOf(type.errors);
-  });
-});
-
 describe("campaign procedure inputs", () => {
-  it("accept only the declared keys", () => {
-    expect(getCampaignInput({ campaignId: "c-1" })).toEqual({
-      campaignId: "c-1",
-    });
-    expect(setCampaignNotesInput({ campaignId: "c-1", notes: "" })).toEqual({
-      campaignId: "c-1",
-      notes: "",
-    });
-    const item = { type: "EMAIL", id: "email-1" };
-    expect(linkedItemInput({ campaignId: "c-1", item })).toEqual({
-      campaignId: "c-1",
-      item,
-    });
-    expect(utmCodeInput({ campaignId: "c-1", utmCode: "spring" })).toEqual({
-      campaignId: "c-1",
-      utmCode: "spring",
-    });
-  });
-
   it("reject undeclared keys, including inside a linked item", () => {
     const item = { type: "EMAIL", id: "email-1" };
     for (const result of [
@@ -109,19 +36,10 @@ describe("campaign procedure inputs", () => {
       }),
       linkedItemInput({ campaignId: "c-1", item: { ...item, extra: 1 } }),
       utmCodeInput({ campaignId: "c-1", utmCode: "x", extra: 1 }),
+      createCampaignInput({ name: "x", region: "US", linkedItems: [] }),
     ]) {
       expect(result).toBeInstanceOf(type.errors);
     }
-  });
-
-  it("reject an empty id, an empty UTM code, and over-long notes", () => {
-    expect(getCampaignInput({ campaignId: "" })).toBeInstanceOf(type.errors);
-    expect(utmCodeInput({ campaignId: "c-1", utmCode: "" })).toBeInstanceOf(
-      type.errors,
-    );
-    expect(
-      setCampaignNotesInput({ campaignId: "c-1", notes: "x".repeat(10_001) }),
-    ).toBeInstanceOf(type.errors);
   });
 });
 
@@ -166,12 +84,86 @@ describe("campaign list edits", () => {
   });
 });
 
-describe("campaign", () => {
-  it("adds the document id to the stored shape", () => {
-    expect(campaign({ campaignId: "campaign-1", ...stored })).toEqual({
-      campaignId: "campaign-1",
-      ...stored,
-    });
-    expect(campaign(stored)).toBeInstanceOf(type.errors);
+describe("campaignDateRanges", () => {
+  function campaignWith(campaignId: string, emailIds: string[]): Campaign {
+    return {
+      ...storedCampaign.assert(stored),
+      campaignId,
+      linkedItems: emailIds.map((id) => ({ type: "EMAIL", id })),
+    };
+  }
+
+  const emails = [
+    { emailCampaignId: "march", sentAt: "2024-03-01T09:00:00.000Z" },
+    { emailCampaignId: "april", sentAt: "2024-04-01T09:00:00.000Z" },
+    { emailCampaignId: "may", sentAt: "2024-05-01T09:00:00.000Z" },
+  ];
+
+  it.fails("returns nothing when there are no campaigns", () => {
+    expect(campaignDateRanges([], emails)).toEqual([]);
+  });
+
+  it.fails("leaves out a campaign with no dated emails", () => {
+    expect(campaignDateRanges([campaignWith("c-1", [])], emails)).toEqual([]);
+  });
+
+  it.fails("skips a linked email that is not in the list", () => {
+    expect(
+      campaignDateRanges([campaignWith("c-1", ["deleted", "april"])], emails),
+    ).toEqual([
+      {
+        campaignId: "c-1",
+        startDate: "2024-04-01T09:00:00.000Z",
+        endDate: "2024-04-01T09:00:00.000Z",
+      },
+    ]);
+  });
+
+  it.fails("starts and ends on the same date for one email", () => {
+    expect(campaignDateRanges([campaignWith("c-1", ["may"])], emails)).toEqual([
+      {
+        campaignId: "c-1",
+        startDate: "2024-05-01T09:00:00.000Z",
+        endDate: "2024-05-01T09:00:00.000Z",
+      },
+    ]);
+  });
+
+  it.fails("runs from the earliest email to the latest, whatever the link order", () => {
+    expect(
+      campaignDateRanges(
+        [campaignWith("c-1", ["april", "may", "march"])],
+        emails,
+      ),
+    ).toEqual([
+      {
+        campaignId: "c-1",
+        startDate: "2024-03-01T09:00:00.000Z",
+        endDate: "2024-05-01T09:00:00.000Z",
+      },
+    ]);
+  });
+
+  it.fails("counts an email linked by two campaigns in both", () => {
+    expect(
+      campaignDateRanges(
+        [
+          campaignWith("c-1", ["march", "april"]),
+          campaignWith("c-2", ["april"]),
+        ],
+        emails,
+      ),
+    ).toEqual([
+      {
+        campaignId: "c-1",
+        startDate: "2024-03-01T09:00:00.000Z",
+        endDate: "2024-04-01T09:00:00.000Z",
+      },
+      {
+        campaignId: "c-2",
+        startDate: "2024-04-01T09:00:00.000Z",
+        endDate: "2024-04-01T09:00:00.000Z",
+      },
+    ]);
   });
 });

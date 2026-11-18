@@ -1,17 +1,11 @@
 import { type } from "arktype";
+import { chartDefinition } from "@common/charts.ts";
 import { utcDateString } from "@common/dates.ts";
 import type { UserProfile } from "@common/user.ts";
 
 // Length caps exist only to bound abuse. They sit far above any real value.
 export const MAX_VIEW_NAME_LENGTH = 500;
 const name = type(`1 <= string <= ${MAX_VIEW_NAME_LENGTH}`);
-
-/**
- * A single chart or metric on a view. Only its name is defined for now.
- * Reports copy these as they stand, so a report keeps what the view showed.
- */
-export const chartDefinition = type({ name });
-export type ChartDefinition = typeof chartDefinition.infer;
 
 /**
  * Who besides the author can open a view. `ANYONE_EDIT` includes viewing.

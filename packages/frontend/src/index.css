@@ -8,6 +8,7 @@
 @layer base {
   html {
     @apply font-sans;
+    overscroll-behavior-y: none;
   }
 
   body {
@@ -15,6 +16,13 @@
   }
   * {
     @apply border-border outline-ring/50;
+  }
+
+  /* Tailwind's reset gives buttons the default arrow cursor. Disabled ones
+     keep it, since they can't be clicked. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
   }
 }
 
@@ -35,6 +43,7 @@
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
+  --color-field-border: var(--field-border);
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
@@ -79,6 +88,8 @@
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
+  /* Border of the larger form fields and dropdowns on the profile setup page. */
+  --field-border: #d9d9d9;
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.87 0 0);
@@ -87,12 +98,14 @@
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
+  /* Figma "FINAL NAV" background. */
+  --sidebar: #f9f6f1;
+  --sidebar-foreground: #000000;
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
+  /* Active nav row tint. */
+  --sidebar-accent: #eeddd1;
+  --sidebar-accent-foreground: #000000;
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 }
@@ -114,6 +127,7 @@
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
+  --field-border: #d9d9d9;
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.87 0 0);

@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { pageTitle } from "@frontend/lib/pageTitle.ts";
 
 /**
  * Lists every report the user can see, newest first, with a way to open and
  * download each one.
  */
 export const Route = createFileRoute("/_app/reports/history")({
+  head: () => pageTitle("Reports history"),
   component: ReportsHistory,
 });
 

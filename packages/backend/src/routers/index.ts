@@ -4,6 +4,8 @@ import {
   router,
 } from "@backend/trpc/init.ts";
 import { campaignsRouter } from "@backend/routers/campaigns.ts";
+import { chartsRouter } from "@backend/routers/charts.ts";
+import { emailsRouter } from "@backend/routers/emails.ts";
 import { reportsRouter } from "@backend/routers/reports.ts";
 import { usersRouter } from "@backend/routers/users.ts";
 import { viewsRouter } from "@backend/routers/views.ts";
@@ -19,6 +21,8 @@ export const appRouter = router({
   campaigns: campaignsRouter,
   views: viewsRouter,
   reports: reportsRouter,
+  emails: emailsRouter,
+  charts: chartsRouter,
 });
 
 export type AppRouter = typeof appRouter;

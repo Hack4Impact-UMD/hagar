@@ -5,6 +5,8 @@ import {
   addLinkedItem,
   addUtmCode,
   campaignNotFound,
+  createCampaign,
+  deleteCampaign,
   getCampaign,
   listCampaigns,
   removeLinkedItem,
@@ -64,7 +66,7 @@ function actor(role: ActiveUserProfile["role"]): ActiveUserProfile {
     role,
     createdAt: "2024-01-01T00:00:00.000Z",
     stage: "ACTIVE",
-    photoPath: "profile-photos/user-1/123e4567-e89b-42d3-a456-426614174000.png",
+    photoPath: "profile-photos/user-1/avatar",
     phoneNumber: "+15555550100",
     firstName: "Ada",
     lastName: "Lovelace",
@@ -110,7 +112,7 @@ describe("campaignNotFound", () => {
 });
 
 describe("listCampaigns", () => {
-  it.fails("lists every campaign, most recently updated first", async () => {
+  it("lists every campaign, most recently updated first", async () => {
     const { db } = seeded();
 
     const campaigns = await listCampaigns(db, admin);
@@ -122,7 +124,7 @@ describe("listCampaigns", () => {
     ]);
   });
 
-  it.fails("lists campaigns for a Viewer too", async () => {
+  it("lists campaigns for a Viewer too", async () => {
     const { db } = seeded();
 
     const campaigns = await listCampaigns(db, actor("Viewer"));
@@ -134,15 +136,77 @@ describe("listCampaigns", () => {
     ]);
   });
 
-  it.fails("returns an empty list when there are no campaigns", async () => {
+  it("returns an empty list when there are no campaigns", async () => {
     const { db } = fakeFirestore();
 
     await expect(listCampaigns(db, admin)).resolves.toEqual([]);
   });
 });
 
+describe("createCampaign", () => {
+  it.fails("stores an empty campaign under a fresh id and returns it", async () => {
+    freezeTime();
+    const { db, doc } = fakeFirestore();
+
+    const created = await createCampaign(db, admin, {
+      name: "Autumn appeal",
+      region: "Canada",
+    });
+
+    const expected: StoredCampaign = {
+      name: "Autumn appeal",
+      region: "Canada",
+      notes: "",
+      utmCodes: [],
+      linkedItems: [],
+      updatedAt: NOW,
+    };
+    expect(created).toEqual({ campaignId: created.campaignId, ...expected });
+    expect(doc("campaigns", created.campaignId)).toEqual(expected);
+  });
+
+  it.fails("gives each new campaign its own id", async () => {
+    const { db } = fakeFirestore();
+    const input = { name: "Autumn appeal", region: "US" } as const;
+
+    const first = await createCampaign(db, admin, input);
+    const second = await createCampaign(db, admin, input);
+
+    expect(first.campaignId).not.toBe(second.campaignId);
+  });
+});
+
+describe("deleteCampaign", () => {
+  it.fails("removes the campaign and leaves its linked emails", async () => {
+    const { db, doc } = seeded();
+
+    await deleteCampaign(db, admin, { campaignId: "newest" });
+
+    expect(doc("campaigns", "newest")).toBeUndefined();
+    expect(doc("email-campaigns", "email-1")).toEqual({});
+    expect(doc("email-campaigns", "email-2")).toEqual({});
+  });
+
+  it.fails("leaves every other campaign untouched", async () => {
+    const { db, doc } = seeded();
+
+    await deleteCampaign(db, admin, { campaignId: "newest" });
+
+    expect(doc("campaigns", "middle")).toEqual(CAMPAIGNS.middle);
+    expect(doc("campaigns", "oldest")).toEqual(CAMPAIGNS.oldest);
+  });
+
+  it.fails("throws NOT_FOUND for an unknown campaign", async () => {
+    const { db } = seeded();
+
+    await expect(
+      deleteCampaign(db, admin, { campaignId: "missing" }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+});
+
 describe("getCampaign", () => {
-  it.fails("returns the campaign with its id", async () => {
+  it("returns the campaign with its id", async () => {
     const { db } = seeded();
 
     await expect(
@@ -150,7 +214,7 @@ describe("getCampaign", () => {
     ).resolves.toEqual(campaignOf("middle"));
   });
 
-  it.fails("returns a campaign to a Viewer", async () => {
+  it("returns a campaign to a Viewer", async () => {
     const { db } = seeded();
 
     await expect(
@@ -158,7 +222,7 @@ describe("getCampaign", () => {
     ).resolves.toEqual(campaignOf("middle"));
   });
 
-  it.fails("throws NOT_FOUND for an unknown campaign", async () => {
+  it("throws NOT_FOUND for an unknown campaign", async () => {
     const { db } = seeded();
 
     await expect(
@@ -168,7 +232,7 @@ describe("getCampaign", () => {
 });
 
 describe("setCampaignNotes", () => {
-  it.fails("replaces the notes and stamps the update time", async () => {
+  it("replaces the notes and stamps the update time", async () => {
     freezeTime();
     const { db, doc } = seeded();
 
@@ -189,7 +253,20 @@ describe("setCampaignNotes", () => {
     });
   });
 
-  it.fails("leaves every other campaign untouched", async () => {
+  it("changes nothing when the notes are the same", async () => {
+    freezeTime();
+    const { db, doc } = seeded();
+
+    const updated = await setCampaignNotes(db, admin, {
+      campaignId: "middle",
+      notes: "Targets returning donors",
+    });
+
+    expect(updated).toEqual(campaignOf("middle"));
+    expect(doc("campaigns", "middle")).toEqual(CAMPAIGNS.middle);
+  });
+
+  it("leaves every other campaign untouched", async () => {
     const { db, doc } = seeded();
 
     await setCampaignNotes(db, admin, { campaignId: "middle", notes: "New" });
@@ -198,7 +275,7 @@ describe("setCampaignNotes", () => {
     expect(doc("campaigns", "oldest")).toEqual(CAMPAIGNS.oldest);
   });
 
-  it.fails("clears the notes when given an empty string", async () => {
+  it("clears the notes when given an empty string", async () => {
     const { db } = seeded();
 
     const updated = await setCampaignNotes(db, admin, {
@@ -209,7 +286,7 @@ describe("setCampaignNotes", () => {
     expect(updated.notes).toBe("");
   });
 
-  it.fails("lets a Global Admin edit too", async () => {
+  it("lets a Global Admin edit too", async () => {
     const { db } = seeded();
 
     const updated = await setCampaignNotes(db, actor("Global Admin"), {
@@ -220,7 +297,7 @@ describe("setCampaignNotes", () => {
     expect(updated.notes).toBe("Hello");
   });
 
-  it.fails("throws NOT_FOUND for an unknown campaign, creating nothing", async () => {
+  it("throws NOT_FOUND for an unknown campaign, creating nothing", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -231,7 +308,7 @@ describe("setCampaignNotes", () => {
 });
 
 describe("addLinkedItem", () => {
-  it.fails("appends the link and stamps the update time", async () => {
+  it("appends the link and stamps the update time", async () => {
     freezeTime();
     const { db, doc } = seeded();
 
@@ -250,7 +327,7 @@ describe("addLinkedItem", () => {
     expect(doc("campaigns", "middle")).toMatchObject({ linkedItems });
   });
 
-  it.fails("links a campaign that had no links", async () => {
+  it("links a campaign that had no links", async () => {
     const { db } = seeded();
 
     const updated = await addLinkedItem(db, admin, {
@@ -261,7 +338,7 @@ describe("addLinkedItem", () => {
     expect(updated.linkedItems).toEqual([{ type: "EMAIL", id: "email-3" }]);
   });
 
-  it.fails("changes nothing when the link already exists", async () => {
+  it("changes nothing when the link already exists", async () => {
     freezeTime();
     const { db, doc } = seeded();
 
@@ -274,7 +351,20 @@ describe("addLinkedItem", () => {
     expect(doc("campaigns", "middle")).toEqual(CAMPAIGNS.middle);
   });
 
-  it.fails("throws NOT_FOUND when the linked item does not exist", async () => {
+  it("changes nothing when the link already exists but its item is gone", async () => {
+    freezeTime();
+    const { db, doc } = fakeFirestore({ campaigns: CAMPAIGNS });
+
+    const updated = await addLinkedItem(db, admin, {
+      campaignId: "middle",
+      item: { type: "EMAIL", id: "email-1" },
+    });
+
+    expect(updated).toEqual(campaignOf("middle"));
+    expect(doc("campaigns", "middle")).toEqual(CAMPAIGNS.middle);
+  });
+
+  it("throws NOT_FOUND when the linked item does not exist", async () => {
     const { db, doc } = seeded();
 
     await expect(
@@ -286,7 +376,7 @@ describe("addLinkedItem", () => {
     expect(doc("campaigns", "middle")).toEqual(CAMPAIGNS.middle);
   });
 
-  it.fails("throws NOT_FOUND for an unknown campaign", async () => {
+  it("throws NOT_FOUND for an unknown campaign", async () => {
     const { db } = seeded();
 
     await expect(
@@ -299,7 +389,7 @@ describe("addLinkedItem", () => {
 });
 
 describe("removeLinkedItem", () => {
-  it.fails("removes only the matching link and stamps the update time", async () => {
+  it("removes only the matching link and stamps the update time", async () => {
     freezeTime();
     const { db, doc } = seeded();
 
@@ -317,7 +407,7 @@ describe("removeLinkedItem", () => {
     expect(doc("campaigns", "newest")).toMatchObject({ linkedItems });
   });
 
-  it.fails("changes nothing when the campaign does not have the link", async () => {
+  it("changes nothing when the campaign does not have the link", async () => {
     freezeTime();
     const { db, doc } = seeded();
 
@@ -330,7 +420,7 @@ describe("removeLinkedItem", () => {
     expect(doc("campaigns", "middle")).toEqual(CAMPAIGNS.middle);
   });
 
-  it.fails("removes a link whose item no longer exists", async () => {
+  it("removes a link whose item no longer exists", async () => {
     const { db } = fakeFirestore({ campaigns: CAMPAIGNS });
 
     const updated = await removeLinkedItem(db, admin, {
@@ -341,7 +431,7 @@ describe("removeLinkedItem", () => {
     expect(updated.linkedItems).toEqual([]);
   });
 
-  it.fails("throws NOT_FOUND for an unknown campaign", async () => {
+  it("throws NOT_FOUND for an unknown campaign", async () => {
     const { db } = seeded();
 
     await expect(
@@ -354,7 +444,7 @@ describe("removeLinkedItem", () => {
 });
 
 describe("addUtmCode", () => {
-  it.fails("appends the code and stamps the update time", async () => {
+  it("appends the code and stamps the update time", async () => {
     freezeTime();
     const { db, doc } = seeded();
 
@@ -368,7 +458,7 @@ describe("addUtmCode", () => {
     expect(doc("campaigns", "middle")).toMatchObject({ utmCodes });
   });
 
-  it.fails("adds a code to a campaign that had none", async () => {
+  it("adds a code to a campaign that had none", async () => {
     const { db } = seeded();
 
     const updated = await addUtmCode(db, admin, {
@@ -379,7 +469,7 @@ describe("addUtmCode", () => {
     expect(updated.utmCodes).toEqual(["winter"]);
   });
 
-  it.fails("changes nothing when the code already exists", async () => {
+  it("changes nothing when the code already exists", async () => {
     freezeTime();
     const { db, doc } = seeded();
 
@@ -392,7 +482,7 @@ describe("addUtmCode", () => {
     expect(doc("campaigns", "middle")).toEqual(CAMPAIGNS.middle);
   });
 
-  it.fails("treats a code that differs only in case as a different code", async () => {
+  it("treats a code that differs only in case as a different code", async () => {
     const { db } = seeded();
 
     const updated = await addUtmCode(db, admin, {
@@ -403,7 +493,7 @@ describe("addUtmCode", () => {
     expect(updated.utmCodes).toEqual(["spring_launch", "Spring_Launch"]);
   });
 
-  it.fails("throws NOT_FOUND for an unknown campaign", async () => {
+  it("throws NOT_FOUND for an unknown campaign", async () => {
     const { db } = seeded();
 
     await expect(
@@ -413,7 +503,7 @@ describe("addUtmCode", () => {
 });
 
 describe("removeUtmCode", () => {
-  it.fails("removes only the matching code and stamps the update time", async () => {
+  it("removes only the matching code and stamps the update time", async () => {
     freezeTime();
     const { db, doc } = seeded();
 
@@ -427,7 +517,7 @@ describe("removeUtmCode", () => {
     expect(doc("campaigns", "newest")).toMatchObject({ utmCodes });
   });
 
-  it.fails("changes nothing when the campaign does not have the code", async () => {
+  it("changes nothing when the campaign does not have the code", async () => {
     freezeTime();
     const { db, doc } = seeded();
 
@@ -440,7 +530,7 @@ describe("removeUtmCode", () => {
     expect(doc("campaigns", "middle")).toEqual(CAMPAIGNS.middle);
   });
 
-  it.fails("matches the code exactly, including case", async () => {
+  it("matches the code exactly, including case", async () => {
     const { db } = seeded();
 
     const updated = await removeUtmCode(db, admin, {
@@ -451,7 +541,7 @@ describe("removeUtmCode", () => {
     expect(updated.utmCodes).toEqual(["spring_launch"]);
   });
 
-  it.fails("throws NOT_FOUND for an unknown campaign", async () => {
+  it("throws NOT_FOUND for an unknown campaign", async () => {
     const { db } = seeded();
 
     await expect(

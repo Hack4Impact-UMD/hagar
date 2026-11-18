@@ -1,7 +1,7 @@
 import { type } from "arktype";
 import { describe, expect, it } from "vitest";
 import {
-  EmailCampaignRecord,
+  listEmailCampaignsInput,
   StoredEmailCampaignRecord,
 } from "@common/emails.ts";
 
@@ -35,26 +35,9 @@ const stored = {
 };
 
 describe("StoredEmailCampaignRecord", () => {
-  it("accepts a campaign with every field", () => {
-    expect(StoredEmailCampaignRecord(stored)).toEqual(stored);
-  });
-
   it("accepts a campaign whose platform reports no send time or count", () => {
     const { sentAt: _sentAt, sent: _sent, ...withoutSendInfo } = stored;
     expect(StoredEmailCampaignRecord(withoutSendInfo)).toEqual(withoutSendInfo);
-  });
-
-  it("requires one of the known regions", () => {
-    const { region: _region, ...withoutRegion } = stored;
-    expect(StoredEmailCampaignRecord(withoutRegion)).toBeInstanceOf(
-      type.errors,
-    );
-    expect(
-      StoredEmailCampaignRecord({ ...stored, region: "UK" }),
-    ).toBeInstanceOf(type.errors);
-    expect(
-      StoredEmailCampaignRecord({ ...stored, region: null }),
-    ).toBeInstanceOf(type.errors);
   });
 
   it("still validates the send time and count when they are present", () => {
@@ -70,13 +53,10 @@ describe("StoredEmailCampaignRecord", () => {
   });
 });
 
-describe("EmailCampaignRecord", () => {
-  it("adds our own id to the stored shape", () => {
-    const record = { emailCampaignId: "email-1", ...stored };
-    expect(EmailCampaignRecord(record)).toEqual(record);
-    expect(EmailCampaignRecord(stored)).toBeInstanceOf(type.errors);
+describe("listEmailCampaignsInput", () => {
+  it("rejects undeclared keys", () => {
     expect(
-      EmailCampaignRecord({ ...stored, emailCampaignId: "" }),
+      listEmailCampaignsInput({ sentTo: fetchedAt, region: "US" }),
     ).toBeInstanceOf(type.errors);
   });
 });

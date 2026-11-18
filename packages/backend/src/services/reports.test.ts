@@ -1,4 +1,4 @@
-import { MAX_REPORT_BYTES, reportFilePath } from "@repo/common";
+﻿import { MAX_REPORT_BYTES, reportFilePath } from "@repo/common";
 import type {
   ActiveUserProfile,
   StoredReport,
@@ -6,6 +6,7 @@ import type {
   UserRole,
 } from "@repo/common";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { chart } from "@backend/testing/charts.ts";
 import { fakeFirestore } from "@backend/testing/fakeFirestore.ts";
 import {
   assertUploadedReport,
@@ -57,7 +58,7 @@ function view(
     name: `${authorUid}'s ${shareOption} view`,
     authorUid,
     shareOption,
-    charts: chartNames.map((name) => ({ name })),
+    charts: chartNames.map(chart),
     updatedAt: "2024-01-01T00:00:00.000Z",
   };
 }
@@ -73,7 +74,7 @@ function report(n: number, viewId: string, takenAt: string): StoredReport {
     viewId,
     // What the view showed when the report was taken, which is not what it
     // shows now.
-    charts: [{ name: "Snapshot chart" }],
+    charts: [chart("Snapshot chart")],
     takenAt,
     notes: `Report ${n}`,
     path: reportFilePath(viewId, id(n)),
@@ -102,7 +103,7 @@ function actor(uid: string, role: UserRole = "Local Admin"): ActiveUserProfile {
     role,
     createdAt: "2024-01-01T00:00:00.000Z",
     stage: "ACTIVE",
-    photoPath: "profile-photos/user-1/123e4567-e89b-42d3-a456-426614174000.png",
+    photoPath: "profile-photos/user-1/avatar",
     phoneNumber: "+15555550100",
     firstName: "Ada",
     lastName: "Lovelace",

@@ -1,6 +1,6 @@
 import { type } from "arktype";
 import { utcDateString } from "@common/dates.ts";
-import { chartDefinition } from "@common/views.ts";
+import { chartDefinition } from "@common/charts.ts";
 
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 

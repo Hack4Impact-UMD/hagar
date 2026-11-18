@@ -7,8 +7,10 @@ import { Button } from "@frontend/components/ui/button.tsx";
 import { auth } from "@frontend/lib/firebase.ts";
 import { queryClient, trpc } from "@frontend/lib/trpc.ts";
 import { useAuth } from "@frontend/lib/useAuth.ts";
+import { pageTitle } from "@frontend/lib/pageTitle.ts";
 
 export const Route = createFileRoute("/verify-email")({
+  head: () => pageTitle("Verify email"),
   component: VerifyEmail,
 });
 
@@ -65,7 +67,7 @@ function VerifyEmail() {
 
   return (
     <main className="flex min-h-svh items-center justify-center bg-[#f9f6f1] p-6">
-      <div className="flex w-full max-w-5xl flex-col items-center justify-center gap-4 bg-card px-6 py-16 text-center sm:min-h-180">
+      <div className="flex w-full max-w-5xl flex-col items-center justify-center gap-4 bg-card px-6 py-10 text-center sm:py-16">
         <div className="flex h-37.5 w-50 items-center justify-center bg-[#f1ded2]">
           <EnvelopeIcon aria-hidden size={160} className="text-white" />
         </div>

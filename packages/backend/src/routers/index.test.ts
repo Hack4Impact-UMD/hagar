@@ -1,11 +1,12 @@
-import { TRPCError } from "@trpc/server";
+﻿import { TRPCError } from "@trpc/server";
 import type { Firestore } from "firebase-admin/firestore";
 import { describe, expect, it, vi } from "vitest";
+import { chart } from "@backend/testing/charts.ts";
 import type { Context } from "@backend/trpc/context.ts";
 import { createCaller } from "@backend/routers/index.ts";
 
 const details = {
-  photoPath: "profile-photos/user-1/123e4567-e89b-42d3-a456-426614174000.png",
+  photoPath: "profile-photos/user-1/avatar",
   phoneNumber: "+15555550100",
   firstName: "Ada",
   lastName: "Lovelace",
@@ -57,6 +58,8 @@ vi.mock("@backend/services/campaigns.ts", () => {
   return {
     listCampaigns: echoActor,
     getCampaign: echoActor,
+    createCampaign: echoActor,
+    deleteCampaign: echoActor,
     setCampaignNotes: echoActor,
     addLinkedItem: echoActor,
     removeLinkedItem: echoActor,
@@ -85,6 +88,23 @@ vi.mock("@backend/services/reports.ts", () => {
     listReports: echoActor,
     getReport: echoActor,
     createReport: echoActor,
+  };
+});
+
+vi.mock("@backend/services/emails.ts", () => {
+  const echoActor = (_db: unknown, actor: { uid: string }) =>
+    Promise.resolve({ actor: actor.uid });
+  return {
+    listEmailCampaigns: echoActor,
+    listEmailLists: echoActor,
+  };
+});
+
+vi.mock("@backend/services/charts.ts", () => {
+  const echoActor = (_db: unknown, actor: { uid: string }) =>
+    Promise.resolve({ actor: actor.uid });
+  return {
+    getChartData: echoActor,
   };
 });
 
@@ -123,6 +143,9 @@ const readCalls = [
   (as: Caller) => as.campaigns.get({ campaignId }),
   (as: Caller) => as.views.list(),
   (as: Caller) => as.views.get({ viewId }),
+  (as: Caller) => as.emails.campaigns({ sentTo: NOW_ISO }),
+  (as: Caller) => as.emails.lists(),
+  (as: Caller) => as.charts.data({ chart: chart("Subscribers") }),
 ];
 
 // Any approved user, Viewers included. Which views they may change is decided
@@ -149,6 +172,8 @@ const reportCalls = [
 
 // Approved users who are not Viewers.
 const editCalls = [
+  (as: Caller) => as.campaigns.create({ name: "Spring launch", region: "US" }),
+  (as: Caller) => as.campaigns.delete({ campaignId }),
   (as: Caller) => as.campaigns.setNotes({ campaignId, notes: "New notes" }),
   (as: Caller) => as.campaigns.addLinkedItem({ campaignId, item }),
   (as: Caller) => as.campaigns.removeLinkedItem({ campaignId, item }),
@@ -222,7 +247,7 @@ describe("appRouter", () => {
     }
   });
 
-  it("lets a Viewer read campaigns, passing their profile on", async () => {
+  it("lets a Viewer read campaigns, emails and chart data, passing their profile on", async () => {
     for (const call of readCalls) {
       await expect(call(viewer)).resolves.toEqual({ actor: "viewer-1" });
     }
@@ -292,6 +317,23 @@ describe("appRouter", () => {
         item: { type: "SMS", id: "sms-1" } as unknown as typeof item,
       }),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      admin.campaigns.create({ name: "", region: "US" }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      admin.campaigns.delete({ campaignId: "" }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("validates email and chart inputs with the shared arktype schemas", async () => {
+    await expect(
+      viewer.emails.campaigns({ sentTo: "last week" }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      viewer.charts.data({
+        chart: { ...chart("Subscribers"), chartId: "PIE" } as never,
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
   it("validates user info inputs with the shared arktype schemas", async () => {
@@ -347,7 +389,7 @@ describe("appRouter", () => {
     await expect(
       admin.views.create({
         name: "Q3 overview",
-        charts: [{ name: "Open rate", extra: true } as { name: string }],
+        charts: [{ ...chart("Open rate"), extra: true } as never],
       }),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
@@ -364,6 +406,27 @@ describe("appRouter", () => {
       admin.campaigns.addLinkedItem({
         campaignId,
         item: { ...item, extra: true } as typeof item,
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    // Otherwise a caller could set the links or `updatedAt` on create.
+    await expect(
+      admin.campaigns.create({
+        name: "Spring launch",
+        region: "US",
+        linkedItems: [item],
+      } as { name: string; region: "US" }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("rejects undeclared keys on email and chart inputs", async () => {
+    await expect(
+      viewer.emails.campaigns({ sentTo: NOW_ISO, region: "US" } as {
+        sentTo: string;
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      viewer.charts.data({
+        chart: { ...chart("Subscribers"), extra: true } as never,
       }),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });

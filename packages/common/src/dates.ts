@@ -22,3 +22,48 @@ export type UtcDateString = typeof utcDateString.infer;
 export function nowUtc(): UtcDateString {
   return new Date().toISOString();
 }
+
+/**
+ * A moment that is either fixed or worked out from the current time when it is
+ * used. A fixed one is a `STATIC` UTC date string. A moving one is `RELATIVE`: it
+ * starts from `NOW` or from the start of `TODAY`, and optionally goes back
+ * `ago`, so "one month ago" is `{ anchor: "NOW", ago: { amount: 1, unit:
+ * "MONTH" } }`.
+ */
+export const pointInTime = type({
+  type: "'STATIC'",
+  date: utcDateString,
+}).or({
+  type: "'RELATIVE'",
+  anchor: "'NOW' | 'TODAY'",
+  "ago?": {
+    // The cap only bounds abuse. It sits far above any real offset.
+    amount: "1 <= number.integer <= 10000",
+    unit: "'DAY' | 'WEEK' | 'MONTH' | 'YEAR'",
+  },
+});
+export type PointInTime = typeof pointInTime.infer;
+
+/**
+ * The instant a point in time stands for. `now` is passed in, not read from
+ * the clock, so callers and tests agree on what "now" is.
+ */
+export function resolvePointInTime(
+  point: PointInTime,
+  now: Date,
+): UtcDateString {
+  if (point.type === "STATIC") return point.date;
+
+  const date = new Date(now);
+  if (point.anchor === "TODAY") date.setUTCHours(0, 0, 0, 0);
+  if (point.ago) {
+    const { amount, unit } = point.ago;
+    // Month and year steps keep the day of the month, so Mar 31 minus a month
+    // rolls over to early March rather than clamping to the end of February.
+    if (unit === "DAY") date.setUTCDate(date.getUTCDate() - amount);
+    if (unit === "WEEK") date.setUTCDate(date.getUTCDate() - amount * 7);
+    if (unit === "MONTH") date.setUTCMonth(date.getUTCMonth() - amount);
+    if (unit === "YEAR") date.setUTCFullYear(date.getUTCFullYear() - amount);
+  }
+  return date.toISOString();
+}
