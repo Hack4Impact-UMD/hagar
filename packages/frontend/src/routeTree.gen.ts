@@ -20,6 +20,7 @@ import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppCampaignsRouteImport } from './routes/_app/campaigns'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppUserManagementRouteImport } from './routes/_app/user-management'
+import { Route as AppCampaignsCampaignIdRouteImport } from './routes/_app/campaigns_.$campaignId'
 import { Route as AppReportsHistoryRouteImport } from './routes/_app/reports/history'
 import { Route as AppReportsPreviewViewIdRouteImport } from './routes/_app/reports/preview.$viewId'
 
@@ -77,6 +78,11 @@ const AppUserManagementRoute = AppUserManagementRouteImport.update({
   path: '/user-management',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppCampaignsCampaignIdRoute = AppCampaignsCampaignIdRouteImport.update({
+  id: '/campaigns_/$campaignId',
+  path: '/campaigns/$campaignId',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppReportsHistoryRoute = AppReportsHistoryRouteImport.update({
   id: '/reports/history',
   path: '/reports/history',
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/campaigns': typeof AppCampaignsRoute
   '/profile': typeof AppProfileRoute
   '/user-management': typeof AppUserManagementRoute
+  '/campaigns/$campaignId': typeof AppCampaignsCampaignIdRoute
   '/reports/history': typeof AppReportsHistoryRoute
   '/reports/preview/$viewId': typeof AppReportsPreviewViewIdRoute
 }
@@ -113,6 +120,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AppProfileRoute
   '/user-management': typeof AppUserManagementRoute
   '/': typeof AppIndexRoute
+  '/campaigns/$campaignId': typeof AppCampaignsCampaignIdRoute
   '/reports/history': typeof AppReportsHistoryRoute
   '/reports/preview/$viewId': typeof AppReportsPreviewViewIdRoute
 }
@@ -129,6 +137,7 @@ export interface FileRoutesById {
   '/_app/profile': typeof AppProfileRoute
   '/_app/user-management': typeof AppUserManagementRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/campaigns_/$campaignId': typeof AppCampaignsCampaignIdRoute
   '/_app/reports/history': typeof AppReportsHistoryRoute
   '/_app/reports/preview/$viewId': typeof AppReportsPreviewViewIdRoute
 }
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
     | '/campaigns'
     | '/profile'
     | '/user-management'
+    | '/campaigns/$campaignId'
     | '/reports/history'
     | '/reports/preview/$viewId'
   fileRoutesByTo: FileRoutesByTo
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/user-management'
     | '/'
+    | '/campaigns/$campaignId'
     | '/reports/history'
     | '/reports/preview/$viewId'
   id:
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/_app/profile'
     | '/_app/user-management'
     | '/_app/'
+    | '/_app/campaigns_/$campaignId'
     | '/_app/reports/history'
     | '/_app/reports/preview/$viewId'
   fileRoutesById: FileRoutesById
@@ -266,6 +278,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppUserManagementRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/campaigns_/$campaignId': {
+      id: '/_app/campaigns_/$campaignId'
+      path: '/campaigns/$campaignId'
+      fullPath: '/campaigns/$campaignId'
+      preLoaderRoute: typeof AppCampaignsCampaignIdRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/reports/history': {
       id: '/_app/reports/history'
       path: '/reports/history'
@@ -289,6 +308,7 @@ interface AppRouteRouteChildren {
   AppProfileRoute: typeof AppProfileRoute
   AppUserManagementRoute: typeof AppUserManagementRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppCampaignsCampaignIdRoute: typeof AppCampaignsCampaignIdRoute
   AppReportsHistoryRoute: typeof AppReportsHistoryRoute
   AppReportsPreviewViewIdRoute: typeof AppReportsPreviewViewIdRoute
 }
@@ -299,6 +319,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppProfileRoute: AppProfileRoute,
   AppUserManagementRoute: AppUserManagementRoute,
   AppIndexRoute: AppIndexRoute,
+  AppCampaignsCampaignIdRoute: AppCampaignsCampaignIdRoute,
   AppReportsHistoryRoute: AppReportsHistoryRoute,
   AppReportsPreviewViewIdRoute: AppReportsPreviewViewIdRoute,
 }

@@ -18,7 +18,9 @@ export type LinkedItem = typeof linkedItem.infer;
 
 const campaignId = type("string >= 1");
 // Length caps exist only to bound abuse. They sit far above any real value.
-const campaignNotes = type("string <= 10000");
+/** The most characters a campaign's notes may hold, in UTF-16 code units. */
+export const MAX_CAMPAIGN_NOTES_LENGTH = 10_000;
+const campaignNotes = type("string").atMostLength(MAX_CAMPAIGN_NOTES_LENGTH);
 const utmCode = type("1 <= string <= 500");
 
 /** The shape stored at `campaigns/{campaignId}`. `campaignId` is the document id. */

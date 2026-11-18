@@ -97,6 +97,10 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
+  /* Campaign email analytics (Figma): green for opens, amber for clicks.
+     Separate from --chart-1..5 so other shadcn charts keep their colors. */
+  --chart-opens: #12b76a;
+  --chart-clicks: #ffa800;
   --radius: 0.625rem;
   /* Figma "FINAL NAV" background. */
   --sidebar: #f9f6f1;
@@ -135,6 +139,8 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
+  --chart-opens: #12b76a;
+  --chart-clicks: #ffa800;
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: var(--primary);

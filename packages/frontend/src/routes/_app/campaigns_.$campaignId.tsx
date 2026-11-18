@@ -1,0 +1,252 @@
+import { isActive, nowUtc } from "@repo/common";
+import { CaretLeftIcon } from "@phosphor-icons/react";
+import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import type { ReactNode } from "react";
+import { useMemo } from "react";
+import { CampaignNotes } from "@frontend/components/campaigns/campaign-notes.tsx";
+import { NotFound } from "@frontend/components/NotFound.tsx";
+import { CampaignTimeline } from "@frontend/components/campaigns/campaign-timeline.tsx";
+import { EmailAnalytics } from "@frontend/components/campaigns/email-analytics.tsx";
+import type { EmailAnalyticsDay } from "@frontend/components/campaigns/email-analytics.tsx";
+import { Button } from "@frontend/components/ui/button.tsx";
+import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
+import { linkedEmails } from "@frontend/lib/campaignDetails.ts";
+import { trpc } from "@frontend/lib/trpc.ts";
+
+/**
+ * One campaign. The trailing `_` on `campaigns_` keeps this page out of the
+ * list page's layout, which has no `<Outlet />`, while the URL stays
+ * `/campaigns/<id>`. The id always comes from the URL, so every campaign can
+ * be linked to.
+ */
+export const Route = createFileRoute("/_app/campaigns_/$campaignId")({
+  component: CampaignDetails,
+});
+
+/**
+ * Sample engagement until the real figures are decided: 90 days with a weekly
+ * rhythm. Its keys match `EmailCampaignMetric`, so daily totals built from
+ * snapshots can replace it without changing the chart.
+ */
+const TEMPLATE_EMAIL_DATA: EmailAnalyticsDay[] = Array.from(
+  { length: 90 },
+  (_, day) => {
+    const date = new Date(Date.UTC(2026, 7, 1 + day));
+    const uniqOpens = Math.round(
+      140 +
+        60 * Math.sin(day / 3.5) +
+        25 * Math.sin(day / 11) +
+        ((day * 37) % 23),
+    );
+    return {
+      date: date.toISOString().slice(0, 10),
+      uniqOpens,
+      uniqClicks: Math.round(uniqOpens * 0.22 + ((day * 13) % 9)),
+    };
+  },
+);
+
+function CampaignDetails() {
+  const { campaignId } = Route.useParams();
+  // Fixed per visit so the query key, and with it the cache entry, stays put.
+  const sentTo = useMemo(() => nowUtc(), []);
+
+  const campaign = useQuery(trpc.campaigns.get.queryOptions({ campaignId }));
+  // Every email sent so far; the campaign's own are picked out below.
+  const emails = useQuery(trpc.emails.campaigns.queryOptions({ sentTo }));
+  // Already cached by the root route's guard, so this resolves immediately.
+  const { data: me } = useQuery({
+    ...trpc.me.queryOptions(),
+    staleTime: "static",
+  });
+
+  if (campaign.isPending) return <CampaignDetailsSkeleton />;
+
+  // Only a failed first load replaces the page. If a background refetch fails,
+  // the last loaded campaign stays on screen, so unsaved notes aren't lost.
+  if (campaign.isLoadingError) {
+    if (campaign.error.data?.code === "NOT_FOUND") return <NotFound />;
+    return (
+      <PageMessage testId="campaign-error" title="Couldn't load this campaign">
+        <p>Something went wrong. Check your connection and try again.</p>
+        <Button
+          data-testid="campaign-retry"
+          variant="outline"
+          onClick={() => void campaign.refetch()}
+        >
+          Try again
+        </Button>
+      </PageMessage>
+    );
+  }
+
+  // The backend also refuses Viewers' saves; hiding the controls keeps the UI
+  // from offering something that would fail.
+  const canEdit = me !== undefined && isActive(me) && me.role !== "Viewer";
+
+  return (
+    <main className="flex flex-1 flex-col gap-10 px-6 pt-19 pb-10 md:px-10">
+      <header>
+        {/* The chevron sits in the page's left padding, so the title lines up
+            with the other pages' titles. */}
+        <div className="relative">
+          <BackToCampaigns />
+          <h1
+            data-testid="campaign-name"
+            className="text-[2.1875rem] leading-none font-bold break-words"
+          >
+            {campaign.data.name}
+          </h1>
+        </div>
+        <p
+          data-testid="campaign-region"
+          className="text-muted-foreground mt-2.5 text-2xl leading-none"
+        >
+          {campaign.data.region}
+        </p>
+      </header>
+
+      {campaign.isRefetchError ? (
+        <div
+          role="alert"
+          data-testid="campaign-refresh-error"
+          className="flex items-center gap-3"
+        >
+          <p className="text-muted-foreground">
+            Couldn&apos;t refresh this campaign. You&apos;re seeing the last
+            loaded version.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void campaign.refetch()}
+          >
+            Try again
+          </Button>
+        </div>
+      ) : null}
+
+      <section
+        aria-labelledby="traffic-overview"
+        className="mt-5 flex flex-col gap-12.5"
+      >
+        <h2 id="traffic-overview" className="text-2xl leading-4 font-bold">
+          Traffic Overview
+        </h2>
+        <EmailAnalytics data={TEMPLATE_EMAIL_DATA} />
+      </section>
+
+      <hr className="border-border mt-10" />
+
+      <div className="mt-10 grid gap-x-12.5 gap-y-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        {emails.isPending ? (
+          <TimelineSkeleton />
+        ) : emails.isError ? (
+          <div
+            role="alert"
+            data-testid="timeline-error"
+            className="flex items-center gap-3"
+          >
+            <p className="text-muted-foreground">
+              Couldn&apos;t load this campaign&apos;s emails.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void emails.refetch()}
+            >
+              Try again
+            </Button>
+          </div>
+        ) : (
+          <CampaignTimeline emails={linkedEmails(campaign.data, emails.data)} />
+        )}
+        <CampaignNotes
+          key={campaign.data.campaignId}
+          campaign={campaign.data}
+          canEdit={canEdit}
+        />
+      </div>
+    </main>
+  );
+}
+
+function BackToCampaigns() {
+  return (
+    <Link
+      to="/campaigns"
+      aria-label="Back to campaigns"
+      data-testid="back-to-campaigns"
+      className="text-muted-foreground hover:text-foreground absolute top-2.25 -left-7.75 rounded-md"
+    >
+      <CaretLeftIcon aria-hidden className="size-6" />
+    </Link>
+  );
+}
+
+function PageMessage({
+  testId,
+  title,
+  children,
+}: {
+  testId: string;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <main className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
+      <h1 data-testid={testId} className="text-2xl font-semibold">
+        {title}
+      </h1>
+      <div className="text-muted-foreground flex flex-col items-center gap-4">
+        {children}
+      </div>
+      <Link to="/campaigns" className="underline">
+        Back to campaigns
+      </Link>
+    </main>
+  );
+}
+
+function CampaignDetailsSkeleton() {
+  return (
+    <main
+      aria-busy
+      aria-label="Loading campaign"
+      data-testid="campaign-loading"
+      className="flex flex-1 flex-col gap-10 px-6 pt-19 pb-10 md:px-10"
+    >
+      <div className="flex flex-col gap-2.5">
+        <Skeleton className="h-[2.1875rem] w-80 max-w-full" />
+        <Skeleton className="h-6 w-40" />
+      </div>
+      <div className="mt-5 flex flex-col gap-12.5">
+        <Skeleton className="h-4 w-48" />
+        {/* The chart card's rendered height: header, 256px chart, legend. */}
+        <Skeleton className="h-[22.6875rem] w-full rounded-[1.25rem]" />
+      </div>
+      <hr className="border-border mt-10" />
+      <div className="mt-10 grid gap-x-12.5 gap-y-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="lg:-mt-8.5">
+          <TimelineSkeleton />
+        </div>
+        <Skeleton className="h-[45.625rem] w-full" />
+      </div>
+    </main>
+  );
+}
+
+function TimelineSkeleton() {
+  return (
+    <div aria-hidden className="flex flex-col gap-10 pt-10">
+      {[0, 1, 2].map((row) => (
+        <div key={row} className="flex items-center gap-6">
+          <Skeleton className="h-11 w-16" />
+          <Skeleton className="size-6 rounded-full" />
+          <Skeleton className="h-12.5 flex-1" />
+        </div>
+      ))}
+    </div>
+  );
+}
