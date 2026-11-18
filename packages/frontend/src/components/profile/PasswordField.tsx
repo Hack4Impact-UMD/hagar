@@ -1,5 +1,5 @@
 import { CheckCircleIcon } from "@phosphor-icons/react";
-import { useId, useState } from "react";
+import { useId } from "react";
 import type { ReactNode } from "react";
 import {
   PROFILE_INPUT_CLASS,
@@ -7,10 +7,6 @@ import {
 } from "@frontend/components/profile/profileInputStyles.ts";
 import { ResizeGrip } from "@frontend/components/profile/ResizeGrip.tsx";
 import { Input } from "@frontend/components/ui/input.tsx";
-
-// What a password looks like once the user has left its field. Its length says
-// nothing about the real one.
-const HIDDEN_PASSWORD = "xxxxxxxxxxxxxx";
 
 interface PasswordFieldProps {
   label: string;
@@ -29,10 +25,7 @@ interface PasswordFieldProps {
   below?: ReactNode;
 }
 
-/**
- * A password input that shows what is typed while it has focus and x's
- * otherwise. It is a text input because the x's are real text, not dots.
- */
+/** A masked password input. */
 export function PasswordField({
   label,
   value,
@@ -46,7 +39,6 @@ export function PasswordField({
   below,
 }: PasswordFieldProps) {
   const id = useId();
-  const [focused, setFocused] = useState(false);
 
   return (
     <div className="md:h-17">
@@ -62,15 +54,9 @@ export function PasswordField({
         <div className="relative">
           <Input
             id={id}
-            type="text"
-            value={focused || value === "" ? value : HIDDEN_PASSWORD}
+            type="password"
+            value={value}
             autoComplete={autoComplete}
-            // A text input gets the phone keyboard's capitalizing and
-            // autocorrect by default, which would change what the user typed
-            // and so the password that gets saved.
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck={false}
             aria-invalid={invalid}
             aria-describedby={describedBy}
             data-testid={testId}
@@ -81,11 +67,7 @@ export function PasswordField({
                 : "border-[#898887]"
             }`}
             onChange={(event) => onChange(event.target.value)}
-            onFocus={() => setFocused(true)}
-            onBlur={() => {
-              setFocused(false);
-              onBlur?.();
-            }}
+            onBlur={onBlur}
           />
           <ResizeGrip />
           {valid ? (
