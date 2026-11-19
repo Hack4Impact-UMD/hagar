@@ -62,7 +62,7 @@ describe("campaignStatus", () => {
 
 describe("formatDateRange", () => {
   const format = (startDate: string, endDate: string) =>
-    formatDateRange({ campaignId: "c1", startDate, endDate }, "UTC");
+    formatDateRange({ startDate, endDate }, "UTC");
 
   it("writes the year once when both ends share it", () => {
     expect(format("2026-10-02T09:00:00.000Z", "2026-12-15T09:00:00.000Z")).toBe(
@@ -179,6 +179,17 @@ describe("filterCampaigns", () => {
 
   it("requires every filter to match at once", () => {
     expect(ids({ search: "giving", statuses: ["Ended"] })).toEqual([]);
+  });
+
+  it("matches campaigns that ran at any point in a custom range, end day included", () => {
+    // "ended" ran Apr 16 – May 1. "active" started May 26.
+    expect(ids({ date: { from: "2026-04-20", to: "2026-05-26" } })).toEqual([
+      "active",
+      "ended",
+    ]);
+    expect(ids({ date: { from: "2026-04-20", to: "2026-05-25" } })).toEqual([
+      "ended",
+    ]);
   });
 });
 

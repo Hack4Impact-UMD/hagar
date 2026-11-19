@@ -10,9 +10,9 @@ export type CampaignStatus = (typeof campaignStatuses)[number];
 
 /** The dot drawn beside a status in the table and in the Status filter. */
 export const STATUS_DOT_CLASS: Record<CampaignStatus, string> = {
-  Active: "bg-[#4A9FD8]",
-  Ended: "bg-[#4CA868]",
-  Draft: "bg-[#E0954B]",
+  Active: "bg-[#5EB1EF]",
+  Ended: "bg-[#30A46C]",
+  Draft: "bg-[#D6AE51]",
 };
 
 export type Channel = LinkedItem["type"];
@@ -38,6 +38,11 @@ export const DATE_PRESET_LABELS: Record<DatePreset, string> = {
   ALL_TIME: "All time",
 };
 
+/** Whole days as `YYYY-MM-DD`, as a date input writes them. Both ends are included. */
+export type CustomRange = { from: string; to: string };
+/** A preset, or a custom range picked in the Date panel. */
+export type DateFilter = DatePreset | CustomRange;
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 // A campaign counts as running while its latest email is at most this old.
 const ACTIVE_WINDOW_DAYS = 14;
@@ -61,7 +66,7 @@ export function campaignStatus(
  * to the viewer's own, so dates match the day the email arrived for them.
  */
 export function formatDateRange(
-  range: CampaignDateRange,
+  range: Pick<CampaignDateRange, "startDate" | "endDate">,
   timeZone?: string,
 ): string {
   const monthDay = new Intl.DateTimeFormat("en-US", {
@@ -115,7 +120,7 @@ export function toCampaignRows(
 
 export type CampaignFilters = {
   search: string;
-  date: DatePreset;
+  date: DateFilter;
   // An empty list means that filter is off, not that nothing matches.
   statuses: readonly CampaignStatus[];
   regions: readonly UserRegion[];
@@ -147,8 +152,32 @@ export function presetWindow(
   }
 }
 
-function matchesDate(row: CampaignRow, preset: DatePreset, now: Date): boolean {
-  const window = presetWindow(preset, now);
+/**
+ * The window a custom range covers, in local time like the presets: from the
+ * start of `from` to the end of `to`. A date-time with no offset parses as local.
+ */
+export function customWindow({ from, to }: CustomRange): {
+  start: Date;
+  end: Date;
+} {
+  return {
+    start: new Date(`${from}T00:00:00`),
+    end: new Date(`${to}T23:59:59.999`),
+  };
+}
+
+/** The chip label for a custom range, like "Oct 1 – Dec 31, 2026". */
+export function formatCustomRange(range: CustomRange): string {
+  const { start, end } = customWindow(range);
+  return formatDateRange({
+    startDate: start.toISOString(),
+    endDate: end.toISOString(),
+  });
+}
+
+function matchesDate(row: CampaignRow, date: DateFilter, now: Date): boolean {
+  const window =
+    typeof date === "string" ? presetWindow(date, now) : customWindow(date);
   if (!window) return true;
   // Drafts have no dates, so they can only match "All time".
   if (!row.range) return false;

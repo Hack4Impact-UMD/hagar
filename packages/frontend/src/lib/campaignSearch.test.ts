@@ -57,6 +57,29 @@ describe("parseCampaignSearch", () => {
   it("treats an empty search as no search", () => {
     expect(parseCampaignSearch({ q: "" })).toEqual({});
   });
+
+  it("keeps a custom range and drops the preset it replaces", () => {
+    expect(
+      parseCampaignSearch({
+        date: "LAST_30_DAYS",
+        from: "2026-10-01",
+        to: "2026-12-31",
+      }),
+    ).toEqual({ from: "2026-10-01", to: "2026-12-31" });
+  });
+
+  it("drops a custom range missing an end or ending before it starts", () => {
+    expect(parseCampaignSearch({ from: "2026-10-01" })).toEqual({});
+    expect(
+      parseCampaignSearch({ from: "2026-12-31", to: "2026-10-01" }),
+    ).toEqual({});
+  });
+
+  it("drops impossible days", () => {
+    expect(
+      parseCampaignSearch({ from: "2026-02-30", to: "2026-03-01" }),
+    ).toEqual({});
+  });
 });
 
 describe("toFilters", () => {
@@ -79,6 +102,13 @@ describe("toFilters", () => {
       statuses: ["Active"],
       regions: ["Canada"],
       channels: ["EMAIL"],
+    });
+  });
+
+  it("turns a custom range into the date filter", () => {
+    expect(toFilters({ from: "2026-10-01", to: "2026-12-31" }).date).toEqual({
+      from: "2026-10-01",
+      to: "2026-12-31",
     });
   });
 });

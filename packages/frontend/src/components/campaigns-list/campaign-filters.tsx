@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
+import { useEffect, useId, useState } from "react";
 import { userRegions } from "@repo/common";
 import {
   CaretDownIcon,
@@ -24,6 +24,7 @@ import {
   campaignStatuses,
   channels,
   datePresets,
+  formatCustomRange,
 } from "@frontend/lib/campaign-list.ts";
 import type { CampaignSearch } from "@frontend/lib/campaignSearch.ts";
 import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
@@ -42,11 +43,15 @@ function orUndefined<T>(list: T[]): T[] | undefined {
 const TRIGGER =
   "inline-flex h-[2.125rem] cursor-pointer items-center gap-1.5 rounded-[0.375rem] border pr-2.5 pl-3 text-base leading-none outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
 const TRIGGER_IDLE = "border-[#D9D4CE] bg-white text-[#1F1F1F]";
-const TRIGGER_ACTIVE = "border-primary bg-[#F3E4DA] text-[#8A3F20]";
+const TRIGGER_ACTIVE = "border-primary bg-[#F3E4DA] font-medium text-[#B45309]";
 const PANEL =
   "min-w-56 rounded-xl border-[#D9D4CE] bg-white p-0 shadow-[0_12px_32px_0_rgba(0,0,0,0.12)]";
 const PANEL_LABEL =
-  "px-4 pt-4 pb-2 text-xs font-semibold tracking-wide text-[#6B6B6B] uppercase";
+  "px-4 pt-4 pb-2 text-sm font-semibold tracking-wide text-[#6B6B6B] uppercase";
+const DATE_ITEM =
+  "mx-2 cursor-pointer rounded-[0.375rem] px-2.5 py-2 text-[0.9375rem] text-[#1F1F1F] focus:bg-[#F9F7F4] data-selected:bg-[#F1DED2] data-selected:text-[#B45309]";
+const DATE_INPUT =
+  "h-10 rounded-[0.375rem] border-[#D9D4CE] bg-white px-2 text-sm text-[#1F1F1F] shadow-none";
 
 function FilterTrigger({
   label,
@@ -123,33 +128,141 @@ function DateFilter({
   search: CampaignSearch;
   setSearch: UpdateSearch;
 }) {
+  const applied =
+    search.from && search.to ? { from: search.from, to: search.to } : undefined;
   const selected = search.date ?? "ALL_TIME";
+  // Edited here and only written to the URL on Apply, so the list doesn't
+  // refilter while someone is partway through picking a day.
+  const [custom, setCustom] = useState(false);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const canApply = from !== "" && to !== "" && from <= to;
+  const id = useId();
+  // The menu treats typing as jump-to-item and Tab as close, which would
+  // hijack the date fields. Escape still reaches it and closes the panel.
+  const keepKeys = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Escape") event.stopPropagation();
+  };
+
   return (
-    <DropdownMenu>
+    <DropdownMenu
+      onOpenChange={(open) => {
+        // Each opening starts from what the URL holds, dropping unapplied edits.
+        if (!open) return;
+        setCustom(applied !== undefined);
+        setFrom(applied?.from ?? "");
+        setTo(applied?.to ?? "");
+      }}
+    >
       <FilterTrigger
         label="Date"
-        active={selected !== "ALL_TIME"}
+        active={applied !== undefined || selected !== "ALL_TIME"}
         testId="campaign-filter-date"
       />
-      <DropdownMenuContent align="start" className={`${PANEL} pb-2`}>
+      <DropdownMenuContent
+        align="start"
+        className={`${PANEL} w-[17.625rem] pb-2`}
+      >
         <DropdownMenuLabel className={PANEL_LABEL}>
           Date range
         </DropdownMenuLabel>
         {datePresets.map((preset) => (
           <DropdownMenuItem
             key={preset}
-            data-selected={preset === selected || undefined}
+            data-selected={(!custom && preset === selected) || undefined}
             onSelect={() =>
               setSearch((prev) => ({
                 ...prev,
                 date: preset === "ALL_TIME" ? undefined : preset,
+                from: undefined,
+                to: undefined,
               }))
             }
-            className="mx-2 cursor-pointer rounded-md px-2 py-2 text-[0.9375rem] text-[#1F1F1F] focus:bg-[#F9F7F4] data-selected:bg-[#F6E6DC] data-selected:text-[#8A3F20]"
+            className={DATE_ITEM}
           >
             {DATE_PRESET_LABELS[preset]}
           </DropdownMenuItem>
         ))}
+        <DropdownMenuItem
+          data-testid="campaign-date-custom"
+          data-selected={custom || undefined}
+          // Shows the date fields below instead of closing the panel.
+          onSelect={(event) => {
+            event.preventDefault();
+            setCustom(true);
+          }}
+          className={DATE_ITEM}
+        >
+          Custom range
+        </DropdownMenuItem>
+        {custom ? (
+          <>
+            <div className="px-4 pt-2">
+              <div className="grid grid-cols-2 gap-3">
+                <label
+                  htmlFor={`${id}-from`}
+                  className="flex flex-col gap-1.5 text-sm text-[#6B6B6B]"
+                >
+                  Start
+                  <Input
+                    id={`${id}-from`}
+                    type="date"
+                    value={from}
+                    max={to || undefined}
+                    onChange={(event) => setFrom(event.target.value)}
+                    onKeyDown={keepKeys}
+                    data-testid="campaign-date-from"
+                    className={DATE_INPUT}
+                  />
+                </label>
+                <label
+                  htmlFor={`${id}-to`}
+                  className="flex flex-col gap-1.5 text-sm text-[#6B6B6B]"
+                >
+                  End
+                  <Input
+                    id={`${id}-to`}
+                    type="date"
+                    value={to}
+                    min={from || undefined}
+                    onChange={(event) => setTo(event.target.value)}
+                    onKeyDown={keepKeys}
+                    data-testid="campaign-date-to"
+                    className={DATE_INPUT}
+                  />
+                </label>
+              </div>
+              <p className="mt-3 text-sm text-[#6B6B6B]">
+                Shows campaigns running at any point in this range.
+              </p>
+            </div>
+            <div className="mt-3 flex items-center justify-between border-t border-[#ECE8E3] px-4 pt-3">
+              <DropdownMenuItem
+                onSelect={() =>
+                  setSearch((prev) => ({
+                    ...prev,
+                    date: undefined,
+                    from: undefined,
+                    to: undefined,
+                  }))
+                }
+                className="-ml-2 cursor-pointer rounded-md px-2 py-1 text-sm text-[#6B6B6B] focus:bg-[#F9F7F4] focus:text-[#1F1F1F]"
+              >
+                Clear
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={!canApply}
+                onSelect={() =>
+                  setSearch((prev) => ({ ...prev, date: undefined, from, to }))
+                }
+                data-testid="campaign-date-apply"
+                className="h-8 cursor-pointer rounded-md bg-primary px-4 py-0 text-sm text-primary-foreground hover:bg-primary/90 focus:bg-primary/90 focus:text-primary-foreground"
+              >
+                Apply
+              </DropdownMenuItem>
+            </div>
+          </>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -200,7 +313,7 @@ function MultiSelectFilter<T extends string>({
           >
             <span
               aria-hidden="true"
-              className="flex size-4 items-center justify-center rounded-lg border border-[#BCB4AB] group-data-[state=checked]:border-primary group-data-[state=checked]:bg-primary"
+              className="flex size-4 items-center justify-center rounded-[0.25rem] border border-[#BCB4AB] group-data-[state=checked]:border-primary group-data-[state=checked]:bg-primary"
             >
               <CheckIcon
                 weight="bold"
@@ -319,7 +432,13 @@ function without<T>(list: readonly T[] | undefined, value: T) {
 
 function activeChips(search: CampaignSearch): Chip[] {
   const chips: Chip[] = [];
-  if (search.date) {
+  if (search.from && search.to) {
+    chips.push({
+      key: "date",
+      label: formatCustomRange({ from: search.from, to: search.to }),
+      remove: (prev) => ({ ...prev, from: undefined, to: undefined }),
+    });
+  } else if (search.date) {
     chips.push({
       key: "date",
       label: DATE_PRESET_LABELS[search.date],
@@ -387,7 +506,7 @@ export function CampaignFilterChips({
       {chips.map((chip) => (
         <span
           key={chip.key}
-          className="inline-flex items-center gap-2 rounded-full bg-[#F1DED2] py-1 pr-2.5 pl-3 text-[0.875rem] font-medium text-[#8A3F20]"
+          className="inline-flex items-center gap-2 rounded-full bg-[#F1DED2] py-1 pr-2.5 pl-3 text-[0.875rem] font-medium text-[#B45309]"
         >
           {chip.label}
           <button
@@ -396,7 +515,7 @@ export function CampaignFilterChips({
             onClick={() => setSearch(chip.remove)}
             className="cursor-pointer rounded-sm"
           >
-            <XIcon weight="bold" className="size-2.5 text-[#8A3F20]/80" />
+            <XIcon weight="bold" className="size-2.5 text-[#B45309]/80" />
           </button>
         </span>
       ))}

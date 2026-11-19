@@ -23,6 +23,14 @@ const urlDatePreset = type.enumerated(...urlDatePresets);
 const campaignStatus = type.enumerated(...campaignStatuses);
 const channel = type.enumerated(...channels);
 const sortParam = type("'asc'");
+// A whole day as `<input type="date">` writes it. The round trip rejects
+// impossible days like Feb 30, which `Date` would roll over into March.
+const dayParam = type(/^\d{4}-\d{2}-\d{2}$/).narrow((value) => {
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return (
+    !Number.isNaN(parsed.getTime()) && parsed.toISOString().startsWith(value)
+  );
+});
 
 /**
  * The campaign list's search, filters and sort, kept in the URL so a filtered
@@ -31,6 +39,9 @@ const sortParam = type("'asc'");
 export const campaignSearch = type({
   "q?": searchText,
   "date?": urlDatePreset,
+  // A custom range, as whole days. Set together, and in place of `date`.
+  "from?": dayParam,
+  "to?": dayParam,
   "status?": campaignStatus.array().atLeastLength(1),
   "region?": userRegion.array().atLeastLength(1),
   "channel?": channel.array().atLeastLength(1),
@@ -72,10 +83,17 @@ function validEntries<T extends string>(
 export function parseCampaignSearch(
   raw: Record<string, unknown>,
 ): CampaignSearch {
+  const from = valid(dayParam, raw.from);
+  const to = valid(dayParam, raw.to);
+  // A custom range needs both ends, in order, or it is dropped as a whole. It
+  // replaces any preset, so a link can't ask for both.
+  const range = from && to && from <= to ? { from, to } : undefined;
   return {
     // The router JSON-parses each param, so `?q=2026` arrives as a number.
     q: valid(searchText, typeof raw.q === "number" ? String(raw.q) : raw.q),
-    date: valid(urlDatePreset, raw.date),
+    date: range ? undefined : valid(urlDatePreset, raw.date),
+    from: range?.from,
+    to: range?.to,
     status: validEntries(campaignStatuses, raw.status),
     region: validEntries(userRegions, raw.region),
     channel: validEntries(channels, raw.channel),
@@ -86,7 +104,10 @@ export function parseCampaignSearch(
 export function toFilters(search: CampaignSearch): CampaignFilters {
   return {
     search: search.q ?? NO_FILTERS.search,
-    date: search.date ?? NO_FILTERS.date,
+    date:
+      search.from && search.to
+        ? { from: search.from, to: search.to }
+        : (search.date ?? NO_FILTERS.date),
     statuses: search.status ?? NO_FILTERS.statuses,
     regions: search.region ?? NO_FILTERS.regions,
     channels: search.channel ?? NO_FILTERS.channels,
