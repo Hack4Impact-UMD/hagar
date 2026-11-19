@@ -1,6 +1,6 @@
 import { DotsThreeVerticalIcon } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ConfirmDialog } from "@frontend/components/confirm-dialog.tsx";
 import {
   DropdownMenu,
@@ -17,10 +17,7 @@ function describeDeleteError(error: { data?: { code?: string } | null }) {
     : "Couldn't delete the campaign. Please try again.";
 }
 
-/**
- * A row's ⋮ button, its menu, and the confirmation before deleting. Only
- * render it for people who can edit; the backend refuses Viewers either way.
- */
+// A row's ⋮ button, its menu, and the confirmation before deleting. Only render it for people who can edit.
 export function CampaignRowMenu({
   campaignId,
   name,
@@ -30,7 +27,18 @@ export function CampaignRowMenu({
 }) {
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const remove = useMutation(trpc.campaigns.delete.mutationOptions());
+  const actionsRef = useRef<HTMLButtonElement>(null);
+  // The refresh lives here rather than in mutate()'s callbacks, which are
+  // skipped if the row unmounts before the delete finishes. Returning it keeps
+  // the dialog pending until the refreshed list no longer has the row.
+  const remove = useMutation(
+    trpc.campaigns.delete.mutationOptions({
+      onSuccess: () => refreshCampaigns(),
+      onError: (failure) => {
+        if (failure.data?.code === "NOT_FOUND") void refreshCampaigns();
+      },
+    }),
+  );
 
   return (
     <>
@@ -39,6 +47,7 @@ export function CampaignRowMenu({
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <button
+            ref={actionsRef}
             type="button"
             aria-label={`Actions for ${name}`}
             data-testid={`campaign-actions-${campaignId}`}
@@ -67,6 +76,13 @@ export function CampaignRowMenu({
       <ConfirmDialog
         open={confirming}
         onOpenChange={setConfirming}
+        // The dialog opens from a menu item, not a Trigger, so Radix has no
+        // element to send focus back to on close. After a delete the row is
+        // gone and the ref is null, so focus goes nowhere in particular.
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          actionsRef.current?.focus();
+        }}
         title="Delete campaign?"
         description={
           <>
@@ -82,16 +98,12 @@ export function CampaignRowMenu({
           remove.mutate(
             { campaignId },
             {
-              onSuccess: () => {
-                setConfirming(false);
-                void refreshCampaigns();
-              },
+              onSuccess: () => setConfirming(false),
               onError: (failure) => {
                 // Someone else already deleted it, so the outcome is the same:
                 // close and let the refreshed list drop the row.
                 if (failure.data?.code === "NOT_FOUND") {
                   setConfirming(false);
-                  void refreshCampaigns();
                   return;
                 }
                 setError(describeDeleteError(failure));

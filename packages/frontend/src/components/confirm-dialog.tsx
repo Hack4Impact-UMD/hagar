@@ -22,6 +22,8 @@ interface ConfirmDialogProps {
   pending?: boolean;
   /*Extra content between the description and the buttons */
   children?: ReactNode;
+  /** Where focus goes on close. Needed when nothing opened the dialog through a Trigger. */
+  onCloseAutoFocus?: (event: Event) => void;
 }
 
 export function ConfirmDialog({
@@ -34,6 +36,7 @@ export function ConfirmDialog({
   destructive = false,
   pending = false,
   children,
+  onCloseAutoFocus,
 }: ConfirmDialogProps) {
   return (
     <AlertDialog
@@ -45,6 +48,7 @@ export function ConfirmDialog({
     >
       <AlertDialogContent
         data-testid="confirm-dialog"
+        onCloseAutoFocus={onCloseAutoFocus}
         className="gap-3 rounded-[0.75rem] bg-white p-5 shadow-[0_12px_32px_0_rgba(0,0,0,0.16)] sm:max-w-[28rem]"
       >
         <AlertDialogHeader className="place-items-start gap-2 text-left">

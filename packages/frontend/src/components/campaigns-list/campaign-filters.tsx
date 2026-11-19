@@ -166,15 +166,14 @@ function MultiSelectFilter<T extends string>({
   label: string;
   options: readonly T[];
   selected: readonly T[];
-  onChange: (next: T[]) => void;
+  onChange: (update: (prev: readonly T[]) => T[]) => void;
   renderOption: (option: T) => ReactNode;
   testId: string;
 }) {
-  // Built from `options` so the URL lists choices in a fixed order.
   const toggle = (option: T) =>
-    onChange(
+    onChange((prev) =>
       options.filter((o) =>
-        o === option ? !selected.includes(o) : selected.includes(o),
+        o === option ? !prev.includes(o) : prev.includes(o),
       ),
     );
 
@@ -201,7 +200,7 @@ function MultiSelectFilter<T extends string>({
           >
             <span
               aria-hidden="true"
-              className="flex size-4 items-center justify-center rounded-[4px] border border-[#BCB4AB] group-data-[state=checked]:border-primary group-data-[state=checked]:bg-primary"
+              className="flex size-4 items-center justify-center rounded-lg border border-[#BCB4AB] group-data-[state=checked]:border-primary group-data-[state=checked]:bg-primary"
             >
               <CheckIcon
                 weight="bold"
@@ -216,7 +215,7 @@ function MultiSelectFilter<T extends string>({
             // Keeps the panel open after clearing, like the checkboxes above.
             onSelect={(event) => {
               event.preventDefault();
-              onChange([]);
+              onChange(() => []);
             }}
             className="-ml-2 cursor-pointer rounded-md px-2 py-1 text-sm text-[#6B6B6B] focus:bg-[#F9F7F4] focus:text-[#1F1F1F]"
           >
@@ -262,8 +261,11 @@ export function CampaignFilterBar({
         testId="campaign-filter-status"
         options={campaignStatuses}
         selected={search.status ?? []}
-        onChange={(next) =>
-          setSearch((prev) => ({ ...prev, status: orUndefined(next) }))
+        onChange={(update) =>
+          setSearch((prev) => ({
+            ...prev,
+            status: orUndefined(update(prev.status ?? [])),
+          }))
         }
         renderOption={(status: CampaignStatus) => (
           <span className="inline-flex items-center gap-2">
@@ -280,8 +282,11 @@ export function CampaignFilterBar({
         testId="campaign-filter-region"
         options={userRegions}
         selected={search.region ?? []}
-        onChange={(next) =>
-          setSearch((prev) => ({ ...prev, region: orUndefined(next) }))
+        onChange={(update) =>
+          setSearch((prev) => ({
+            ...prev,
+            region: orUndefined(update(prev.region ?? [])),
+          }))
         }
         renderOption={(region) => region}
       />
@@ -290,8 +295,11 @@ export function CampaignFilterBar({
         testId="campaign-filter-channel"
         options={channels}
         selected={search.channel ?? []}
-        onChange={(next) =>
-          setSearch((prev) => ({ ...prev, channel: orUndefined(next) }))
+        onChange={(update) =>
+          setSearch((prev) => ({
+            ...prev,
+            channel: orUndefined(update(prev.channel ?? [])),
+          }))
         }
         renderOption={(channel) => CHANNEL_LABELS[channel]}
       />
