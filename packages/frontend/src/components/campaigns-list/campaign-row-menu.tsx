@@ -8,16 +8,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@frontend/components/ui/dropdown-menu.tsx";
-import { queryClient, trpc } from "@frontend/lib/trpc.ts";
+import { trpc } from "@frontend/lib/trpc.ts";
+import { refreshCampaigns } from "@frontend/components/campaigns-list/refresh-campaigns.ts";
 
 function describeDeleteError(error: { data?: { code?: string } | null }) {
   return error.data?.code === "FORBIDDEN"
     ? "You don't have permission to delete campaigns."
     : "Couldn't delete the campaign. Please try again.";
-}
-
-function refreshCampaigns() {
-  return queryClient.invalidateQueries(trpc.campaigns.list.queryFilter());
 }
 
 /**

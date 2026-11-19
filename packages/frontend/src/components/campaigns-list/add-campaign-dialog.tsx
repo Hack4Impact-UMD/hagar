@@ -21,7 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@frontend/components/ui/select.tsx";
-import { queryClient, trpc } from "@frontend/lib/trpc.ts";
+import { trpc } from "@frontend/lib/trpc.ts";
+import { refreshCampaigns } from "@frontend/components/campaigns-list/refresh-campaigns.ts";
 
 // Matches the cap on `name` in `storedCampaign`, so the backend never has to reject a name the form let through.
 const NAME_MAX_LENGTH = 500;
@@ -46,7 +47,7 @@ export function AddCampaignButton() {
   const create = useMutation(
     trpc.campaigns.create.mutationOptions({
       onSuccess: () => {
-        void queryClient.invalidateQueries(trpc.campaigns.list.queryFilter());
+        void refreshCampaigns();
         setOpen(false);
       },
     }),
