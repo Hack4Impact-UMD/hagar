@@ -19,7 +19,7 @@ export function NotFound() {
       <p className="text-base text-muted-foreground">Error 404</p>
       <h1
         data-testid="not-found"
-        className="mt-6 text-[40px]/12 font-semibold text-primary"
+        className="mt-6 text-[2.5rem]/12 font-semibold text-primary"
       >
         Page Not Found
       </h1>

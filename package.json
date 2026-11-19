@@ -21,6 +21,7 @@
     "test:e2e:ui": "playwright test --ui",
     "checks": "pnpm run \"/^(lint|format:check|typecheck|test)$/\"",
     "emulators": "firebase emulators:start --only auth,functions,firestore,storage",
+    "seed": "node packages/backend/scripts/seed.mjs",
     "deploy": "turbo run build && firebase deploy"
   },
   "devDependencies": {

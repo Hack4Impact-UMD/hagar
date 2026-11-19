@@ -10,8 +10,10 @@ import {
   isBadCredentials,
 } from "@frontend/lib/authErrors.ts";
 import { auth } from "@frontend/lib/firebase.ts";
+import { pageTitle } from "@frontend/lib/pageTitle.ts";
 
 export const Route = createFileRoute("/login")({
+  head: () => pageTitle("Login"),
   // `reset=1` is set after a password reset. The page shows its own message
   // for it rather than any text from the URL.
   validateSearch: (search: Record<string, unknown>): { reset?: 1 } => ({

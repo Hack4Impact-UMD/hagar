@@ -1,6 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { pageTitle } from "@frontend/lib/pageTitle.ts";
 
-export const Route = createFileRoute("/_app/calendar")({ component: Calendar });
+export const Route = createFileRoute("/_app/calendar")({
+  head: () => pageTitle("Calendar"),
+  component: Calendar,
+});
 
 function Calendar() {
   return (

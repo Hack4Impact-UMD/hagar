@@ -8,7 +8,7 @@ import {
 } from "firebase/auth";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
-import { LoadingScreen } from "@frontend/components/LoadingScreen.tsx";
+import { LoadingPage } from "@frontend/components/LoadingPage.tsx";
 import { AuthLayout } from "@frontend/components/auth/AuthLayout.tsx";
 import {
   NOTICE_BUTTON,
@@ -21,6 +21,7 @@ import { Button } from "@frontend/components/ui/button.tsx";
 import { parseActionSearch } from "@frontend/lib/authAction.ts";
 import { authErrorMessage } from "@frontend/lib/authErrors.ts";
 import { auth } from "@frontend/lib/firebase.ts";
+import { pageTitle } from "@frontend/lib/pageTitle.ts";
 import { queryClient, trpc } from "@frontend/lib/trpc.ts";
 
 /**
@@ -28,6 +29,7 @@ import { queryClient, trpc } from "@frontend/lib/trpc.ts";
  * email alike), since Firebase has one action URL setting for all of them.
  */
 export const Route = createFileRoute("/auth-action")({
+  head: () => pageTitle("Account"),
   validateSearch: parseActionSearch,
   component: AuthAction,
 });
@@ -74,7 +76,7 @@ function ResetPassword({ oobCode }: { oobCode: string }) {
   // Stays busy through the navigation so the form doesn't flash back to idle.
   const busy = reset.isPending || reset.isSuccess;
 
-  if (account.isPending) return <LoadingScreen />;
+  if (account.isPending) return <LoadingPage />;
 
   if (account.isError) {
     return (
@@ -168,7 +170,7 @@ function VerifyEmail({ oobCode }: { oobCode: string }) {
     );
   }
 
-  if (!apply.isSuccess) return <LoadingScreen />;
+  if (!apply.isSuccess) return <LoadingPage />;
 
   return (
     <NoticeLayout icon={CheckCircleIcon} title="Email verified">

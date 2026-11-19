@@ -19,8 +19,10 @@ import {
 } from "@frontend/hooks/use-cooldown.ts";
 import { authErrorMessage } from "@frontend/lib/authErrors.ts";
 import { auth } from "@frontend/lib/firebase.ts";
+import { pageTitle } from "@frontend/lib/pageTitle.ts";
 
 export const Route = createFileRoute("/forgot-password")({
+  head: () => pageTitle("Forgot password"),
   component: ForgotPassword,
 });
 

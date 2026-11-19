@@ -1,6 +1,6 @@
 import { RouterProvider } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { LoadingScreen } from "@frontend/components/LoadingScreen.tsx";
+import { LoadingPage } from "@frontend/components/LoadingPage.tsx";
 import { router } from "@frontend/router.tsx";
 import { useAuth } from "@frontend/lib/useAuth.ts";
 
@@ -20,7 +20,7 @@ export function App() {
 
   // Until Firebase restores the session, every user looks signed out and the
   // guards would bounce them to the login page.
-  if (auth.isPending) return <LoadingScreen />;
+  if (auth.isPending) return <LoadingPage />;
 
   return <RouterProvider router={router} context={{ auth }} />;
 }

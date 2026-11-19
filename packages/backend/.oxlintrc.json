@@ -12,7 +12,7 @@
   ],
   "overrides": [
     {
-      "files": ["scripts/**"],
+      "files": ["scripts/**", "src/seed/run.ts"],
       "rules": {
         "no-console": "off"
       }

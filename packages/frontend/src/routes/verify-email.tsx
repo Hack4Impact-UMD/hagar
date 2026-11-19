@@ -16,8 +16,10 @@ import {
 import { auth } from "@frontend/lib/firebase.ts";
 import { queryClient, trpc } from "@frontend/lib/trpc.ts";
 import { useAuth } from "@frontend/lib/useAuth.ts";
+import { pageTitle } from "@frontend/lib/pageTitle.ts";
 
 export const Route = createFileRoute("/verify-email")({
+  head: () => pageTitle("Verify email"),
   component: VerifyEmail,
 });
 
