@@ -97,9 +97,10 @@ function Campaigns() {
   // Clears the search and every filter, but keeps the chosen sort order.
   const clearFilters = () => setSearch((prev) => ({ sort: prev.sort }));
   const sortProps = { sort, onToggleSort: toggleSort };
+  const failed = campaigns.isError || emails.isError || rows === null;
 
   let body: ReactNode;
-  if (campaigns.isError || emails.isError || rows === null) {
+  if (failed) {
     body = (
       <CampaignTableMessage {...sortProps}>
         <CampaignListError onRetry={retry} />
@@ -125,14 +126,14 @@ function Campaigns() {
     body = <CampaignTable rows={visible} canEdit={canEdit} {...sortProps} />;
   }
   return (
-    <main className="flex flex-1 flex-col gap-6 px-6 pt-6 pb-10 md:px-10">
+    <main className="flex h-svh flex-col gap-5 px-6 pt-19 pb-10 md:px-10">
       <h1
         data-testid="campaigns"
-        className="text-[2.1875rem] leading-[normal] font-bold text-black"
+        className="shrink-0 text-[2.1875rem] leading-none font-semibold text-black"
       >
         Campaign List
       </h1>
-      <div className="flex flex-col gap-4">
+      <div className="flex shrink-0 flex-col gap-12.5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <CampaignFilterBar
             search={search}
@@ -144,15 +145,18 @@ function Campaigns() {
             <CampaignViewToggle />
           </div>
         </div>
-        {rows && visible ? (
+        {failed ? null : (
           <CampaignFilterChips
             search={search}
-            shown={visible.length}
-            total={rows.length}
+            counts={
+              rows && visible
+                ? { shown: visible.length, total: rows.length }
+                : undefined
+            }
             setSearch={setSearch}
             onClearAll={clearFilters}
           />
-        ) : null}
+        )}
       </div>
       {body}
     </main>

@@ -63,16 +63,17 @@ function CampaignTableFrame({
     <div
       data-testid={testId}
       aria-busy={busy || undefined}
-      className={`overflow-hidden rounded-lg border border-[#ECE8E3] bg-white ${className}`}
+      // The table's own wrapper is the scroll container, so the sticky header sticks to it
+      className={`flex min-h-0 flex-col overflow-hidden rounded-lg border border-[#ECE8E3] bg-white *:data-[slot=table-container]:min-h-0 *:data-[slot=table-container]:overflow-y-auto ${className}`}
     >
       <Table className="table-fixed">
-        <TableHeader className="[&_tr]:border-0">
+        <TableHeader className="sticky top-0 z-20 bg-[#F9F7F4] [&_tr]:border-0">
           <TableRow className="bg-[#F9F7F4] hover:bg-[#F9F7F4]">
             {COLUMNS.map(({ label, width }) => (
               <TableHead
                 key={label}
                 aria-sort={label === "Date" ? dateSort : undefined}
-                className={`${width} h-13 ${CELL_PADDING} text-sm font-semibold text-[#6B6B6B]`}
+                className={`${width} h-15 ${CELL_PADDING} text-sm font-semibold text-[#6B6B6B]`}
               >
                 {label === "Date" ? (
                   <button
@@ -116,7 +117,7 @@ function CampaignTableRow({
   return (
     <TableRow
       data-testid={`campaign-row-${campaign.campaignId}`}
-      className="relative h-18.75 border-[#ECE8E3] hover:bg-[#FBFAF8]"
+      className="relative h-21.25 border-[#ECE8E3] hover:bg-[#FBFAF8]"
     >
       <TableCell className={`${CELL_PADDING} truncate`}>
         {/* A plain link rather than the router's `Link`, which only accepts
@@ -224,7 +225,7 @@ export function CampaignTableSkeleton({ sort }: { sort?: SortDirection }) {
       {Array.from({ length: 4 }, (_, row) => (
         <TableRow
           key={row}
-          className="h-13.5 border-[#ECE8E3] hover:bg-transparent"
+          className="h-21.25 border-[#ECE8E3] hover:bg-transparent"
         >
           {COLUMNS.map(({ label, bar }) => (
             <TableCell key={label} className={CELL_PADDING}>

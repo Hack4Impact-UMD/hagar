@@ -26,6 +26,7 @@ import {
   datePresets,
 } from "@frontend/lib/campaign-list.ts";
 import type { CampaignSearch } from "@frontend/lib/campaignSearch.ts";
+import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
 
 /** Changes the URL's search params. `replace` skips adding a history entry. */
 export type UpdateSearch = (
@@ -39,9 +40,9 @@ function orUndefined<T>(list: T[]): T[] | undefined {
 }
 
 const TRIGGER =
-  "inline-flex h-[2.125rem] cursor-pointer items-center gap-1.5 rounded-md border px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
+  "inline-flex h-[2.125rem] cursor-pointer items-center gap-1.5 rounded-[0.375rem] border pr-2.5 pl-3 text-base leading-none outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
 const TRIGGER_IDLE = "border-[#D9D4CE] bg-white text-[#1F1F1F]";
-const TRIGGER_ACTIVE = "border-primary bg-[#F6E6DC] text-[#8A3F20]";
+const TRIGGER_ACTIVE = "border-primary bg-[#F3E4DA] text-[#8A3F20]";
 const PANEL =
   "min-w-56 rounded-xl border-[#D9D4CE] bg-white p-0 shadow-[0_12px_32px_0_rgba(0,0,0,0.12)]";
 const PANEL_LABEL =
@@ -97,7 +98,7 @@ function SearchBox({
   }, [value, latestValue]);
 
   return (
-    <div className="relative w-54">
+    <div className="relative w-60">
       <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[#6B6B6B]" />
       <Input
         type="search"
@@ -109,7 +110,7 @@ function SearchBox({
           setText(event.target.value);
           onChange(event.target.value);
         }}
-        className="h-8.5 rounded-md border-[#D9D4CE] bg-white pl-9 text-sm shadow-none"
+        className="h-9.75 rounded-[0.375rem] border-[#D9D4CE] bg-white py-2 pr-3 pl-9 text-sm shadow-none"
       />
     </div>
   );
@@ -169,7 +170,6 @@ function MultiSelectFilter<T extends string>({
   renderOption: (option: T) => ReactNode;
   testId: string;
 }) {
-  const [open, setOpen] = useState(false);
   // Built from `options` so the URL lists choices in a fixed order.
   const toggle = (option: T) =>
     onChange(
@@ -179,7 +179,7 @@ function MultiSelectFilter<T extends string>({
     );
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
+    <DropdownMenu>
       <FilterTrigger
         label={label}
         active={selected.length > 0}
@@ -345,14 +345,12 @@ function activeChips(search: CampaignSearch): Chip[] {
 /** "Showing X of Y campaigns", a removable chip per filter, and Clear all. */
 export function CampaignFilterChips({
   search,
-  shown,
-  total,
+  counts,
   setSearch,
   onClearAll,
 }: {
   search: CampaignSearch;
-  shown: number;
-  total: number;
+  counts?: { shown: number; total: number };
   setSearch: UpdateSearch;
   onClearAll: () => void;
 }) {
@@ -362,18 +360,26 @@ export function CampaignFilterChips({
   return (
     <div
       data-testid="campaign-filter-chips"
-      className="flex flex-wrap items-center gap-2 text-sm"
+      className="flex flex-wrap items-center gap-2 text-base leading-none"
     >
-      <span role="status" className="text-[#6B6B6B]">
-        Showing {shown} of {total} {total === 1 ? "campaign" : "campaigns"}
-      </span>
+      {counts ? (
+        <span role="status" className="text-[#6B6B6B]">
+          Showing {counts.shown} of {counts.total}{" "}
+          {counts.total === 1 ? "campaign" : "campaigns"}
+        </span>
+      ) : (
+        <Skeleton
+          aria-hidden="true"
+          className="h-4 w-44 rounded-sm bg-[#EEEAE5]"
+        />
+      )}
       {filtered ? (
         <span aria-hidden="true" className="h-4 w-px bg-[#D9D4CE]" />
       ) : null}
       {chips.map((chip) => (
         <span
           key={chip.key}
-          className="inline-flex items-center gap-2 rounded-full bg-[#F1DED2] py-1 pr-2.5 pl-3 text-[0.8125rem] font-medium text-[#8A3F20]"
+          className="inline-flex items-center gap-2 rounded-full bg-[#F1DED2] py-1 pr-2.5 pl-3 text-[0.875rem] font-medium text-[#8A3F20]"
         >
           {chip.label}
           <button
