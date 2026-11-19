@@ -1,8 +1,4 @@
-import {
-  CheckCircleIcon,
-  EnvelopeIcon,
-  LinkBreakIcon,
-} from "@phosphor-icons/react";
+import { CheckCircleIcon, LinkBreakIcon } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -12,6 +8,7 @@ import {
 } from "firebase/auth";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import { LoadingScreen } from "@frontend/components/LoadingScreen.tsx";
 import { AuthLayout } from "@frontend/components/auth/AuthLayout.tsx";
 import {
   NOTICE_BUTTON,
@@ -75,7 +72,9 @@ function ResetPassword({ oobCode }: { oobCode: string }) {
     },
   });
   // Stays busy through the navigation so the form doesn't flash back to idle.
-  const busy = account.isPending || reset.isPending || reset.isSuccess;
+  const busy = reset.isPending || reset.isSuccess;
+
+  if (account.isPending) return <LoadingScreen />;
 
   if (account.isError) {
     return (
@@ -91,17 +90,13 @@ function ResetPassword({ oobCode }: { oobCode: string }) {
     <AuthLayout
       title="Reset password"
       prompt={
-        account.data ? (
-          <>
-            Reset the password for{" "}
-            <span data-testid="reset-account" className="font-semibold">
-              {account.data}
-            </span>
-            .
-          </>
-        ) : (
-          "Checking your link..."
-        )
+        <>
+          Reset the password for{" "}
+          <span data-testid="reset-account" className="font-semibold">
+            {account.data}
+          </span>
+          .
+        </>
       }
       onSubmit={() => reset.mutate()}
       error={reset.error ? authErrorMessage(reset.error) : undefined}
@@ -173,13 +168,7 @@ function VerifyEmail({ oobCode }: { oobCode: string }) {
     );
   }
 
-  if (!apply.isSuccess) {
-    return (
-      <NoticeLayout icon={EnvelopeIcon} title="Verifying your email">
-        <p className={NOTICE_TEXT}>Verifying your email address...</p>
-      </NoticeLayout>
-    );
-  }
+  if (!apply.isSuccess) return <LoadingScreen />;
 
   return (
     <NoticeLayout icon={CheckCircleIcon} title="Email verified">
