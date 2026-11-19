@@ -117,6 +117,9 @@ function renderDayCell(arg: DayCellInfo) {
 function renderCampaignEvent(arg: EventDisplayInfo) {
   const campaignId = String(arg.event.extendedProps.campaignId ?? arg.event.id);
   const region = String(arg.event.extendedProps.region ?? "");
+  const color = String(
+    arg.event.extendedProps.color ?? arg.event.color ?? EVENT_BAR_COLORS[0],
+  );
   const title = arg.event.title;
 
   return (
@@ -125,6 +128,7 @@ function renderCampaignEvent(arg: EventDisplayInfo) {
         <Link
           to={`/campaigns/${campaignId}` as "/campaigns"}
           data-testid={`campaign-event-${campaignId}`}
+          style={{ backgroundColor: color }}
           className="flex h-6.5 w-full items-center truncate rounded-full px-3 text-sm leading-none font-semibold text-white transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         >
           <span className="truncate">{title}</span>
@@ -195,11 +199,11 @@ function CalendarPage() {
             start: toLocalDateString(new Date(range.startDate)),
             end: exclusiveLocalEndDate(range.endDate),
             allDay: true,
-            backgroundColor: color,
-            borderColor: color,
+            color,
             extendedProps: {
               campaignId: campaign.campaignId,
               region: campaign.region,
+              color,
             },
           },
         ];
@@ -209,11 +213,11 @@ function CalendarPage() {
 
   const isLoading = campaignsQuery.isLoading || emailsQuery.isLoading;
   const isError = campaignsQuery.isError || emailsQuery.isError;
-  // const isError = false;
+
   return (
     <TooltipProvider>
-      <main className="flex flex-1 flex-col px-6 pt-16 pb-10 md:px-10">
-        <header className="mb-6">
+      <main className="flex flex-1 flex-col px-6 pt-8 pb-4 md:px-10">
+        <header className="mb-4">
           <h1
             data-testid="calendar"
             className="text-[2.1875rem] leading-[normal] font-bold text-foreground"
@@ -296,7 +300,7 @@ function CalendarPage() {
         </section>
 
         {isLoading ? (
-          <CalendarLoadingGrid />
+          <CalendarLoadingGrid month={month} />
         ) : isError ? (
           <div
             role="alert"
@@ -304,7 +308,7 @@ function CalendarPage() {
             className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-border py-20 text-center"
           >
             <p className="text-sm text-destructive">
-              PLACEHOLDER TEXT -- BACKEND STUBS NOT IMPLEMENTED YET.
+              Campaigns are unable to load, please try again.
             </p>
             <Button
               type="button"
@@ -327,11 +331,11 @@ function CalendarPage() {
               initialView="dayGridMonth"
               initialDate={monthStartDate(month)}
               headerToolbar={false}
-              // height="auto"
-              // dayMaxEvents={true}
-              // fixedWeekCount={false}
+              height="auto"
+              dayMaxEvents={3}
+              fixedWeekCount={false}
               dayHeaderClass="py-2.5 text-sm font-semibold text-foreground"
-              dayCellClass="min-h-32"
+              dayCellClass="min-h-20"
               blockEventClass="rounded-full border-0"
               dayCellTopContent={renderDayCell}
               eventContent={renderCampaignEvent}
@@ -343,8 +347,17 @@ function CalendarPage() {
     </TooltipProvider>
   );
 }
+function monthCellCount(month: string): number {
+  const { year, monthIndex } = parseYearMonth(month);
+  const firstWeekday = new Date(year, monthIndex, 1).getDay();
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  return Math.ceil((firstWeekday + daysInMonth) / 7) * 7;
+}
 
-function CalendarLoadingGrid() {
+function CalendarLoadingGrid({ month }: { month: string }) {
+  const cellCount = monthCellCount(month);
+  const lastRowStart = cellCount - 7;
+
   return (
     <div
       data-testid="calendar-loading"
@@ -362,10 +375,14 @@ function CalendarLoadingGrid() {
         ))}
       </div>
       <div className="grid grid-cols-7">
-        {Array.from({ length: 35 }, (_, index) => (
+        {Array.from({ length: cellCount }, (_, index) => (
           <div
             key={index}
-            className="flex h-28 flex-col justify-between border-r border-b border-border p-3 last:border-r-0 nth-[7n]:border-r-0 nth-[n+29]:border-b-0"
+            className={
+              index >= lastRowStart
+                ? "flex h-20 flex-col justify-between border-r border-border p-3 nth-[7n]:border-r-0"
+                : "flex h-20 flex-col justify-between border-r border-b border-border p-3 nth-[7n]:border-r-0"
+            }
           >
             <Skeleton className="ml-auto size-6 rounded-full" />
             {index % 6 === 1 ? (

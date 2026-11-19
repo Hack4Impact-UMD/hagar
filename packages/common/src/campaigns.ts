@@ -128,15 +128,15 @@ export type CampaignDateRange = {
  */
 
 export function campaignDateRanges(
-  _campaigns: readonly Campaign[],
-  _emails: readonly Pick<EmailCampaignSummary, "emailCampaignId" | "sentAt">[],
+  campaigns: readonly Campaign[],
+  emails: readonly Pick<EmailCampaignSummary, "emailCampaignId" | "sentAt">[],
 ): CampaignDateRange[] {
   const sentAtById = new Map(
-    _emails.map((email) => [email.emailCampaignId, email.sentAt]),
+    emails.map((email) => [email.emailCampaignId, email.sentAt]),
   );
 
   const ranges: CampaignDateRange[] = [];
-  for (const campaign of _campaigns) {
+  for (const campaign of campaigns) {
     let startDate: UtcDateString | undefined;
     let endDate: UtcDateString | undefined;
 
