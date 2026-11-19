@@ -220,7 +220,6 @@ export function CampaignTableSkeleton({ sort }: { sort?: SortDirection }) {
       testId="campaign-list-loading"
       sort={sort}
       busy
-      className="pb-14"
     >
       {Array.from({ length: 4 }, (_, row) => (
         <TableRow
