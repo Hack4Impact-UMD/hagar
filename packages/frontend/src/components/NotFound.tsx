@@ -10,9 +10,15 @@ const ACTION = "h-12 rounded-lg px-6 text-base font-normal";
  */
 export function NotFound() {
   const router = useRouter();
-  // A 404 opened straight from outside the app has nothing in the app to go
-  // back to, and stepping back would leave the site.
   const canGoBack = useCanGoBack();
+
+  // A 404 opened straight from outside the app (an email, a bookmark) has no
+  // app page behind it, and stepping back would leave the site. Home is the
+  // nearest thing to "back" then.
+  function goBack() {
+    if (canGoBack) router.history.back();
+    else void router.navigate({ to: "/" });
+  }
 
   return (
     <main className="flex min-h-svh flex-col items-center justify-center bg-background p-6 text-center">
@@ -31,15 +37,13 @@ export function NotFound() {
         <Button asChild className={ACTION}>
           <Link to="/">Back to Home</Link>
         </Button>
-        {canGoBack ? (
-          <Button
-            variant="outline"
-            className={ACTION}
-            onClick={() => router.history.back()}
-          >
-            Go back
-          </Button>
-        ) : null}
+        <Button
+          variant="outline"
+          onClick={goBack}
+          className={`${ACTION} border-field-border shadow-none`}
+        >
+          Go back
+        </Button>
       </div>
     </main>
   );
