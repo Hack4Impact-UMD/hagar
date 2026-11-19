@@ -12,6 +12,8 @@ import { campaignDateRanges, nowUtc, userRegions } from "@repo/common";
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { pageTitle } from "@frontend/lib/pageTitle.ts";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@frontend/components/ui/button.tsx";
 import {
@@ -145,6 +147,7 @@ function renderCampaignEvent(arg: EventDisplayInfo) {
 }
 
 export const Route = createFileRoute("/_app/calendar")({
+  head: () => pageTitle("Calendar"),
   validateSearch: (search: Record<string, unknown>) => ({
     month: parseMonthParam(search.month),
   }),

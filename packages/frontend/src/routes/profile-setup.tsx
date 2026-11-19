@@ -12,8 +12,10 @@ import { Button } from "@frontend/components/ui/button.tsx";
 import { auth } from "@frontend/lib/firebase.ts";
 import { uploadProfilePhoto } from "@frontend/lib/profilePhotos.ts";
 import { queryClient, trpc } from "@frontend/lib/trpc.ts";
+import { pageTitle } from "@frontend/lib/pageTitle.ts";
 
 export const Route = createFileRoute("/profile-setup")({
+  head: () => pageTitle("Finish your profile"),
   component: ProfileSetup,
 });
 
@@ -86,7 +88,7 @@ function ProfileSetup() {
     <main className="min-h-screen bg-background text-[#1C1917]">
       <header className="px-7 pt-9">
         <img
-          src="/logo.png"
+          src="/logo-full.svg"
           alt="Hagar Logo"
           className="h-17 w-38.25 object-contain"
         />

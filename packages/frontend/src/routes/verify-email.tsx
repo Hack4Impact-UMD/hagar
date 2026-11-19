@@ -7,8 +7,10 @@ import { Button } from "@frontend/components/ui/button.tsx";
 import { auth } from "@frontend/lib/firebase.ts";
 import { queryClient, trpc } from "@frontend/lib/trpc.ts";
 import { useAuth } from "@frontend/lib/useAuth.ts";
+import { pageTitle } from "@frontend/lib/pageTitle.ts";
 
 export const Route = createFileRoute("/verify-email")({
+  head: () => pageTitle("Verify email"),
   component: VerifyEmail,
 });
 
@@ -69,7 +71,7 @@ function VerifyEmail() {
         <div className="flex h-37.5 w-50 items-center justify-center bg-[#f1ded2]">
           <EnvelopeIcon aria-hidden size={160} className="text-white" />
         </div>
-        <h1 className="mt-8 text-[40px]/12 font-bold text-[#1c1917]">
+        <h1 className="mt-8 text-[2.5rem]/12 font-bold text-[#1c1917]">
           Verify your email address
         </h1>
         <p
@@ -94,7 +96,7 @@ function VerifyEmail() {
           data-testid="resend-verification"
           disabled={send.isPending}
           onClick={() => send.mutate()}
-          className="mt-8 h-17.5 w-full max-w-82.25 rounded-[10px] text-base font-semibold"
+          className="mt-8 h-17.5 w-full max-w-82.25 rounded-[0.625rem] text-base font-semibold"
         >
           Resend verification email
         </Button>

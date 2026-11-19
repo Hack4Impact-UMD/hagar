@@ -35,7 +35,7 @@ const EMAIL = {
   platformCampaignID: "k-spring",
   listIDs: ["list-1"],
   name: "Spring launch",
-  content: "https://example.com/campaign",
+  contentPath: "email-content/campaign.html",
   sentAt: JAN_1,
   lastFetchedAt: MAR_1,
   notes: "",

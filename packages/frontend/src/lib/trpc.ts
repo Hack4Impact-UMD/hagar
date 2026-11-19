@@ -1,6 +1,6 @@
 import type { AppRouter } from "@repo/backend";
 import { QueryClient } from "@tanstack/react-query";
-import { createTRPCClient, httpBatchLink } from "@trpc/client";
+import { createTRPCClient, httpBatchLink, TRPCClientError } from "@trpc/client";
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
 import { auth } from "@frontend/lib/firebase.ts";
 
@@ -23,3 +23,8 @@ const client = createTRPCClient<AppRouter>({
 });
 
 export const trpc = createTRPCOptionsProxy<AppRouter>({ client, queryClient });
+
+/** The tRPC error code, such as "NOT_FOUND", or undefined for other errors. */
+export function errorCode(error: unknown): string | undefined {
+  return error instanceof TRPCClientError ? error.data?.code : undefined;
+}
