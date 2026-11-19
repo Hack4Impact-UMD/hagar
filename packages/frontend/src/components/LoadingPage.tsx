@@ -28,7 +28,7 @@ function Spinner() {
       strokeWidth={5}
       className="size-14"
     >
-      <circle cx={28} cy={28} r={23} stroke="#f1ded2" />
+      <circle cx={28} cy={28} r={23} className="stroke-onboarding-icon-tile" />
       {/* Top to right quadrant of the track. Rotating around the viewBox
           center keeps the arc on the track. */}
       <path

@@ -1,4 +1,8 @@
-import { CheckCircleIcon, LinkBreakIcon } from "@phosphor-icons/react";
+import {
+  CheckCircleIcon,
+  LinkBreakIcon,
+  WarningCircleIcon,
+} from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -19,7 +23,7 @@ import { FormField } from "@frontend/components/form/FormField.tsx";
 import { SubmitButton } from "@frontend/components/form/SubmitButton.tsx";
 import { Button } from "@frontend/components/ui/button.tsx";
 import { parseActionSearch } from "@frontend/lib/authAction.ts";
-import { authErrorMessage } from "@frontend/lib/authErrors.ts";
+import { authErrorMessage, isDeadLink } from "@frontend/lib/authErrors.ts";
 import { auth } from "@frontend/lib/firebase.ts";
 import { pageTitle } from "@frontend/lib/pageTitle.ts";
 import { queryClient, trpc } from "@frontend/lib/trpc.ts";
@@ -79,12 +83,14 @@ function ResetPassword({ oobCode }: { oobCode: string }) {
   if (account.isPending) return <LoadingPage />;
 
   if (account.isError) {
-    return (
+    return isDeadLink(account.error) ? (
       <ExpiredLink
         error={account.error}
         hint="Request a new link to reset your password."
         action={<Link to="/forgot-password">Get a new link</Link>}
       />
+    ) : (
+      <LinkError error={account.error} onRetry={() => void account.refetch()} />
     );
   }
 
@@ -161,12 +167,14 @@ function VerifyEmail({ oobCode }: { oobCode: string }) {
   }, [mutate]);
 
   if (apply.isError) {
-    return (
+    return isDeadLink(apply.error) ? (
       <ExpiredLink
         error={apply.error}
         hint="Log in to get a new verification link."
         action={<Link to="/login">Go to login</Link>}
       />
+    ) : (
+      <LinkError error={apply.error} onRetry={() => mutate()} />
     );
   }
 
@@ -184,7 +192,7 @@ function VerifyEmail({ oobCode }: { oobCode: string }) {
   );
 }
 
-/** For a link Firebase rejected, usually because it expired or was used. */
+/** For a link Firebase rejected because it expired or was already used. */
 function ExpiredLink({
   error,
   hint,
@@ -201,6 +209,29 @@ function ExpiredLink({
       </p>
       <Button asChild className={NOTICE_BUTTON}>
         {action}
+      </Button>
+    </NoticeLayout>
+  );
+}
+
+/**
+ * For a link that failed for some other reason, such as a dropped connection
+ * or too many attempts. The link itself may still work, so the user can retry.
+ */
+function LinkError({
+  error,
+  onRetry,
+}: {
+  error: unknown;
+  onRetry: () => void;
+}) {
+  return (
+    <NoticeLayout icon={WarningCircleIcon} title="Something went wrong">
+      <p data-testid="link-error" className={NOTICE_TEXT}>
+        {authErrorMessage(error)}
+      </p>
+      <Button type="button" onClick={onRetry} className={NOTICE_BUTTON}>
+        Try again
       </Button>
     </NoticeLayout>
   );

@@ -30,6 +30,17 @@ export function isBadCredentials(error: unknown): boolean {
   );
 }
 
+// Codes for an email link that will never work again. Other failures, such as
+// a dropped connection, may succeed on a retry with the same link.
+const DEAD_LINK_CODES = [
+  "auth/expired-action-code",
+  "auth/invalid-action-code",
+];
+
+export function isDeadLink(error: unknown): boolean {
+  return error instanceof FirebaseError && DEAD_LINK_CODES.includes(error.code);
+}
+
 export function authErrorMessage(error: unknown): string {
   const message = error instanceof FirebaseError ? MESSAGES[error.code] : null;
   return message ?? "Something went wrong. Please try again.";
