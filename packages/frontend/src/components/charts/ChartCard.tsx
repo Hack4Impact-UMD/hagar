@@ -1,6 +1,7 @@
 import type { ChartData, ChartDefinition } from "@repo/common";
 import { chartWidth, resolvePointInTime } from "@repo/common";
 import { useQuery } from "@tanstack/react-query";
+import { cn } from "cn";
 import type { ChartConfig } from "@frontend/components/ui/chart.tsx";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
@@ -72,7 +73,10 @@ function SeriesChart({
   // how long that value actually held.
   const data = points.map((p) => ({ at: Date.parse(p.at), value: p.value }));
   return (
-    <ChartContainer config={SERIES_CONFIG} className="h-48 w-full">
+    <ChartContainer
+      config={SERIES_CONFIG}
+      className="aspect-auto min-h-0 w-full flex-1"
+    >
       <AreaChart data={data} margin={{ left: 4, right: 12, top: 8 }}>
         <CartesianGrid vertical={false} />
         <XAxis
@@ -140,14 +144,26 @@ export function ChartCard({ chart }: { chart: ChartDefinition }) {
   const sub = subtitle(chart);
 
   return (
-    <Card data-testid="chart-card" className={COLUMN_SPAN[chartWidth(chart)]}>
-      <CardHeader>
-        <CardTitle>{chart.name}</CardTitle>
-        {sub && <CardDescription>{sub}</CardDescription>}
+    <Card
+      data-testid="chart-card"
+      className={cn(COLUMN_SPAN[chartWidth(chart)], "h-67.5 gap-0 py-0")}
+    >
+      <CardHeader className="min-w-0 shrink-0 px-4.25 py-3.75">
+        <CardTitle className="truncate" title={chart.name}>
+          {chart.name}
+        </CardTitle>
+        {/* An empty line keeps list cards the same header height as campaign
+            cards, which always have a metric label. */}
+        <CardDescription aria-hidden={sub ? undefined : true}>
+          {sub ?? "\u00a0"}
+        </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="min-h-0 flex-1 px-4.25 py-3.75">
         {query.isPending ? (
-          <Skeleton data-testid="chart-loading" className="h-24 w-full" />
+          <Skeleton
+            data-testid="chart-loading"
+            className="min-h-0 w-full flex-1"
+          />
         ) : query.isError ? (
           <div
             role="alert"
