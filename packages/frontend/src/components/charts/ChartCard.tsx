@@ -127,10 +127,12 @@ function Body({ chart, data }: { chart: ChartDefinition; data: ChartData }) {
     const date = asOf(chart);
     return (
       <div>
-        <p className="text-4xl font-semibold tabular-nums">
+        <p className="text-6xl font-semibold tabular-nums">
           {formatCount(data.value)}
         </p>
-        {date && <p className="text-sm text-muted-foreground">As of {date}</p>}
+        {date && (
+          <p className="mt-2 text-base text-muted-foreground">As of {date}</p>
+        )}
       </div>
     );
   }
