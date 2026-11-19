@@ -49,7 +49,7 @@ export function ConfirmDialog({
       <AlertDialogContent
         data-testid="confirm-dialog"
         onCloseAutoFocus={onCloseAutoFocus}
-        className="gap-3 rounded-[0.75rem] bg-white p-5 shadow-[0_12px_32px_0_rgba(0,0,0,0.16)] sm:max-w-[28rem]"
+        className="gap-3 rounded-[0.75rem] bg-white p-5 shadow-[0_0.75rem_2rem_0_rgba(0,0,0,0.16)] sm:max-w-[28rem]"
       >
         <AlertDialogHeader className="place-items-start gap-2 text-left">
           <AlertDialogTitle className="text-[1.0625rem] leading-normal font-semibold text-[#1F1F1F]">

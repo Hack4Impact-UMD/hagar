@@ -21,6 +21,7 @@ import { Route as AppCampaignsRouteImport } from './routes/_app/campaigns'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppUserManagementRouteImport } from './routes/_app/user-management'
 import { Route as AppReportsHistoryRouteImport } from './routes/_app/reports/history'
+import { Route as AppReportsPreviewIndexRouteImport } from './routes/_app/reports/preview.index'
 import { Route as AppReportsPreviewViewIdRouteImport } from './routes/_app/reports/preview.$viewId'
 
 const AppRouteRoute = AppRouteRouteImport.update({
@@ -82,6 +83,11 @@ const AppReportsHistoryRoute = AppReportsHistoryRouteImport.update({
   path: '/reports/history',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppReportsPreviewIndexRoute = AppReportsPreviewIndexRouteImport.update({
+  id: '/reports/preview/',
+  path: '/reports/preview/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppReportsPreviewViewIdRoute = AppReportsPreviewViewIdRouteImport.update({
   id: '/reports/preview/$viewId',
   path: '/reports/preview/$viewId',
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/user-management': typeof AppUserManagementRoute
   '/reports/history': typeof AppReportsHistoryRoute
   '/reports/preview/$viewId': typeof AppReportsPreviewViewIdRoute
+  '/reports/preview/': typeof AppReportsPreviewIndexRoute
 }
 export interface FileRoutesByTo {
   '/awaiting-approval': typeof AwaitingApprovalRoute
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/reports/history': typeof AppReportsHistoryRoute
   '/reports/preview/$viewId': typeof AppReportsPreviewViewIdRoute
+  '/reports/preview': typeof AppReportsPreviewIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -131,6 +139,7 @@ export interface FileRoutesById {
   '/_app/': typeof AppIndexRoute
   '/_app/reports/history': typeof AppReportsHistoryRoute
   '/_app/reports/preview/$viewId': typeof AppReportsPreviewViewIdRoute
+  '/_app/reports/preview/': typeof AppReportsPreviewIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -147,6 +156,7 @@ export interface FileRouteTypes {
     | '/user-management'
     | '/reports/history'
     | '/reports/preview/$viewId'
+    | '/reports/preview/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/awaiting-approval'
@@ -161,6 +171,7 @@ export interface FileRouteTypes {
     | '/'
     | '/reports/history'
     | '/reports/preview/$viewId'
+    | '/reports/preview'
   id:
     | '__root__'
     | '/_app'
@@ -176,6 +187,7 @@ export interface FileRouteTypes {
     | '/_app/'
     | '/_app/reports/history'
     | '/_app/reports/preview/$viewId'
+    | '/_app/reports/preview/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -273,6 +285,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppReportsHistoryRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/reports/preview/': {
+      id: '/_app/reports/preview/'
+      path: '/reports/preview'
+      fullPath: '/reports/preview/'
+      preLoaderRoute: typeof AppReportsPreviewIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/reports/preview/$viewId': {
       id: '/_app/reports/preview/$viewId'
       path: '/reports/preview/$viewId'
@@ -291,6 +310,7 @@ interface AppRouteRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppReportsHistoryRoute: typeof AppReportsHistoryRoute
   AppReportsPreviewViewIdRoute: typeof AppReportsPreviewViewIdRoute
+  AppReportsPreviewIndexRoute: typeof AppReportsPreviewIndexRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
@@ -301,6 +321,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppReportsHistoryRoute: AppReportsHistoryRoute,
   AppReportsPreviewViewIdRoute: AppReportsPreviewViewIdRoute,
+  AppReportsPreviewIndexRoute: AppReportsPreviewIndexRoute,
 }
 
 const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(

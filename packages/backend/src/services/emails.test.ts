@@ -32,7 +32,7 @@ function email(
     ...summary,
     platformCampaignID: `platform-${summary.name}`,
     listIDs: ["list-1"],
-    content: "https://example.com/campaign",
+    contentPath: "email-content/campaign.html",
     sent: 1200,
     lastFetchedAt: fetchedAt,
     notes: "Internal notes",

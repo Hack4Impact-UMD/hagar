@@ -49,7 +49,7 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
 
   await expect(page).toHaveURL(/\/awaiting-approval$/);
   await expect(page.getByTestId("awaiting-approval")).toHaveText(
-    "Waiting for admin approval. Come back later once the admin approves you!",
+    "Thanks for signing up! An admin needs to approve your account and assign you a role before you can access Hagar.",
   );
 
   // Storage rules let an unapproved user read only their own photo.
@@ -67,7 +67,7 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   await approveUser(TEST_USER.email);
   await page.reload();
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByTestId("homepage")).toHaveText("Homepage");
+  await expect(page.getByTestId("homepage")).toBeVisible();
 
   await page.getByTestId("profile-link").click();
   await expect(page.getByTestId("profile")).toHaveText("My Profile");
@@ -84,6 +84,7 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   await page.getByRole("link", { name: "Back to homepage" }).click();
   await expect(page.getByTestId("homepage")).toBeVisible();
 
+  await page.getByRole("button", { name: "Account menu" }).click();
   await page.getByTestId("sign-out").click();
   await expect(page).toHaveURL(/\/login$/);
   await expect(page.getByRole("heading", { name: "Login" })).toBeVisible();
@@ -92,5 +93,5 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
   await page.getByTestId("email").fill(TEST_USER.email);
   await page.getByTestId("password").fill(TEST_USER.password);
   await page.getByTestId("log-in").click();
-  await expect(page.getByTestId("homepage")).toHaveText("Homepage");
+  await expect(page.getByTestId("homepage")).toBeVisible();
 });
