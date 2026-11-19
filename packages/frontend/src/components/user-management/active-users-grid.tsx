@@ -10,7 +10,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Input } from "@frontend/components/ui/input.tsx";
 import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
-import { ConfirmDialog } from "@frontend/components/user-management/confirm-dialog.tsx";
+import { ConfirmDialog } from "@frontend/components/confirm-dialog.tsx";
 import {
   RegionFilter,
   RoleFilter,

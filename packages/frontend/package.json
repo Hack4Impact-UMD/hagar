@@ -19,6 +19,7 @@
     "@tanstack/react-router": "^1.170.32",
     "@trpc/client": "^11.18.0",
     "@trpc/tanstack-react-query": "^11.18.0",
+    "arktype": "^2.2.3",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
     "firebase": "^12.18.0",

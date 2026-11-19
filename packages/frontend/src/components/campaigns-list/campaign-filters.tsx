@@ -1,0 +1,570 @@
+import type { KeyboardEvent, ReactNode } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { flushSync } from "react-dom";
+import { userRegions } from "@repo/common";
+import {
+  CaretDownIcon,
+  CheckIcon,
+  MagnifyingGlassIcon,
+  XIcon,
+} from "@phosphor-icons/react";
+import { Input } from "@frontend/components/ui/input.tsx";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@frontend/components/ui/dropdown-menu.tsx";
+import type { CampaignStatus } from "@frontend/lib/campaign-list.ts";
+import {
+  CHANNEL_LABELS,
+  DATE_PRESET_LABELS,
+  STATUS_DOT_CLASS,
+  campaignStatuses,
+  channels,
+  datePresets,
+  formatCustomRange,
+} from "@frontend/lib/campaign-list.ts";
+import type { CampaignSearch } from "@frontend/lib/campaignSearch.ts";
+import { Skeleton } from "@frontend/components/ui/skeleton.tsx";
+
+/** Changes the URL's search params. `replace` skips adding a history entry. */
+export type UpdateSearch = (
+  update: (prev: CampaignSearch) => CampaignSearch,
+  options?: { replace?: boolean },
+) => void;
+
+// A filter list with nothing picked is left out of the URL entirely.
+function orUndefined<T>(list: T[]): T[] | undefined {
+  return list.length > 0 ? list : undefined;
+}
+
+const TRIGGER =
+  "inline-flex h-[2.125rem] cursor-pointer items-center gap-1.5 rounded-[0.375rem] border pr-2.5 pl-3 text-base leading-none outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
+const TRIGGER_IDLE = "border-[#D9D4CE] bg-white text-[#1F1F1F]";
+const TRIGGER_ACTIVE = "border-primary bg-[#F3E4DA] font-medium text-[#B45309]";
+const PANEL =
+  "min-w-56 rounded-xl border-[#D9D4CE] bg-white p-0 shadow-[0_12px_32px_0_rgba(0,0,0,0.12)]";
+const PANEL_LABEL =
+  "px-4 pt-4 pb-2 text-sm font-semibold tracking-wide text-[#6B6B6B] uppercase";
+const DATE_ITEM =
+  "mx-2 cursor-pointer rounded-[0.375rem] px-2.5 py-2 text-[0.9375rem] text-[#1F1F1F] focus:bg-[#F9F7F4] data-selected:bg-[#F1DED2] data-selected:text-[#B45309]";
+const DATE_INPUT =
+  "h-10 rounded-[0.375rem] border-[#D9D4CE] bg-white px-2 text-sm text-[#1F1F1F] shadow-none";
+
+function FilterTrigger({
+  label,
+  active,
+  count,
+  testId,
+}: {
+  label: string;
+  active: boolean;
+  count?: number;
+  testId: string;
+}) {
+  return (
+    <DropdownMenuTrigger asChild>
+      <button
+        type="button"
+        data-testid={testId}
+        className={`${TRIGGER} ${active ? TRIGGER_ACTIVE : TRIGGER_IDLE}`}
+      >
+        {label}
+        {count ? (
+          <span className="flex size-4 items-center justify-center rounded-full bg-primary text-[0.6875rem] leading-none font-semibold text-primary-foreground">
+            {count}
+          </span>
+        ) : null}
+        <CaretDownIcon className="size-3" />
+      </button>
+    </DropdownMenuTrigger>
+  );
+}
+
+function SearchBox({
+  value,
+  latestValue,
+  onChange,
+}: {
+  value: string;
+  /** The search text in the URL right now, which `value` can trail. */
+  latestValue: () => string;
+  onChange: (text: string) => void;
+}) {
+  // Typed text lives here so the cursor doesn't jump while the URL catches up.
+  const [text, setText] = useState(value);
+  useEffect(() => {
+    // An older value from our own typing doesn't match the URL any more, so
+    // it's skipped. Once `value` matches the URL it has settled, whether it
+    // came from typing, Back/Forward, "Clear all" or a removed chip.
+    if (value === latestValue()) setText(value);
+  }, [value, latestValue]);
+
+  return (
+    <div className="relative w-60">
+      <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[#6B6B6B]" />
+      <Input
+        type="search"
+        aria-label="Search campaigns by name"
+        placeholder="Search"
+        data-testid="campaign-search"
+        value={text}
+        onChange={(event) => {
+          setText(event.target.value);
+          onChange(event.target.value);
+        }}
+        className="h-9.75 rounded-[0.375rem] border-[#D9D4CE] bg-white py-2 pr-3 pl-9 text-sm shadow-none"
+      />
+    </div>
+  );
+}
+
+function DateFilter({
+  search,
+  setSearch,
+}: {
+  search: CampaignSearch;
+  setSearch: UpdateSearch;
+}) {
+  const applied =
+    search.from && search.to ? { from: search.from, to: search.to } : undefined;
+  const selected = search.date ?? "ALL_TIME";
+  // Edited here and only written to the URL on Apply, so the list doesn't
+  // refilter while someone is partway through picking a day.
+  const [custom, setCustom] = useState(false);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const canApply = from !== "" && to !== "" && from <= to;
+  const id = useId();
+  const customRef = useRef<HTMLDivElement>(null);
+  const startRef = useRef<HTMLInputElement>(null);
+  const clearRef = useRef<HTMLDivElement>(null);
+  const applyRef = useRef<HTMLDivElement>(null);
+  // The date fields aren't menu items, so the menu's own keys would hijack
+  // them: typing jumps between items and Tab goes nowhere. Keys stay in the
+  // fields, except Escape (closes the panel) and Tab out of either end, which
+  // moves to the menu item beside it so the range can be applied by keyboard.
+  const fieldKeys = (
+    event: KeyboardEvent<HTMLInputElement>,
+    tabOut: (() => void) | undefined,
+  ) => {
+    if (event.key === "Escape") return;
+    event.stopPropagation();
+    if (event.key === "Tab" && tabOut) {
+      event.preventDefault();
+      tabOut();
+    }
+  };
+
+  return (
+    <DropdownMenu
+      onOpenChange={(open) => {
+        // Each opening starts from what the URL holds, dropping unapplied edits.
+        if (!open) return;
+        setCustom(applied !== undefined);
+        setFrom(applied?.from ?? "");
+        setTo(applied?.to ?? "");
+      }}
+    >
+      <FilterTrigger
+        label="Date"
+        active={applied !== undefined || selected !== "ALL_TIME"}
+        testId="campaign-filter-date"
+      />
+      <DropdownMenuContent
+        align="start"
+        className={`${PANEL} w-[17.625rem] pb-2`}
+      >
+        <DropdownMenuLabel className={PANEL_LABEL}>
+          Date range
+        </DropdownMenuLabel>
+        {datePresets.map((preset) => (
+          <DropdownMenuItem
+            key={preset}
+            data-selected={(!custom && preset === selected) || undefined}
+            onSelect={() =>
+              setSearch((prev) => ({
+                ...prev,
+                date: preset === "ALL_TIME" ? undefined : preset,
+                from: undefined,
+                to: undefined,
+              }))
+            }
+            className={DATE_ITEM}
+          >
+            {DATE_PRESET_LABELS[preset]}
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuItem
+          ref={customRef}
+          data-testid="campaign-date-custom"
+          data-selected={custom || undefined}
+          // Shows the date fields below instead of closing the panel, and moves
+          // focus into them, which arrow keys can't do since they aren't items.
+          onSelect={(event) => {
+            event.preventDefault();
+            flushSync(() => setCustom(true));
+            startRef.current?.focus();
+          }}
+          className={DATE_ITEM}
+        >
+          Custom range
+        </DropdownMenuItem>
+        {custom ? (
+          <>
+            <div className="px-4 pt-2">
+              <div className="grid grid-cols-2 gap-3">
+                <label
+                  htmlFor={`${id}-from`}
+                  className="flex flex-col gap-1.5 text-sm text-[#6B6B6B]"
+                >
+                  Start
+                  <Input
+                    ref={startRef}
+                    id={`${id}-from`}
+                    type="date"
+                    value={from}
+                    max={to || undefined}
+                    onChange={(event) => setFrom(event.target.value)}
+                    onKeyDown={(event) =>
+                      fieldKeys(
+                        event,
+                        event.shiftKey
+                          ? () => customRef.current?.focus()
+                          : undefined,
+                      )
+                    }
+                    data-testid="campaign-date-from"
+                    className={DATE_INPUT}
+                  />
+                </label>
+                <label
+                  htmlFor={`${id}-to`}
+                  className="flex flex-col gap-1.5 text-sm text-[#6B6B6B]"
+                >
+                  End
+                  <Input
+                    id={`${id}-to`}
+                    type="date"
+                    value={to}
+                    min={from || undefined}
+                    onChange={(event) => setTo(event.target.value)}
+                    onKeyDown={(event) =>
+                      fieldKeys(
+                        event,
+                        event.shiftKey
+                          ? undefined
+                          : () =>
+                              (canApply ? applyRef : clearRef).current?.focus(),
+                      )
+                    }
+                    data-testid="campaign-date-to"
+                    className={DATE_INPUT}
+                  />
+                </label>
+              </div>
+              <p className="mt-3 text-sm text-[#6B6B6B]">
+                Shows campaigns running at any point in this range.
+              </p>
+            </div>
+            <div className="mt-3 flex items-center justify-between border-t border-[#ECE8E3] px-4 pt-3">
+              <DropdownMenuItem
+                ref={clearRef}
+                onSelect={() =>
+                  setSearch((prev) => ({
+                    ...prev,
+                    date: undefined,
+                    from: undefined,
+                    to: undefined,
+                  }))
+                }
+                className="-ml-2 cursor-pointer rounded-md px-2 py-1 text-sm text-[#6B6B6B] focus:bg-[#F9F7F4] focus:text-[#1F1F1F]"
+              >
+                Clear
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                ref={applyRef}
+                disabled={!canApply}
+                onSelect={() =>
+                  setSearch((prev) => ({ ...prev, date: undefined, from, to }))
+                }
+                data-testid="campaign-date-apply"
+                className="h-8 cursor-pointer rounded-md bg-primary px-4 py-0 text-sm text-primary-foreground hover:bg-primary/90 focus:bg-primary/90 focus:text-primary-foreground"
+              >
+                Apply
+              </DropdownMenuItem>
+            </div>
+          </>
+        ) : null}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function MultiSelectFilter<T extends string>({
+  label,
+  options,
+  selected,
+  onChange,
+  renderOption,
+  testId,
+}: {
+  label: string;
+  options: readonly T[];
+  selected: readonly T[];
+  onChange: (update: (prev: readonly T[]) => T[]) => void;
+  renderOption: (option: T) => ReactNode;
+  testId: string;
+}) {
+  const toggle = (option: T) =>
+    onChange((prev) =>
+      options.filter((o) =>
+        o === option ? !prev.includes(o) : prev.includes(o),
+      ),
+    );
+
+  return (
+    <DropdownMenu>
+      <FilterTrigger
+        label={label}
+        active={selected.length > 0}
+        count={selected.length}
+        testId={testId}
+      />
+      <DropdownMenuContent align="start" className={PANEL}>
+        <DropdownMenuLabel className={PANEL_LABEL}>{label}</DropdownMenuLabel>
+        {options.map((option) => (
+          <DropdownMenuCheckboxItem
+            key={option}
+            checked={selected.includes(option)}
+            onCheckedChange={() => toggle(option)}
+            // Keeps the panel open so several options can be picked in a row.
+            onSelect={(event) => event.preventDefault()}
+            // The built-in check mark sits on the right; the design puts a
+            // filled box on the left instead.
+            className="group mx-2 cursor-pointer gap-3 rounded-md px-2 py-2 text-[0.9375rem] text-[#1F1F1F] focus:bg-[#F9F7F4] *:data-[slot=dropdown-menu-checkbox-item-indicator]:hidden"
+          >
+            <span
+              aria-hidden="true"
+              className="flex size-4 items-center justify-center rounded-[0.25rem] border border-[#BCB4AB] group-data-[state=checked]:border-primary group-data-[state=checked]:bg-primary"
+            >
+              <CheckIcon
+                weight="bold"
+                className="size-3 text-primary-foreground opacity-0 group-data-[state=checked]:opacity-100"
+              />
+            </span>
+            {renderOption(option)}
+          </DropdownMenuCheckboxItem>
+        ))}
+        <div className="mt-2 flex items-center justify-between border-t border-[#ECE8E3] px-4 py-3">
+          <DropdownMenuItem
+            // Keeps the panel open after clearing, like the checkboxes above.
+            onSelect={(event) => {
+              event.preventDefault();
+              onChange(() => []);
+            }}
+            className="-ml-2 cursor-pointer rounded-md px-2 py-1 text-sm text-[#6B6B6B] focus:bg-[#F9F7F4] focus:text-[#1F1F1F]"
+          >
+            Clear
+          </DropdownMenuItem>
+          <DropdownMenuItem className="h-8 cursor-pointer rounded-md bg-primary px-4 py-0 text-sm text-primary-foreground hover:bg-primary/90 focus:bg-primary/90 focus:text-primary-foreground">
+            Done
+          </DropdownMenuItem>
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/** The search box and filter dropdowns above the table. */
+export function CampaignFilterBar({
+  search,
+  setSearch,
+  latestQ,
+}: {
+  search: CampaignSearch;
+  setSearch: UpdateSearch;
+  latestQ: () => string;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <SearchBox
+        value={search.q ?? ""}
+        latestValue={latestQ}
+        onChange={(text) =>
+          // One history entry per keystroke would make Back unusable.
+          setSearch(
+            (prev) => ({ ...prev, q: text === "" ? undefined : text }),
+            {
+              replace: true,
+            },
+          )
+        }
+      />
+      <DateFilter search={search} setSearch={setSearch} />
+      <MultiSelectFilter
+        label="Status"
+        testId="campaign-filter-status"
+        options={campaignStatuses}
+        selected={search.status ?? []}
+        onChange={(update) =>
+          setSearch((prev) => ({
+            ...prev,
+            status: orUndefined(update(prev.status ?? [])),
+          }))
+        }
+        renderOption={(status: CampaignStatus) => (
+          <span className="inline-flex items-center gap-2">
+            <span
+              aria-hidden="true"
+              className={`size-2 rounded-full ${STATUS_DOT_CLASS[status]}`}
+            />
+            {status}
+          </span>
+        )}
+      />
+      <MultiSelectFilter
+        label="Region"
+        testId="campaign-filter-region"
+        options={userRegions}
+        selected={search.region ?? []}
+        onChange={(update) =>
+          setSearch((prev) => ({
+            ...prev,
+            region: orUndefined(update(prev.region ?? [])),
+          }))
+        }
+        renderOption={(region) => region}
+      />
+      <MultiSelectFilter
+        label="Channel"
+        testId="campaign-filter-channel"
+        options={channels}
+        selected={search.channel ?? []}
+        onChange={(update) =>
+          setSearch((prev) => ({
+            ...prev,
+            channel: orUndefined(update(prev.channel ?? [])),
+          }))
+        }
+        renderOption={(channel) => CHANNEL_LABELS[channel]}
+      />
+    </div>
+  );
+}
+
+type Chip = {
+  key: string;
+  label: string;
+  remove: (prev: CampaignSearch) => CampaignSearch;
+};
+
+function without<T>(list: readonly T[] | undefined, value: T) {
+  return orUndefined((list ?? []).filter((item) => item !== value));
+}
+
+function activeChips(search: CampaignSearch): Chip[] {
+  const chips: Chip[] = [];
+  if (search.from && search.to) {
+    chips.push({
+      key: "date",
+      label: formatCustomRange({ from: search.from, to: search.to }),
+      remove: (prev) => ({ ...prev, from: undefined, to: undefined }),
+    });
+  } else if (search.date) {
+    chips.push({
+      key: "date",
+      label: DATE_PRESET_LABELS[search.date],
+      remove: (prev) => ({ ...prev, date: undefined }),
+    });
+  }
+  for (const status of search.status ?? []) {
+    chips.push({
+      key: `status-${status}`,
+      label: status,
+      remove: (prev) => ({ ...prev, status: without(prev.status, status) }),
+    });
+  }
+  for (const region of search.region ?? []) {
+    chips.push({
+      key: `region-${region}`,
+      label: region,
+      remove: (prev) => ({ ...prev, region: without(prev.region, region) }),
+    });
+  }
+  for (const channel of search.channel ?? []) {
+    chips.push({
+      key: `channel-${channel}`,
+      label: CHANNEL_LABELS[channel],
+      remove: (prev) => ({ ...prev, channel: without(prev.channel, channel) }),
+    });
+  }
+  return chips;
+}
+
+/** "Showing X of Y campaigns", a removable chip per filter, and Clear all. */
+export function CampaignFilterChips({
+  search,
+  counts,
+  setSearch,
+  onClearAll,
+}: {
+  search: CampaignSearch;
+  counts?: { shown: number; total: number };
+  setSearch: UpdateSearch;
+  onClearAll: () => void;
+}) {
+  const chips = activeChips(search);
+  const filtered = chips.length > 0 || search.q !== undefined;
+
+  return (
+    <div
+      data-testid="campaign-filter-chips"
+      className="flex flex-wrap items-center gap-2 text-base leading-none"
+    >
+      {counts ? (
+        <span role="status" className="text-[#6B6B6B]">
+          Showing {counts.shown} of {counts.total}{" "}
+          {counts.total === 1 ? "campaign" : "campaigns"}
+        </span>
+      ) : (
+        <Skeleton
+          aria-hidden="true"
+          className="h-4 w-44 rounded-sm bg-[#EEEAE5]"
+        />
+      )}
+      {filtered ? (
+        <span aria-hidden="true" className="h-4 w-px bg-[#D9D4CE]" />
+      ) : null}
+      {chips.map((chip) => (
+        <span
+          key={chip.key}
+          className="inline-flex items-center gap-2 rounded-full bg-[#F1DED2] py-1 pr-2.5 pl-3 text-[0.875rem] font-medium text-[#B45309]"
+        >
+          {chip.label}
+          <button
+            type="button"
+            aria-label={`Remove ${chip.label} filter`}
+            onClick={() => setSearch(chip.remove)}
+            className="cursor-pointer rounded-sm"
+          >
+            <XIcon weight="bold" className="size-2.5 text-[#B45309]/80" />
+          </button>
+        </span>
+      ))}
+      {filtered ? (
+        <button
+          type="button"
+          data-testid="campaign-clear-filters"
+          onClick={onClearAll}
+          className="cursor-pointer text-primary"
+        >
+          Clear all
+        </button>
+      ) : null}
+    </div>
+  );
+}
