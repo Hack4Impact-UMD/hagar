@@ -1,5 +1,6 @@
 import type { KeyboardEvent, ReactNode } from "react";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { userRegions } from "@repo/common";
 import {
   CaretDownIcon,
@@ -138,10 +139,24 @@ function DateFilter({
   const [to, setTo] = useState("");
   const canApply = from !== "" && to !== "" && from <= to;
   const id = useId();
-  // The menu treats typing as jump-to-item and Tab as close, which would
-  // hijack the date fields. Escape still reaches it and closes the panel.
-  const keepKeys = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key !== "Escape") event.stopPropagation();
+  const customRef = useRef<HTMLDivElement>(null);
+  const startRef = useRef<HTMLInputElement>(null);
+  const clearRef = useRef<HTMLDivElement>(null);
+  const applyRef = useRef<HTMLDivElement>(null);
+  // The date fields aren't menu items, so the menu's own keys would hijack
+  // them: typing jumps between items and Tab goes nowhere. Keys stay in the
+  // fields, except Escape (closes the panel) and Tab out of either end, which
+  // moves to the menu item beside it so the range can be applied by keyboard.
+  const fieldKeys = (
+    event: KeyboardEvent<HTMLInputElement>,
+    tabOut: (() => void) | undefined,
+  ) => {
+    if (event.key === "Escape") return;
+    event.stopPropagation();
+    if (event.key === "Tab" && tabOut) {
+      event.preventDefault();
+      tabOut();
+    }
   };
 
   return (
@@ -184,12 +199,15 @@ function DateFilter({
           </DropdownMenuItem>
         ))}
         <DropdownMenuItem
+          ref={customRef}
           data-testid="campaign-date-custom"
           data-selected={custom || undefined}
-          // Shows the date fields below instead of closing the panel.
+          // Shows the date fields below instead of closing the panel, and moves
+          // focus into them, which arrow keys can't do since they aren't items.
           onSelect={(event) => {
             event.preventDefault();
-            setCustom(true);
+            flushSync(() => setCustom(true));
+            startRef.current?.focus();
           }}
           className={DATE_ITEM}
         >
@@ -205,12 +223,20 @@ function DateFilter({
                 >
                   Start
                   <Input
+                    ref={startRef}
                     id={`${id}-from`}
                     type="date"
                     value={from}
                     max={to || undefined}
                     onChange={(event) => setFrom(event.target.value)}
-                    onKeyDown={keepKeys}
+                    onKeyDown={(event) =>
+                      fieldKeys(
+                        event,
+                        event.shiftKey
+                          ? () => customRef.current?.focus()
+                          : undefined,
+                      )
+                    }
                     data-testid="campaign-date-from"
                     className={DATE_INPUT}
                   />
@@ -226,7 +252,15 @@ function DateFilter({
                     value={to}
                     min={from || undefined}
                     onChange={(event) => setTo(event.target.value)}
-                    onKeyDown={keepKeys}
+                    onKeyDown={(event) =>
+                      fieldKeys(
+                        event,
+                        event.shiftKey
+                          ? undefined
+                          : () =>
+                              (canApply ? applyRef : clearRef).current?.focus(),
+                      )
+                    }
                     data-testid="campaign-date-to"
                     className={DATE_INPUT}
                   />
@@ -238,6 +272,7 @@ function DateFilter({
             </div>
             <div className="mt-3 flex items-center justify-between border-t border-[#ECE8E3] px-4 pt-3">
               <DropdownMenuItem
+                ref={clearRef}
                 onSelect={() =>
                   setSearch((prev) => ({
                     ...prev,
@@ -251,6 +286,7 @@ function DateFilter({
                 Clear
               </DropdownMenuItem>
               <DropdownMenuItem
+                ref={applyRef}
                 disabled={!canApply}
                 onSelect={() =>
                   setSearch((prev) => ({ ...prev, date: undefined, from, to }))

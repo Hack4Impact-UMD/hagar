@@ -182,12 +182,21 @@ describe("filterCampaigns", () => {
   });
 
   it("matches campaigns that ran at any point in a custom range, end day included", () => {
-    // "ended" ran Apr 16 – May 1. "active" started May 26.
-    expect(ids({ date: { from: "2026-04-20", to: "2026-05-26" } })).toEqual([
+    // Ranges are local calendar days, so the expected days are worked out in
+    // local time to keep the test right in any time zone.
+    const localDay = (iso: string) => {
+      const date = new Date(iso);
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${date.getFullYear()}-${month}-${day}`;
+    };
+    // Inside "ended" (60 to 45 days ago), and before "active" (20 to 2) starts.
+    const from = localDay(daysAgo(50));
+    expect(ids({ date: { from, to: localDay(daysAgo(20)) } })).toEqual([
       "active",
       "ended",
     ]);
-    expect(ids({ date: { from: "2026-04-20", to: "2026-05-25" } })).toEqual([
+    expect(ids({ date: { from, to: localDay(daysAgo(21)) } })).toEqual([
       "ended",
     ]);
   });
