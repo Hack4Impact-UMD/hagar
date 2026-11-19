@@ -1,6 +1,7 @@
 /**
- * Full-page placeholder shown while a route's `beforeLoad` or loader is still
- * running. Registered as the router's `defaultPendingComponent`.
+ * Full-page placeholder for any wait with nothing else to show: a route's
+ * `beforeLoad` or loader (it's the router's `defaultPendingComponent`),
+ * Firebase restoring the session, or /auth-action checking a link.
  */
 export function LoadingPage() {
   return (
@@ -27,7 +28,7 @@ function Spinner() {
       strokeWidth={5}
       className="size-14"
     >
-      <circle cx={28} cy={28} r={23} stroke="#f1ded2" />
+      <circle cx={28} cy={28} r={23} className="stroke-onboarding-icon-tile" />
       {/* Top to right quadrant of the track. Rotating around the viewBox
           center keeps the arc on the track. */}
       <path

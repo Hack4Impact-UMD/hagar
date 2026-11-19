@@ -52,12 +52,30 @@ export async function resetEmulators() {
 // The emulators treat this token as an admin, which bypasses security rules.
 const OWNER = { Authorization: "Bearer owner" };
 
+/** Creates an account directly, for tests that don't cover signing up. */
+export async function createUser(email: string, password: string) {
+  await expectOk(
+    fetch(
+      `${AUTH_HOST}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=fake-api-key`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, returnSecureToken: true }),
+      },
+    ),
+  );
+}
+
 /**
- * Applies the most recent verification email sent to `email`, as if the user
- * had clicked its link. Waits for the email, since the app sends it
- * asynchronously.
+ * The code from the most recent email of `requestType` sent to `email`, as the
+ * emulator records it instead of sending mail. Waits for the email, since the
+ * app sends it asynchronously.
  */
-export async function verifyEmail(email: string, timeoutMs = 15_000) {
+export async function latestOobCode(
+  email: string,
+  requestType: "VERIFY_EMAIL" | "PASSWORD_RESET",
+  timeoutMs = 15_000,
+): Promise<string> {
   let oobCode: string | undefined;
   await poll(
     async () => {
@@ -69,13 +87,22 @@ export async function verifyEmail(email: string, timeoutMs = 15_000) {
       };
       oobCode = oobCodes
         .filter((code) => code.email === email)
-        .findLast((code) => code.requestType === "VERIFY_EMAIL")?.oobCode;
+        .findLast((code) => code.requestType === requestType)?.oobCode;
       return oobCode !== undefined;
     },
     timeoutMs,
-    `No verification email for ${email}`,
+    `No ${requestType} email for ${email}`,
   );
+  if (oobCode === undefined) throw new Error("unreachable: poll returned");
+  return oobCode;
+}
 
+/**
+ * Applies the most recent verification email sent to `email`, as if the user
+ * had clicked its link.
+ */
+export async function verifyEmail(email: string) {
+  const oobCode = await latestOobCode(email, "VERIFY_EMAIL");
   await expectOk(
     fetch(
       `${AUTH_HOST}/identitytoolkit.googleapis.com/v1/accounts:update?key=fake-api-key`,

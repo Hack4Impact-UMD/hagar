@@ -81,7 +81,7 @@ test("takes a new user from sign up to the homepage", async ({ page }) => {
 
   await page.goto("/no-such-page");
   await expect(page.getByTestId("not-found")).toBeVisible();
-  await page.getByRole("link", { name: "Back to homepage" }).click();
+  await page.getByRole("link", { name: "Back to Home" }).click();
   await expect(page.getByTestId("homepage")).toBeVisible();
 
   await page.getByRole("button", { name: "Account menu" }).click();

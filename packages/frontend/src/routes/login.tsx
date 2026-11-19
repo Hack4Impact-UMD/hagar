@@ -14,10 +14,16 @@ import { pageTitle } from "@frontend/lib/pageTitle.ts";
 
 export const Route = createFileRoute("/login")({
   head: () => pageTitle("Login"),
+  // `reset=1` is set after a password reset. The page shows its own message
+  // for it rather than any text from the URL.
+  validateSearch: (search: Record<string, unknown>): { reset?: 1 } => ({
+    reset: search.reset === 1 ? 1 : undefined,
+  }),
   component: Login,
 });
 
 function Login() {
+  const { reset } = Route.useSearch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   // Only signs in. The route guards move the user on once the auth state
@@ -49,6 +55,14 @@ function Login() {
       onSubmit={() => logIn.mutate()}
       error={logIn.error ? authErrorMessage(logIn.error) : undefined}
     >
+      {reset ? (
+        <output
+          data-testid="password-updated"
+          className="mb-4 block rounded-[0.625em] bg-green-50 px-4 py-3 text-green-800"
+        >
+          Password updated. Log in with your new password.
+        </output>
+      ) : null}
       <FormField
         label="Email"
         type="email"
@@ -67,10 +81,12 @@ function Login() {
         data-testid="password"
         onChange={(event) => setPassword(event.target.value)}
       />
-      {/* oxlint-disable-next-line jsx-a11y/anchor-is-valid */}
-      <a href="" className="underline flex justify-end pb-7.5 text-[#808080]">
+      <Link
+        to="/forgot-password"
+        className="underline flex justify-end pb-7.5 text-[#808080]"
+      >
         Forgot Password?
-      </a>
+      </Link>
       <SubmitButton pending={busy} data-testid="log-in">
         Login
       </SubmitButton>

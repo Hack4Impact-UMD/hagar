@@ -14,6 +14,8 @@ const MESSAGES: Record<string, string> = {
     "Couldn't reach the server. Check your connection and try again.",
   "auth/email-already-in-use": "An account with this email already exists.",
   "auth/weak-password": "Password must be at least 8 characters.",
+  "auth/expired-action-code": "This link has expired.",
+  "auth/invalid-action-code": "This link is invalid or has already been used.",
 };
 
 const BAD_CREDENTIAL_CODES = [
@@ -26,6 +28,17 @@ export function isBadCredentials(error: unknown): boolean {
   return (
     error instanceof FirebaseError && BAD_CREDENTIAL_CODES.includes(error.code)
   );
+}
+
+// Codes for an email link that will never work again. Other failures, such as
+// a dropped connection, may succeed on a retry with the same link.
+const DEAD_LINK_CODES = [
+  "auth/expired-action-code",
+  "auth/invalid-action-code",
+];
+
+export function isDeadLink(error: unknown): boolean {
+  return error instanceof FirebaseError && DEAD_LINK_CODES.includes(error.code);
 }
 
 export function authErrorMessage(error: unknown): string {
