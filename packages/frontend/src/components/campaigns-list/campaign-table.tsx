@@ -216,11 +216,7 @@ export function CampaignTableMessage({
 /** Takes `sort` so the Date caret already points the right way while loading. */
 export function CampaignTableSkeleton({ sort }: { sort?: SortDirection }) {
   return (
-    <CampaignTableFrame
-      testId="campaign-list-loading"
-      sort={sort}
-      busy
-    >
+    <CampaignTableFrame testId="campaign-list-loading" sort={sort} busy>
       {Array.from({ length: 4 }, (_, row) => (
         <TableRow
           key={row}
